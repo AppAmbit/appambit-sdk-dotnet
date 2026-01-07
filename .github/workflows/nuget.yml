@@ -14,6 +14,7 @@ env:
   SDK_PATH: sdk/AppAmbit/AppAmbit.csproj
   SDK_MAUI_PATH: sdk/AppAmbit.Maui/AppAmbit.Maui.csproj
   SDK_AVALONIA_PATH: sdk/AppAmbit.Avalonia/AppAmbit.Avalonia.csproj
+  TEST_PROJECT_PATH: tests/AppAmbitTest.csproj
 
 permissions:
   contents: write
@@ -22,7 +23,7 @@ jobs:
   build:
     name: Build
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,6 +35,21 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+
+      - name: Workload restore
+        run: dotnet workload restore --project ${{ env.SDK_PATH }}
+
+      - name: Restore & Run unit tests
+        run: |
+          dotnet restore ${{ env.TEST_PROJECT_PATH }}
+          dotnet test ${{ env.TEST_PROJECT_PATH }} --configuration ${{ env.RELEASE_TYPE }} --no-restore --results-directory ./tests/TestResults --logger "trx;LogFileName=net-unit-tests.trx"
+
+      - name: Upload test report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: net-unit-tests-results
+          path: tests/TestResults/net-unit-tests.trx
 
       - name: Read version from Directory.Build.props
         id: version
@@ -73,49 +89,39 @@ jobs:
           echo "$LATEST_CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Show changelog
-        run: |
-          echo "Last changes:"
-          echo "${{ steps.changelog.outputs.changelog }}"
-
       - name: Create artifacts directory
-        run: mkdir -p ${{ env.FOLDER_OUTPUT }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "${{ env.FOLDER_OUTPUT }}" | Out-Null
 
       - name: Restore & Build AppAmbit (base)
-        if: steps.check_tag.outputs.skip_build != 'true'
         run: |
           dotnet restore ${{ env.SDK_PATH }}
           dotnet build ${{ env.SDK_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
       - name: Restore & Build AppAmbit.Maui
-        if: steps.check_tag.outputs.skip_build != 'true'
         run: |
           dotnet restore ${{ env.SDK_MAUI_PATH }}
           dotnet build ${{ env.SDK_MAUI_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
       - name: Restore & Build AppAmbit.Avalonia
-        if: steps.check_tag.outputs.skip_build != 'true'
         run: |
           dotnet restore ${{ env.SDK_AVALONIA_PATH }}
           dotnet build ${{ env.SDK_AVALONIA_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
       - name: Pack AppAmbit (base)
-        if: steps.check_tag.outputs.skip_build != 'true'
         run: |
           dotnet pack ${{ env.SDK_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
 
       - name: Pack AppAmbit.Maui
-        if: steps.check_tag.outputs.skip_build != 'true'
         run: |
           dotnet pack ${{ env.SDK_MAUI_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
 
       - name: Pack AppAmbit.Avalonia
-        if: steps.check_tag.outputs.skip_build != 'true'
         run: |
           dotnet pack ${{ env.SDK_AVALONIA_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
 
       - name: Upload artifacts
-        if: steps.check_tag.outputs.skip_build != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: AppAmbit-Packages-${{ steps.version.outputs.version_name }}

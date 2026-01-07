@@ -1,0 +1,39 @@
+name: NET Unit Tests
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+env:
+  TEST_PROJECT_PATH: tests/AppAmbitTest.csproj
+  ANDROID_PROJECT_PATH: sdk/AppAmbit/AppAmbit.csproj
+
+jobs:
+  unit_tests:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Workload restore
+        run: dotnet workload restore --project ${{ env.ANDROID_PROJECT_PATH }}
+
+      - name: Restore .NET packages
+        run: dotnet restore ${{ env.TEST_PROJECT_PATH }}
+
+      - name: Run unit tests
+        run: dotnet test ${{ env.TEST_PROJECT_PATH }} --configuration Release --no-restore --results-directory ./tests/TestResults --logger "trx;LogFileName=net-unit-tests.trx"
+
+      - name: Upload test report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: net-unit-tests-results
+          path: tests/TestResults/net-unit-tests.trx
