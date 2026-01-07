@@ -1,10 +1,12 @@
 ﻿using System.Threading.Tasks;
+#if ANDROID
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using AndroidX.Activity;
 using AndroidX.Core.Content;
 using AppAmbit.PushNotifications;
+#endif
 using AppAmbitMaui;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
@@ -150,14 +152,23 @@ public partial class MainPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+#if ANDROID
         await RefreshPushButtonAsync();
+#else
+        ButtonPushNotifications.IsVisible = false;
+#endif
     }
 
     private async void OnPushNotificationsClicked(object? sender, EventArgs e)
     {
+#if ANDROID
         await HandlePushNotificationsAsync();
+#else
+        await DisplayAlert("Info", "Push notifications are available only on Android in this sample.", "OK");
+#endif
     }
 
+#if ANDROID
     private async Task RefreshPushButtonAsync()
     {
         ButtonPushNotifications.IsVisible = true;
@@ -229,14 +240,19 @@ public partial class MainPage : ContentPage
             _isUpdatingPushButton = false;
         }
     }
-
-    private static bool HasSystemPermission(Context context)
+#else
+    private Task RefreshPushButtonAsync()
     {
-        if ((int)Build.VERSION.SdkInt < 33)
-            return true;
-
-        return ContextCompat.CheckSelfPermission(context, Android.Manifest.Permission.PostNotifications) == Permission.Granted;
+        ButtonPushNotifications.IsVisible = false;
+        return Task.CompletedTask;
     }
+
+    private async Task HandlePushNotificationsAsync()
+    {
+        ButtonPushNotifications.IsVisible = false;
+        await DisplayAlert("Info", "Push notifications are available only on Android in this sample.", "OK");
+    }
+#endif
 
     private void UpdatePushButtonText()
     {
@@ -245,6 +261,15 @@ public partial class MainPage : ContentPage
             : _notificationsEnabled
                 ? "Disable Notifications"
                 : "Enable Notifications";
+    }
+
+#if ANDROID
+    private static bool HasSystemPermission(Context context)
+    {
+        if ((int)Build.VERSION.SdkInt < 33)
+            return true;
+
+        return ContextCompat.CheckSelfPermission(context, Android.Manifest.Permission.PostNotifications) == Permission.Granted;
     }
 
     private sealed class PermissionListener : Java.Lang.Object, PushNotifications.IPermissionListener
@@ -258,6 +283,7 @@ public partial class MainPage : ContentPage
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
     }
+#endif
 
     private async void OnTestErrorLogClicked(object sender, EventArgs e)
     {
