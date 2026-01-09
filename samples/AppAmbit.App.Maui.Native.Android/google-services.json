@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "299303695274",
+    "project_id": "appambit-net-android",
+    "storage_bucket": "appambit-net-android.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:299303695274:android:664772468150458e39f1d3",
+        "android_client_info": {
+          "package_name": "com.companyname.AppAmbitTestingAppAndroid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCn-iPmdP1_2gihqtEUKMSRHabXx4hv5Dk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

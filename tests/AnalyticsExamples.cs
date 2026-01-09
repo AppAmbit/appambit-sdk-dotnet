@@ -278,6 +278,8 @@ public class AnalyticsExamples : IDisposable
 
     private sealed class FakeStorageService : IStorageService
     {
+        private string? _pushDeviceToken;
+        private bool? _pushEnabled;
         public List<SessionData> Sessions { get; } = new();
         public List<BreadcrumbsEntity> Breadcrumbs { get; } = new();
         public List<LogEntity> Logs { get; } = new();
@@ -336,6 +338,18 @@ public class AnalyticsExamples : IDisposable
         public Task<string?> GetAppId() => Task.FromResult<string?>(null);
         public Task<string?> GetConsumerId() => Task.FromResult<string?>(null);
         public Task SetConsumerId(string consumerId) => Task.CompletedTask;
+        public Task<string?> GetPushDeviceToken() => Task.FromResult(_pushDeviceToken);
+        public Task SetPushDeviceToken(string? token)
+        {
+            _pushDeviceToken = token;
+            return Task.CompletedTask;
+        }
+        public Task<bool?> GetPushEnabled() => Task.FromResult(_pushEnabled);
+        public Task SetPushEnabled(bool enabled)
+        {
+            _pushEnabled = enabled;
+            return Task.CompletedTask;
+        }
 
         public Task<List<LogEntity>> GetOldest100LogsAsync() => Task.FromResult(Logs.ToList());
         public Task LogEventAsync(LogEntity logEntity)

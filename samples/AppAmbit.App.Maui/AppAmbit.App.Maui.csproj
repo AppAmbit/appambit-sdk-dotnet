@@ -70,9 +70,14 @@
         <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
     </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\..\sdk\AppAmbit.Maui\AppAmbit.Maui.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\sdk\AppAmbit.Maui\AppAmbit.Maui.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
+    <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
+    <GoogleServicesJson Include="Platforms/Android/google-services.json" />
+  </ItemGroup>
 
     <PropertyGroup Condition="$(TargetFramework.Contains('-ios')) and '$(Configuration)' == 'Release'">
       <ApplicationId>com.AppAmbit.TestApp</ApplicationId>

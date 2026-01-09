@@ -12,6 +12,10 @@
                 HeightRequest="185"
                 Aspect="AspectFit"
                 SemanticProperties.Description="dot net bot in a race car number eight" />
+
+            <Button x:Name="ButtonPushNotifications"
+                Text="Allow Notifications"
+                Clicked="OnPushNotificationsClicked" />
                 
             <Button
                 Text="Did the app crash during your last session?" 

@@ -66,8 +66,7 @@ public static class AppAmbitMauiExtensions
             return;
         }
 
-        if (!AppAmbit.AppAmbitSdk.IsTokenValid())
-            await AppAmbit.AppAmbitSdk.EnsureTokenAsync(null);
+        await AppAmbit.AppAmbitSdk.EnsureTokenAsync(null);
 
         BreadcrumbManager.LoadBreadcrumbsFromFile();
         await SessionManager.SendEndSessionFromDatabase();

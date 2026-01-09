@@ -40,8 +40,7 @@ internal static partial class NativePlatforms
         if (!await _connectivityGate.WaitAsync(0)) return;
         try
         {
-            if (!AppAmbitSdk.InternalTokenIsValid())
-                await AppAmbitSdk.InternalEnsureToken(null);
+            await AppAmbitSdk.InternalEnsureToken(null);
 
             BreadcrumbManager.LoadBreadcrumbsFromFile();
             await SessionManager.SendEndSessionFromDatabase();

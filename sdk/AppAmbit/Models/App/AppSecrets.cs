@@ -20,4 +20,8 @@ public class AppSecrets
     public string? UserId { get; set; }
     
     public string? UserEmail { get; set; }
+
+    public string? DeviceToken { get; set; }
+
+    public bool? PushEnabled { get; set; }
 }

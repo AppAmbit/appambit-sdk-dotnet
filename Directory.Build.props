@@ -42,9 +42,9 @@
     <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
+<PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+<PackageVersion Include="sqlite-net-pcl" Version="1.9.172" />
   </ItemGroup>
 
   <ItemGroup>

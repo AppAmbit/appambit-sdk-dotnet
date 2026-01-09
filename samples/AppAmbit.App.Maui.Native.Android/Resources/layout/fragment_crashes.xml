@@ -24,6 +24,16 @@
             android:text="@string/did_the_app_crash_during_your_last_session"
             android:layout_gravity="center" />
 
+        <Button
+            android:id="@+id/btnPushNotifications"
+            style="@style/AppButton.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginHorizontal="50dp"
+            android:text="Allow Notifications"
+            android:layout_gravity="center" />
+
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="match_parent"

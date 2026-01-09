@@ -29,6 +29,34 @@ public class StorageService : IStorageService
         await _database.CreateTableAsync<EventEntity>();
         await _database.CreateTableAsync<SessionBatch>();
         await _database.CreateTableAsync<BreadcrumbsEntity>();
+        await EnsureAppSecretsColumns();
+    }
+
+    private async Task EnsureAppSecretsColumns()
+    {
+        // SQLite-net does not add columns on CreateTable when the table already exists.
+        // These migrations are idempotent and will no-op after the first run.
+        var alterCommands = new[]
+        {
+            "ALTER TABLE AppSecrets ADD COLUMN DeviceToken TEXT",
+            "ALTER TABLE AppSecrets ADD COLUMN PushEnabled INTEGER"
+        };
+
+        foreach (var sql in alterCommands)
+        {
+            try
+            {
+                await _database.ExecuteAsync(sql);
+            }
+            catch (SQLiteException)
+            {
+                // Column already exists or table missing; ignore to keep migration idempotent.
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[StorageService] Error running migration '{sql}': {ex.Message}");
+            }
+        }
     }
 
     public async Task SetDeviceId(string? deviceId)
@@ -146,6 +174,56 @@ public class StorageService : IStorageService
             appSecrets = new AppSecrets
             {
                 ConsumerId = consumerId
+            };
+            await _database.InsertAsync(appSecrets);
+        }
+    }
+
+    public async Task<string?> GetPushDeviceToken()
+    {
+        var appSecrets = await _database.Table<AppSecrets>().FirstOrDefaultAsync();
+        return appSecrets?.DeviceToken;
+    }
+
+    public async Task SetPushDeviceToken(string? token)
+    {
+        var appSecrets = await _database.Table<AppSecrets>().FirstOrDefaultAsync();
+
+        if (appSecrets != null)
+        {
+            appSecrets.DeviceToken = token;
+            await _database.UpdateAsync(appSecrets);
+        }
+        else
+        {
+            appSecrets = new AppSecrets
+            {
+                DeviceToken = token
+            };
+            await _database.InsertAsync(appSecrets);
+        }
+    }
+
+    public async Task<bool?> GetPushEnabled()
+    {
+        var appSecrets = await _database.Table<AppSecrets>().FirstOrDefaultAsync();
+        return appSecrets?.PushEnabled;
+    }
+
+    public async Task SetPushEnabled(bool enabled)
+    {
+        var appSecrets = await _database.Table<AppSecrets>().FirstOrDefaultAsync();
+
+        if (appSecrets != null)
+        {
+            appSecrets.PushEnabled = enabled;
+            await _database.UpdateAsync(appSecrets);
+        }
+        else
+        {
+            appSecrets = new AppSecrets
+            {
+                PushEnabled = enabled
             };
             await _database.InsertAsync(appSecrets);
         }

@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-android</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AppAmbit.PushNotifications</RootNamespace>
+    <SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
+    <AssemblyName>AppAmbit.PushNotifications</AssemblyName>
+    <PackageId>AppAmbit.PushNotifications</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)libs/appambit-push-notifications.aar')">
+    <LibraryProjectZip Include="libs/appambit-push-notifications.aar" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)libs/appambit-sdk.aar')">
+    <LibraryProjectZip Include="libs/appambit-sdk.aar" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Xamarin.AndroidX.Activity" Version="1.9.2" />
+    <PackageReference Include="Xamarin.AndroidX.AppCompat" Version="1.7.0" />
+    <PackageReference Include="Xamarin.AndroidX.Core" Version="1.13.1.4" />
+    <PackageReference Include="Xamarin.AndroidX.Annotation" Version="1.9.1.1" />
+    <PackageReference Include="Xamarin.Firebase.Messaging" Version="123.2.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime" Version="2.8.5" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common" Version="2.8.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
+  </ItemGroup>
+</Project>
