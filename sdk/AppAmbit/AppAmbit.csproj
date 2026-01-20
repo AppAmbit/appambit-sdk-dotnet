@@ -4,6 +4,7 @@
     <TargetFrameworks>net9.0;net9.0-android;net9.0-ios;net9.0-maccatalyst;net9.0-windows</TargetFrameworks>
     <RootNamespace>AppAmbit</RootNamespace>
     <PackageId>com.AppAmbit.Sdk</PackageId>
+    <ReadmeFile>readme.md</ReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,5 +21,15 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-ios'">
     <Compile Include="Platforms\iOS\**\*.cs" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <Target Name="CopyProjectReferencesToPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference')->WithMetadataValue('PrivateAssets', 'All'))" />
+    </ItemGroup>
+  </Target>
 
 </Project>
