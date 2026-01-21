@@ -1,3 +1,9 @@
+## Version 2.0.1
+
+### AppAmbit
+
+* **[Fix]** Fixed issue with MAUI SDK initialization using builder in iOS and Android projects.
+
 ## Version 2.0.0
 
 ### AppAmbit
