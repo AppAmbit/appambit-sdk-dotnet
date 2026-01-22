@@ -11,5 +11,10 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\sdk\AppAmbit.Maui\AppAmbit.Maui.csproj" />
+    <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <GoogleServicesJson Include="google-services.json" />
   </ItemGroup>
 </Project>

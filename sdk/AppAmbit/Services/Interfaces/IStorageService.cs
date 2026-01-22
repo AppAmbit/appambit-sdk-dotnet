@@ -45,6 +45,14 @@ public interface IStorageService
     Task<string?> GetConsumerId();
 
     Task SetConsumerId(string consumerId);
+
+    Task<string?> GetPushDeviceToken();
+
+    Task SetPushDeviceToken(string? token);
+
+    Task<bool?> GetPushEnabled();
+
+    Task SetPushEnabled(bool enabled);
     #endregion
 
     #region Logs

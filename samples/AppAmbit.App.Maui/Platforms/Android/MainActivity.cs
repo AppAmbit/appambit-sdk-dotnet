@@ -1,6 +1,8 @@
 ﻿using Android.App;
 using Android.Content.PM;
 using Android.OS;
+using AppAmbit.PushNotifications;
+using ActivityBase = AndroidX.Activity.ComponentActivity;
 
 namespace AppAmbitTestingApp;
 
@@ -9,4 +11,11 @@ namespace AppAmbitTestingApp;
                            ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
+    protected override void OnCreate(Bundle? savedInstanceState)
+    {
+        base.OnCreate(savedInstanceState);
+
+        // Start push and wire token updates to AppAmbit.
+        PushNotifications.Start(ApplicationContext);
+    }
 }

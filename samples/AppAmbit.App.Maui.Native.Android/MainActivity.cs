@@ -1,15 +1,31 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Android.App;
 using Android.Content;
-using AppAmbitMaui;
+using Android.Content.PM;
 using Android.Views;
+using Android.OS;
+using AndroidX.AppCompat.App;
+using AndroidX.Core.Content;
+using Android.Widget;
+using AppAmbit.PushNotifications;
+using AppAmbitMaui;
+using AlertDialog = AndroidX.AppCompat.App.AlertDialog;
 
 namespace AppAmbitTestingAppAndroid;
 
-[Activity(Label = "@string/app_name", MainLauncher = true)]
-public class MainActivity : Activity
+[Activity(Label = "@string/app_name", MainLauncher = true, Theme = "@style/Theme.AppCompat.Light.NoActionBar")]
+public class MainActivity : AppCompatActivity
 {
     FrameLayout? _container;
     View? _viewCrashes;
     View? _viewAnalytics;
+    Button? _btnPushNotifications;
+    bool _hasNotificationPermission;
+    bool _notificationsEnabled;
+    bool _isUpdatingPushButton;
 
     int L(string name) => Resources.GetIdentifier(name, "layout", PackageName);
     int I(string name) => Resources.GetIdentifier(name, "id", PackageName);
@@ -17,8 +33,12 @@ public class MainActivity : Activity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-
+        
+        //Uncomment the line for automatic session management
+        //Analytics.EnableManualSession();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
+        
+        PushNotifications.Start(ApplicationContext);
 
         SetContentView(L("activity_main"));
 
@@ -38,6 +58,12 @@ public class MainActivity : Activity
         btnAnalytics.Click += (s, e) => ShowView(_viewAnalytics!);
 
         ShowView(_viewCrashes!);
+    }
+
+    protected override void OnResume()
+    {
+        base.OnResume();
+        RefreshPushToggle();
     }
 
     void ShowView(View v)
@@ -137,6 +163,7 @@ public class MainActivity : Activity
         var btnSetUserEmail               = Find<Button>("btnSetUserEmail");
         var btnThrowNewCrash              = Find<Button>("btnThrowNewCrash");
         var btnGenerateTestCrash          = Find<Button>("btnGenerateTestCrash");
+        _btnPushNotifications             = Find<Button>("btnPushNotifications");
 
         var etUserId           = Find<EditText>("etUserId");
         var etUserEmail        = Find<EditText>("etUserEmail");
@@ -185,6 +212,9 @@ public class MainActivity : Activity
         btnSetUserEmail.Click               += (s, e) => { Analytics.SetUserEmail(etUserEmail.Text); ShowAlert("Info", "User email changed"); };
         btnThrowNewCrash.Click              += (s, e) => { throw new NullReferenceException(); };
         btnGenerateTestCrash.Click          += (s, e) => Crashes.GenerateTestCrash();
+        _btnPushNotifications!.Click        += async (s, e) => await HandlePushToggleAsync();
+
+        RefreshPushToggle();
     }
 
     void ShowAlert(string title, string message)
@@ -192,10 +222,99 @@ public class MainActivity : Activity
         RunOnUiThread(() =>
         {
             new AlertDialog.Builder(this)
-                .SetTitle(title)!
-                .SetMessage(message)!
-                .SetPositiveButton("OK", (s, e) => { })!
+                .SetTitle(title)
+                .SetMessage(message)
+                .SetPositiveButton("OK", (s, e) => { })
                 .Show();
         });
+    }
+
+    async Task HandlePushToggleAsync()
+    {
+        if (_isUpdatingPushButton || _btnPushNotifications == null)
+            return;
+
+        _isUpdatingPushButton = true;
+
+        try
+        {
+            if (!_hasNotificationPermission)
+            {
+                var tcs = new TaskCompletionSource<bool>();
+                PushNotifications.RequestNotificationPermission(this, new PermissionListener(granted => tcs.TrySetResult(granted)));
+                var granted = await tcs.Task;
+
+                if (granted)
+                {
+                    PushNotifications.SetNotificationsEnabled(ApplicationContext, true);
+                    _hasNotificationPermission = true;
+                    _notificationsEnabled = true;
+                    UpdatePushButtonText();
+                    ShowAlert("Done", "Notifications enabled");
+                }
+                else
+                {
+                    ShowAlert("Permission denied", "Notification permission denied by the user.");
+                }
+
+                return;
+            }
+
+            var targetEnabled = !_notificationsEnabled;
+            PushNotifications.SetNotificationsEnabled(ApplicationContext, targetEnabled);
+            _notificationsEnabled = targetEnabled;
+            UpdatePushButtonText();
+            ShowAlert("Done", targetEnabled ? "Notifications enabled" : "Notifications disabled");
+        }
+        catch (Exception ex)
+        {
+            ShowAlert("Error", ex.Message);
+        }
+        finally
+        {
+            _isUpdatingPushButton = false;
+        }
+    }
+
+    void RefreshPushToggle()
+    {
+        if (_btnPushNotifications == null)
+            return;
+
+        _hasNotificationPermission = HasSystemPermission();
+        _notificationsEnabled = PushNotifications.IsNotificationsEnabled(ApplicationContext);
+        UpdatePushButtonText();
+    }
+
+    bool HasSystemPermission()
+    {
+        if ((int)Build.VERSION.SdkInt < 33)
+            return true;
+
+        return ContextCompat.CheckSelfPermission(this, Android.Manifest.Permission.PostNotifications) == Permission.Granted;
+    }
+
+    void UpdatePushButtonText()
+    {
+        if (_btnPushNotifications == null)
+            return;
+
+        _btnPushNotifications.Text = !_hasNotificationPermission
+            ? "Allow Notifications"
+            : _notificationsEnabled
+                ? "Disable Notifications"
+                : "Enable Notifications";
+    }
+
+    private sealed class PermissionListener : Java.Lang.Object, PushNotifications.IPermissionListener
+    {
+        private readonly Action<bool> _onResult;
+
+        public PermissionListener(Action<bool> onResult)
+        {
+            _onResult = onResult;
+        }
+
+        public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
     }
 }

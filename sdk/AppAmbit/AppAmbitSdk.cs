@@ -158,21 +158,26 @@ public static class AppAmbitSdk
         }
     }
 
-    private static async Task GetNewToken(string? appKey)
+    private static async Task GetNewToken(string? appKey, string? pushToken = null, bool? pushEnabled = null)
     {
         await consumerSemaphore.WaitAsync();
         try
         {
             if (!_servicesReady) return;
-            if (TokenIsValid()) return;
             if (storageService == null) return;
 
-            await ConsumerService.UpdateAppKeyIfNeeded(appKey);
-            var consumerId = await storageService.GetConsumerId();
-            if (!string.IsNullOrWhiteSpace(consumerId))
-                _ = await apiService!.GetNewToken();
-            else
-                _ = await ConsumerService.CreateConsumer();
+            await ConsumerService.UpdateAppKeyIfNeeded(appKey ?? string.Empty);
+
+            if (!TokenIsValid())
+            {
+                var consumerId = await storageService.GetConsumerId();
+                if (!string.IsNullOrWhiteSpace(consumerId))
+                    _ = await apiService!.GetNewToken();
+                else
+                    _ = await ConsumerService.CreateConsumer();
+            }
+
+            await ConsumerService.UpdateConsumer(pushToken, pushEnabled);
         }
         catch (Exception ex)
         {
@@ -224,7 +229,9 @@ public static class AppAmbitSdk
 
     public static void End() => OnEnd();
 
-    public static Task EnsureTokenAsync(string? appKey = null) => GetNewToken(appKey);
+    public static Task EnsureTokenAsync(string? appKey = null, string? pushToken = null, bool? pushEnabled = null) => GetNewToken(appKey, pushToken, pushEnabled);
+
+    public static Task UpdateConsumerAsync(string? pushToken, bool? pushEnabled) => ConsumerService.UpdateConsumer(pushToken, pushEnabled);
 
     public static Task SendPendingAsync() => SendDataPending();
 

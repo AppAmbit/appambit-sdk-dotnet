@@ -1,10 +1,13 @@
-﻿using AppAmbit.Models.App;
+﻿using AppAmbit;
+using AppAmbit.Models.App;
 using AppAmbit.Models.Responses;
 using AppAmbit.Services.Endpoints;
 using AppAmbit.Services.Interfaces;
 using AppAmbit.Enums;
+using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace AppAmbit.Services;
 
@@ -14,6 +17,7 @@ internal class ConsumerService
     private static IAPIService? _apiService;
 
     private static IAppInfoService? _appInfoService;
+    private static readonly SemaphoreSlim PushUpdateLock = new(1, 1);
 
     public static void Initialize(IStorageService? storageService, IAppInfoService? appInfoService, IAPIService? apiService)
     {
@@ -132,6 +136,80 @@ internal class ConsumerService
 
         await _storageService.SetConsumerId(string.Empty);
         await _storageService.SetAppId(newKey);
+    }
+
+    public static async Task UpdateConsumer(string? deviceToken, bool? pushEnabled)
+    {
+        if (_storageService == null || _apiService == null)
+        {
+            Debug.WriteLine("[ConsumerService] Cannot update consumer: services not initialized.");
+            return;
+        }
+
+        await PushUpdateLock.WaitAsync();
+        try
+        {
+            var storedToken = await _storageService.GetPushDeviceToken() ?? string.Empty;
+            var storedEnabled = await _storageService.GetPushEnabled();
+
+            var normalizedToken = string.IsNullOrWhiteSpace(deviceToken) ? storedToken : deviceToken.Trim();
+            var normalizedEnabled = pushEnabled ?? storedEnabled ?? true;
+
+            if (string.IsNullOrWhiteSpace(normalizedToken) && pushEnabled == null && storedEnabled == null)
+            {
+                Debug.WriteLine("[ConsumerService] No push data to update (token and flag missing).");
+                return;
+            }
+
+            await _storageService.SetPushDeviceToken(normalizedToken);
+            await _storageService.SetPushEnabled(normalizedEnabled);
+
+            if (!await NetConnectivity.HasInternetAsync())
+            {
+                Debug.WriteLine("[ConsumerService] No internet connection, backend update deferred.");
+                return;
+            }
+
+            var consumerId = await _storageService.GetConsumerId();
+            if (string.IsNullOrWhiteSpace(consumerId))
+            {
+                Debug.WriteLine("[ConsumerService] consumerId missing, backend update skipped.");
+                return;
+            }
+
+            var payloadToken = string.IsNullOrWhiteSpace(normalizedToken) ? null : normalizedToken;
+            var payloadEnabled = pushEnabled ?? storedEnabled;
+
+            if (payloadToken == null && payloadEnabled == null)
+            {
+                Debug.WriteLine("[ConsumerService] Nothing to send to backend (token empty and enabled flag null).");
+                return;
+            }
+
+            var endpoint = new UpdateConsumerEndpoint(consumerId, new UpdateConsumer(payloadToken, payloadEnabled));
+            var response = await _apiService.ExecuteRequest<object>(endpoint);
+
+            if (response != null && response.ErrorType == ApiErrorType.None)
+            {
+                Debug.WriteLine("[ConsumerService] Consumer push state updated successfully.");
+            }
+            else if (response != null && response.ErrorType == ApiErrorType.NetworkUnavailable)
+            {
+                Debug.WriteLine("[ConsumerService] Network unavailable while updating consumer push state.");
+            }
+            else
+            {
+                Debug.WriteLine("[ConsumerService] Failed to update consumer push state.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ConsumerService] Exception while updating consumer push state: {ex}");
+        }
+        finally
+        {
+            PushUpdateLock.Release();
+        }
     }
 
 }
