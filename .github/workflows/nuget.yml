@@ -153,7 +153,7 @@ jobs:
           foreach ($pkg in $pkgs) {
             Write-Host "Pushing $($pkg.FullName)"
             dotnet nuget push "$($pkg.FullName)" `
-              --api-key "${{ secrets.NUGET_TOKEN }}" `
+              --api-key "${{ secrets.NUGET_APPKEY_SECRET }}" `
               --source https://api.nuget.org/v3/index.json `
               --skip-duplicate
           }
