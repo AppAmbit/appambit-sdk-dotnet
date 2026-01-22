@@ -101,6 +101,7 @@ jobs:
 
       - name: Restore & Build AppAmbit.Maui
         run: |
+          dotnet workload restore ${{ env.SDK_MAUI_PATH }}
           dotnet restore ${{ env.SDK_MAUI_PATH }}
           dotnet build ${{ env.SDK_MAUI_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
