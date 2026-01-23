@@ -13,6 +13,8 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseAppAmbit("<YOUR-APPKEY>");
 
+        
+
         return builder.Build();
     }
 }

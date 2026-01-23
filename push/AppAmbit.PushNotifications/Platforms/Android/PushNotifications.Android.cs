@@ -152,14 +152,14 @@ internal static class PushNotificationsAndroid
 
         public void Customize(Context context, NotificationCompat.Builder builder, AppAmbitNotification notification)
         {
-            var managedNotification = new AppAmbitNotification(
+            var managedNotification = new PushNotificationData(
                 notification.Title,
                 notification.Body,
                 notification.Color,
                 notification.SmallIconName,
                 notification.Data);
 
-            Managed.Customize(context, builder, managedNotification);
+            Managed.Customize((object)context, (object)builder, managedNotification);
         }
     }
 

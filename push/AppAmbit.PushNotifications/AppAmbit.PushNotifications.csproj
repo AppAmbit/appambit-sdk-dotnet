@@ -1,23 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFramework>net9.0-android</TargetFramework>
+    <TargetFrameworks>net9.0-android;net9.0-ios</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>AppAmbit.PushNotifications</RootNamespace>
-    <SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
     <AssemblyName>AppAmbit.PushNotifications</AssemblyName>
     <PackageId>AppAmbit.PushNotifications</PackageId>
   </PropertyGroup>
 
-  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)libs/appambit-push-notifications.aar')">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
+    <SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-ios'">
+    <AppAmbitPushNotificationsPodSource>$(MSBuildThisFileDirectory)..\..\..\appambit-sdk-ios\Push\AppAmbitPushNotifications</AppAmbitPushNotificationsPodSource>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Platforms\Android\**\*.cs" />
+    <Compile Remove="Platforms\iOS\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android' and Exists('$(MSBuildThisFileDirectory)libs/appambit-push-notifications.aar')">
     <LibraryProjectZip Include="libs/appambit-push-notifications.aar" />
   </ItemGroup>
 
-  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)libs/appambit-sdk.aar')">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android' and Exists('$(MSBuildThisFileDirectory)libs/appambit-sdk.aar')">
     <LibraryProjectZip Include="libs/appambit-sdk.aar" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
     <PackageReference Include="Xamarin.AndroidX.Activity" Version="1.9.2" />
     <PackageReference Include="Xamarin.AndroidX.AppCompat" Version="1.7.0" />
     <PackageReference Include="Xamarin.AndroidX.Core" Version="1.13.1.4" />
@@ -27,7 +40,20 @@
     <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common" Version="2.8.5" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
     <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
+    <Compile Include="Platforms\Android\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-ios'">
+    <Compile Include="Platforms\iOS\**\*.cs" />
+  </ItemGroup>  
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-ios'">
+    <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
+  </ItemGroup>
+
 </Project>

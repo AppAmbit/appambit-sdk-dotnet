@@ -36,27 +36,46 @@ public class StorageService : IStorageService
     {
         // SQLite-net does not add columns on CreateTable when the table already exists.
         // These migrations are idempotent and will no-op after the first run.
-        var alterCommands = new[]
+        var columnsToAdd = new[]
         {
-            "ALTER TABLE AppSecrets ADD COLUMN DeviceToken TEXT",
-            "ALTER TABLE AppSecrets ADD COLUMN PushEnabled INTEGER"
+            ("DeviceToken", "TEXT"),
+            ("PushEnabled", "INTEGER")
         };
 
-        foreach (var sql in alterCommands)
+        foreach (var (columnName, columnType) in columnsToAdd)
         {
-            try
+            if (!await ColumnExistsAsync("AppSecrets", columnName))
             {
-                await _database.ExecuteAsync(sql);
-            }
-            catch (SQLiteException)
-            {
-                // Column already exists or table missing; ignore to keep migration idempotent.
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[StorageService] Error running migration '{sql}': {ex.Message}");
+                var sql = $"ALTER TABLE AppSecrets ADD COLUMN {columnName} {columnType}";
+                try
+                {
+                    await _database.ExecuteAsync(sql);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[StorageService] Error running migration '{sql}': {ex.Message}");
+                }
             }
         }
+    }
+
+    private async Task<bool> ColumnExistsAsync(string tableName, string columnName)
+    {
+        try
+        {
+            var result = await _database.QueryAsync<ColumnInfo>($"PRAGMA table_info({tableName})");
+            return result.Any(c => c.name == columnName);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[StorageService] Error checking column existence: {ex.Message}");
+            return false;
+        }
+    }
+
+    private class ColumnInfo
+    {
+        public string name { get; set; }
     }
 
     public async Task SetDeviceId(string? deviceId)

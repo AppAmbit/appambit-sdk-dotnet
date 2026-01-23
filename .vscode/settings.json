@@ -1,0 +1,13 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "killall": true,
+        "code": true,
+        "dotnet clean": true,
+        "dotnet build": true,
+        "lsof": true,
+        "true": true
+    },
+    "csharp.debugging.enableSourceLinkDownloadForDebugging": false,
+    "csharp.debugging.enableSourceLinkSupport": false,
+    "debug.enableSourceServerSupport": false
+}
