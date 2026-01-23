@@ -246,7 +246,7 @@ public class MainActivity : AppCompatActivity
 
                 if (granted)
                 {
-                    PushNotifications.SetNotificationsEnabled(ApplicationContext, true);
+                    PushNotifications.SetNotificationsEnabled(true, ApplicationContext);
                     _hasNotificationPermission = true;
                     _notificationsEnabled = true;
                     UpdatePushButtonText();
@@ -261,7 +261,7 @@ public class MainActivity : AppCompatActivity
             }
 
             var targetEnabled = !_notificationsEnabled;
-            PushNotifications.SetNotificationsEnabled(ApplicationContext, targetEnabled);
+            PushNotifications.SetNotificationsEnabled(targetEnabled, ApplicationContext);
             _notificationsEnabled = targetEnabled;
             UpdatePushButtonText();
             ShowAlert("Done", targetEnabled ? "Notifications enabled" : "Notifications disabled");

@@ -211,7 +211,7 @@ public partial class MainPage : ContentPage
                 var granted = await tcs.Task;
                 if (granted)
                 {
-                    PushNotifications.SetNotificationsEnabled(context, true);
+                    PushNotifications.SetNotificationsEnabled(true, context);
                     _hasNotificationPermission = true;
                     _notificationsEnabled = true;
                     UpdatePushButtonText();
@@ -226,7 +226,7 @@ public partial class MainPage : ContentPage
             }
 
             var targetEnabled = !_notificationsEnabled;
-            PushNotifications.SetNotificationsEnabled(context, targetEnabled);
+            PushNotifications.SetNotificationsEnabled(targetEnabled, context);
             _notificationsEnabled = targetEnabled;
             UpdatePushButtonText();
             await DisplayAlert("Done", targetEnabled ? "Notifications enabled" : "Notifications disabled", "OK");

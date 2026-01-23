@@ -113,9 +113,7 @@ public static class PushNotifications
     {
         return PushNotificationsAndroid.GetNotificationCustomizer();
     }
-#endif
-
-#if IOS
+#elif IOS
     public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
     {
         PushNotificationsIos.SetNotificationCustomizer(customizer);
