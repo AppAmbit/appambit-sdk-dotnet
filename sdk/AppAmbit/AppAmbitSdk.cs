@@ -131,7 +131,7 @@ public static class AppAmbitSdk
         }
     }
 
-    internal static void InitializeServices()
+    public static void InitializeServices()
     {
         if (_servicesReady) return;
 

@@ -68,6 +68,8 @@ public static class AppAmbitMauiExtensions
                 return;
             }
 
+            AppAmbit.AppAmbitSdk.InitializeServices();
+
             await AppAmbit.AppAmbitSdk.EnsureTokenAsync(null);
 
             BreadcrumbManager.LoadBreadcrumbsFromFile();
