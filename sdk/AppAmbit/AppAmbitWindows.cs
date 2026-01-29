@@ -12,16 +12,21 @@ namespace AppAmbit
 
         public static void Register(string appKey)
         {
-            if (_initialized) return;
+            try
+            {
+                if (_initialized) return;
+                _initialized = true;
+                _appKey = appKey;
 
-            _initialized = true;
-            _appKey = appKey;
+                AppDomain.CurrentDomain.ProcessExit += OnAppExit;
 
-            AppDomain.CurrentDomain.ProcessExit += OnAppExit;
+                RegisterNetworkEvents();
 
-            RegisterNetworkEvents();
-
-            StartAppSessionSafe(_appKey);
+                StartAppSessionSafe(_appKey);
+            }catch (Exception ex)
+            {
+                Log($"Error during AppAmbit registration: {ex.Message}");
+            }
         }
 
         private static void StartAppSessionSafe(string appKey)

@@ -14,82 +14,88 @@ internal static class MultipartFormDataContentExtensions
 
     public static void AddObjectToMultipartFormDataContent(this MultipartFormDataContent formData, object obj, string prefix = "", bool useSquareBrakets = false)
     {
-        if (obj is null)
-            return;
-
-        if (obj is IDictionary dict)
+        try 
         {
-            formData.AddDictionaryToMultipartFormDataContent(dict, prefix);
-            return;
-        }
+            if (obj is null)
+                return;
 
-        if (obj.IsList())
-        {
-            var list = obj.ToObjectList();
-            formData.AddListToMultipartFormDataContent(list, prefix);
-            return;
-        }
-
-        if (obj is DateTime dateTime)
-        {
-            formData.Add(new StringContent(dateTime.ToString(_dateFormatStringApi)), prefix);
-            return;
-        }
-
-        if (IsSimpleType(obj))
-        {
-            formData.Add(new StringContent(obj.ToString() ?? ""), prefix);
-            return;
-        }
-
-        var objectProperties = obj.GetType().GetProperties();
-        foreach (var property in objectProperties)
-        {
-            var propName = property.Name;
-            var propValue = property.GetValue(obj);
-
-            if (propValue == null)
-                continue;
-
-            var jsonIgnoreAttr = property.GetCustomAttribute<JsonIgnoreAttribute>();
-            if (jsonIgnoreAttr != null)
-                continue;
-
-            var jsonPropAttr = property.GetCustomAttribute<JsonPropertyAttribute>();
-            propName = jsonPropAttr?.PropertyName ?? property.Name;
-
-            string multipartKey = useSquareBrakets ? $"{prefix}[{propName}]" : $"{prefix}{propName}";
-            var type = property.PropertyType;
-            var isNullable = Nullable.GetUnderlyingType(type) != null;
-            var actualType = isNullable ? Nullable.GetUnderlyingType(type) : type;
-
-            if (actualType != null && actualType.IsEnum && propValue != null)
+            if (obj is IDictionary dict)
             {
-                var enumVal = Enum.Parse(actualType, propValue.ToString());
-                var enumMember = actualType.GetMember(enumVal.ToString()).FirstOrDefault();
-                var enumAttr = enumMember?.GetCustomAttribute<EnumMemberAttribute>();
-                var enumStr = enumAttr?.Value ?? enumVal.ToString();
-                formData.Add(new StringContent(enumStr), multipartKey);
-                continue;
+                formData.AddDictionaryToMultipartFormDataContent(dict, prefix);
+                return;
             }
 
-            var multipartFormDataFileAttribute = property.GetCustomAttribute<MultipartFormDataFileAttribute>();
-            if (multipartFormDataFileAttribute != null)
+            if (obj.IsList())
             {
-                var fileName = $"log-{DateTime.UtcNow.ToString(_dateTimeFormatISO8601ForFile)}.txt";
-                var filePath = Path.Combine(AppPaths.AppDataDir, fileName);
-
-                Debug.WriteLine($"Debug FilePath: {filePath}");
-                var encodedBytes = Encoding.ASCII.GetBytes(propValue as string ?? "");
-                var fileContent = new ByteArrayContent(encodedBytes);
-
-                string formNameFile = useSquareBrakets ? "[file]" : "file";
-                formData.Add(fileContent, prefix + formNameFile, Path.GetFileName(filePath));
-                continue;
+                var list = obj.ToObjectList();
+                formData.AddListToMultipartFormDataContent(list, prefix);
+                return;
             }
 
-            string newPrefix = useSquareBrakets ? $"{prefix}[{propName}]" : $"{prefix}{propName}";
-            formData.AddObjectToMultipartFormDataContent(propValue, newPrefix, true);
+            if (obj is DateTime dateTime)
+            {
+                formData.Add(new StringContent(dateTime.ToString(_dateFormatStringApi)), prefix);
+                return;
+            }
+
+            if (IsSimpleType(obj))
+            {
+                formData.Add(new StringContent(obj.ToString() ?? ""), prefix);
+                return;
+            }
+
+            var objectProperties = obj.GetType().GetProperties();
+            foreach (var property in objectProperties)
+            {
+                var propName = property.Name;
+                var propValue = property.GetValue(obj);
+
+                if (propValue == null)
+                    continue;
+
+                var jsonIgnoreAttr = property.GetCustomAttribute<JsonIgnoreAttribute>();
+                if (jsonIgnoreAttr != null)
+                    continue;
+
+                var jsonPropAttr = property.GetCustomAttribute<JsonPropertyAttribute>();
+                propName = jsonPropAttr?.PropertyName ?? property.Name;
+
+                string multipartKey = useSquareBrakets ? $"{prefix}[{propName}]" : $"{prefix}{propName}";
+                var type = property.PropertyType;
+                var isNullable = Nullable.GetUnderlyingType(type) != null;
+                var actualType = isNullable ? Nullable.GetUnderlyingType(type) : type;
+
+                if (actualType != null && actualType.IsEnum && propValue != null)
+                {
+                    var enumVal = Enum.Parse(actualType, propValue.ToString());
+                    var enumMember = actualType.GetMember(enumVal.ToString()).FirstOrDefault();
+                    var enumAttr = enumMember?.GetCustomAttribute<EnumMemberAttribute>();
+                    var enumStr = enumAttr?.Value ?? enumVal.ToString();
+                    formData.Add(new StringContent(enumStr), multipartKey);
+                    continue;
+                }
+
+                var multipartFormDataFileAttribute = property.GetCustomAttribute<MultipartFormDataFileAttribute>();
+                if (multipartFormDataFileAttribute != null)
+                {
+                    var fileName = $"log-{DateTime.UtcNow.ToString(_dateTimeFormatISO8601ForFile)}.txt";
+                    var filePath = Path.Combine(AppPaths.AppDataDir, fileName);
+
+                    Debug.WriteLine($"Debug FilePath: {filePath}");
+                    var encodedBytes = Encoding.ASCII.GetBytes(propValue as string ?? "");
+                    var fileContent = new ByteArrayContent(encodedBytes);
+
+                    string formNameFile = useSquareBrakets ? "[file]" : "file";
+                    formData.Add(fileContent, prefix + formNameFile, Path.GetFileName(filePath));
+                    continue;
+                }
+
+                string newPrefix = useSquareBrakets ? $"{prefix}[{propName}]" : $"{prefix}{propName}";
+                formData.AddObjectToMultipartFormDataContent(propValue, newPrefix, true);
+            }
+        }catch (Exception ex)
+        {
+            Debug.WriteLine($"Error in AddObjectToMultipartFormDataContent: {ex}");
         }
     }
 

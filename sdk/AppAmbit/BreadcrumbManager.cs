@@ -130,10 +130,16 @@ public static class BreadcrumbManager
 
     private static async Task SendBreadcumbs(BreadcrumbsEntity entity)
     {
-        var sent = await TrySendAsync(entity);
-        if (!sent && _storage != null)
+        try
         {
-            await _storage.AddBreadcrumbAsync(entity);
+            var sent = await TrySendAsync(entity);
+            if (!sent && _storage != null)
+            {
+                await _storage.AddBreadcrumbAsync(entity);
+            }
+        }catch (Exception ex)
+        {
+            Debug.WriteLine("SendBreadcumbs error: " + ex);
         }
     }
 

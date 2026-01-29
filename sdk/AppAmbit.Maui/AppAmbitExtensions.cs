@@ -59,21 +59,28 @@ public static class AppAmbitMauiExtensions
 
     private static async void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
     {
-        Debug.WriteLine("OnConnectivityChanged");
-        if (e.NetworkAccess != NetworkAccess.Internet)
+        try
         {
-            BreadcrumbManager.SaveFile(BreadcrumbsConstants.offline);
-            return;
+            Debug.WriteLine("OnConnectivityChanged");
+            if (e.NetworkAccess != NetworkAccess.Internet)
+            {
+                BreadcrumbManager.SaveFile(BreadcrumbsConstants.offline);
+                return;
+            }
+
+            await AppAmbit.AppAmbitSdk.EnsureTokenAsync(null);
+
+            BreadcrumbManager.LoadBreadcrumbsFromFile();
+            await SessionManager.SendEndSessionFromDatabase();
+            await SessionManager.SendStartSessionIfExist();
+            await AppAmbit.Crashes.LoadCrashFileIfExists();        
+            await BreadcrumbManager.AddAsync(BreadcrumbsConstants.online);
+            await AppAmbit.AppAmbitSdk.SendPendingAsync();
+
+        }catch(Exception ex)
+        {
+            Debug.WriteLine("Error in OnConnectivityChanged: " + ex);
         }
-
-        await AppAmbit.AppAmbitSdk.EnsureTokenAsync(null);
-
-        BreadcrumbManager.LoadBreadcrumbsFromFile();
-        await SessionManager.SendEndSessionFromDatabase();
-        await SessionManager.SendStartSessionIfExist();
-        await AppAmbit.Crashes.LoadCrashFileIfExists();        
-        await BreadcrumbManager.AddAsync(BreadcrumbsConstants.online);
-        await AppAmbit.AppAmbitSdk.SendPendingAsync();
     }
 
     private static void HookPageNavigation()
