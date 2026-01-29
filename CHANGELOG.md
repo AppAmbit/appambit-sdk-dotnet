@@ -1,3 +1,9 @@
+## Version 2.0.2
+
+### AppAmbit
+
+* **[Hotfix]** Fixed problem in method `OnConnectivityChanged` with SDK initialization services in MAUI apps .
+
 ## Version 2.0.1
 
 ### AppAmbit
