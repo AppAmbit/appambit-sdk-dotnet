@@ -1,3 +1,9 @@
+## Version 2.1.0
+
+### AppAmbit Push Notifications
+
+* **[Feature]** Added Push Notifications SDK for .NET MAUI applications to handle push notifications.
+
 ## Version 2.0.2
 
 ### AppAmbit

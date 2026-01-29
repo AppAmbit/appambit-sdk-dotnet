@@ -5,6 +5,7 @@
     <RootNamespace>AppAmbit</RootNamespace>
     <PackageId>com.AppAmbit.Sdk</PackageId>
     <ReadmeFile>readme.md</ReadmeFile>
+    <PackageReadmeFile Condition="Exists('$(ReadmeFile)')">$(ReadmeFile)</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>

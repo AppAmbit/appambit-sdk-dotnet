@@ -5,6 +5,7 @@
     <RootNamespace>AppAmbitAvalonia</RootNamespace>
     <PackageId>com.AppAmbit.Avalonia</PackageId>
     <ReadmeFile>readme.md</ReadmeFile>
+    <PackageReadmeFile Condition="Exists('$(ReadmeFile)')">$(ReadmeFile)</PackageReadmeFile>
   </PropertyGroup>
 
   <PropertyGroup>
