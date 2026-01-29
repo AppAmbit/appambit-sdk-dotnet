@@ -101,6 +101,7 @@ jobs:
 
       - name: Restore & Build AppAmbit.Maui
         run: |
+          dotnet workload restore ${{ env.SDK_MAUI_PATH }}
           dotnet restore ${{ env.SDK_MAUI_PATH }}
           dotnet build ${{ env.SDK_MAUI_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
@@ -152,7 +153,7 @@ jobs:
           foreach ($pkg in $pkgs) {
             Write-Host "Pushing $($pkg.FullName)"
             dotnet nuget push "$($pkg.FullName)" `
-              --api-key "${{ secrets.NUGET_TOKEN }}" `
+              --api-key "${{ secrets.NUGET_APPKEY_SECRET }}" `
               --source https://api.nuget.org/v3/index.json `
               --skip-duplicate
           }
