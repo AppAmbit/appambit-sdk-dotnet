@@ -61,7 +61,7 @@ Add the package to your Avalonia project:
 ```bash
 dotnet add package com.AppAmbit.Avalonia
 # or specify version
-dotnet add package com.AppAmbit.Avalonia --version 2.0.1
+dotnet add package com.AppAmbit.Avalonia --version 2.0.2
 ```
 
 Or, using Visual Studio:
