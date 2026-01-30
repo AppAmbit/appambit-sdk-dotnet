@@ -14,15 +14,8 @@ public class AppDelegate : MauiUIApplicationDelegate
         try
         {
             var bundlePath = NSBundle.MainBundle.BundlePath;
-            var sdkPath = Path.Combine(bundlePath, "Frameworks", "AppAmbitSdk.framework", "AppAmbitSdk");
             var pushPath = Path.Combine(bundlePath, "Frameworks", "AppAmbitPushNotifications.framework", "AppAmbitPushNotifications");
             
-            // 1. Load Sdk
-            if (ObjCRuntime.Dlfcn.dlopen(sdkPath, 0) == IntPtr.Zero)
-            {
-                 Console.WriteLine($"[AppAmbit] ERROR: Failed to load Sdk framework. Error: {System.Runtime.InteropServices.Marshal.PtrToStringAnsi(dlerror())}");
-            }
-
             // 2. Load Push
              if (ObjCRuntime.Dlfcn.dlopen(pushPath, 0) == IntPtr.Zero)
             {
