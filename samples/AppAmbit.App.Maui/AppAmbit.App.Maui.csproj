@@ -24,7 +24,7 @@
         <ApplicationTitle>AppAmbitTestingApp</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>com.AppAmbit.TestApp</ApplicationId>
+        <ApplicationId>com.AppAmbit.TestAppSwift</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -79,9 +79,33 @@
     <GoogleServicesJson Include="Platforms/Android/google-services.json" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+    <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
+  </ItemGroup>
+
     <PropertyGroup Condition="$(TargetFramework.Contains('-ios')) and '$(Configuration)' == 'Release'">
-      <ApplicationId>com.AppAmbit.TestApp</ApplicationId>
+      <ApplicationId>com.AppAmbit.TestAppSwift</ApplicationId>
       <ApplicationTitle>AppAmbitTestingApp</ApplicationTitle>
-      <CodesignKey>iPhone Distribution: sonny stevenson (QP28PZ7FFF)</CodesignKey>
+      <CodesignKey>Apple Development</CodesignKey>
+      <CodesignProvision>Automatic</CodesignProvision>
+      <DevelopmentTeam>U7UXGJ27XV</DevelopmentTeam>
     </PropertyGroup>
+
+    <PropertyGroup Condition="$(TargetFramework.Contains('-ios')) and '$(Configuration)' == 'Debug'">
+      <CodesignKey>Apple Development</CodesignKey>
+      <CodesignProvision>Automatic</CodesignProvision>
+      <DevelopmentTeam>U7UXGJ27XV</DevelopmentTeam>
+      <CodesignEntitlements>Platforms\iOS\Entitlements.plist</CodesignEntitlements>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <_PushFrameworkPath>$(MSBuildProjectDirectory)/../../push/AppAmbit.PushNotifications/Platforms/iOS_Build/build/pods/Build/Products/Debug-iphonesimulator/AppAmbitPushNotifications</_PushFrameworkPath>
+      <_SdkFrameworkPath>$(MSBuildProjectDirectory)/../../push/AppAmbit.PushNotifications/Platforms/iOS_Build/build/pods/Build/Products/Debug-iphonesimulator/AppAmbitSdk</_SdkFrameworkPath>
+    </PropertyGroup>
+
+    <Target Name="CopyFrameworks" AfterTargets="Build" Condition="$(TargetFramework.Contains('-ios'))">
+        <Exec Command="mkdir -p $(AppBundleDir)/Frameworks" />
+        <Exec Command="cp -R $(_PushFrameworkPath)/AppAmbitPushNotifications.framework $(AppBundleDir)/Frameworks/" />
+        <Exec Command="cp -R $(_SdkFrameworkPath)/AppAmbitSdk.framework $(AppBundleDir)/Frameworks/" />
+    </Target>
 </Project>

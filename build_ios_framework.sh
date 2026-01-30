@@ -23,7 +23,7 @@ xcodebuild archive \
     -archivePath "archives/$FRAMEWORK_NAME-Simulator" \
     -derivedDataPath ".build" \
     SKIP_INSTALL=NO \
-    BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+    BUILD_LIBRARY_FOR_DISTRIBUTION=NO
 
 echo "Building for iOS Device..."
 xcodebuild archive \
@@ -32,7 +32,7 @@ xcodebuild archive \
     -archivePath "archives/$FRAMEWORK_NAME-Device" \
     -derivedDataPath ".build" \
     SKIP_INSTALL=NO \
-    BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+    BUILD_LIBRARY_FOR_DISTRIBUTION=NO
 
 echo "Creating XCFramework..."
 # Limpiar previo

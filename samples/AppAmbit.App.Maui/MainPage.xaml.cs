@@ -1,12 +1,5 @@
 ﻿using System.Threading.Tasks;
-#if ANDROID
-using Android.Content;
-using Android.Content.PM;
-using Android.OS;
-using AndroidX.Activity;
-using AndroidX.Core.Content;
 using AppAmbit.PushNotifications;
-#endif
 using AppAmbitMaui;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
@@ -152,34 +145,30 @@ public partial class MainPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-#if ANDROID
         await RefreshPushButtonAsync();
-#else
-        ButtonPushNotifications.IsVisible = false;
-#endif
     }
 
     private async void OnPushNotificationsClicked(object? sender, EventArgs e)
     {
-#if ANDROID
         await HandlePushNotificationsAsync();
-#else
-        await DisplayAlert("Info", "Push notifications are available only on Android in this sample.", "OK");
-#endif
     }
 
-#if ANDROID
     private async Task RefreshPushButtonAsync()
     {
         ButtonPushNotifications.IsVisible = true;
 
-        var context = Platform.AppContext;
-        if (context == null)
-            return;
+        if (DeviceInfo.Platform == DevicePlatform.iOS || DeviceInfo.Platform == DevicePlatform.Android)
+        {
+            _hasNotificationPermission = PushNotifications.HasSystemPermission();
+            _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
+            UpdatePushButtonText();
+        }
+        else
+        {
+             ButtonPushNotifications.IsVisible = false;
+        }
 
-        _hasNotificationPermission = HasSystemPermission(context);
-        _notificationsEnabled = PushNotifications.IsNotificationsEnabled(context);
-        UpdatePushButtonText();
+        await Task.CompletedTask;
     }
 
     private async Task HandlePushNotificationsAsync()
@@ -190,28 +179,15 @@ public partial class MainPage : ContentPage
         _isUpdatingPushButton = true;
         try
         {
-            var context = Platform.AppContext;
-            if (context == null)
-            {
-                await DisplayAlert("Error", "Unable to get application context.", "OK");
-                return;
-            }
-
             if (!_hasNotificationPermission)
             {
-                if (Platform.CurrentActivity is not ComponentActivity activity)
-                {
-                    await DisplayAlert("Error", "Unable to get current activity to request permission.", "OK");
-                    return;
-                }
-
                 var tcs = new TaskCompletionSource<bool>();
-                PushNotifications.RequestNotificationPermission(activity, new PermissionListener(granted => tcs.TrySetResult(granted)));
+                PushNotifications.RequestNotificationPermission(new PermissionListener(granted => tcs.TrySetResult(granted)));
 
                 var granted = await tcs.Task;
                 if (granted)
                 {
-                    PushNotifications.SetNotificationsEnabled(true, context);
+                    PushNotifications.SetNotificationsEnabled(true);
                     _hasNotificationPermission = true;
                     _notificationsEnabled = true;
                     UpdatePushButtonText();
@@ -226,7 +202,7 @@ public partial class MainPage : ContentPage
             }
 
             var targetEnabled = !_notificationsEnabled;
-            PushNotifications.SetNotificationsEnabled(targetEnabled, context);
+            PushNotifications.SetNotificationsEnabled(targetEnabled);
             _notificationsEnabled = targetEnabled;
             UpdatePushButtonText();
             await DisplayAlert("Done", targetEnabled ? "Notifications enabled" : "Notifications disabled", "OK");
@@ -240,19 +216,6 @@ public partial class MainPage : ContentPage
             _isUpdatingPushButton = false;
         }
     }
-#else
-    private Task RefreshPushButtonAsync()
-    {
-        ButtonPushNotifications.IsVisible = false;
-        return Task.CompletedTask;
-    }
-
-    private async Task HandlePushNotificationsAsync()
-    {
-        ButtonPushNotifications.IsVisible = false;
-        await DisplayAlert("Info", "Push notifications are available only on Android in this sample.", "OK");
-    }
-#endif
 
     private void UpdatePushButtonText()
     {
@@ -263,16 +226,7 @@ public partial class MainPage : ContentPage
                 : "Enable Notifications";
     }
 
-#if ANDROID
-    private static bool HasSystemPermission(Context context)
-    {
-        if ((int)Build.VERSION.SdkInt < 33)
-            return true;
-
-        return ContextCompat.CheckSelfPermission(context, Android.Manifest.Permission.PostNotifications) == Permission.Granted;
-    }
-
-    private sealed class PermissionListener : Java.Lang.Object, PushNotifications.IPermissionListener
+    private sealed class PermissionListener : PushNotifications.IPermissionListener
     {
         private readonly Action<bool> _onResult;
 
@@ -283,7 +237,6 @@ public partial class MainPage : ContentPage
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
     }
-#endif
 
     private async void OnTestErrorLogClicked(object sender, EventArgs e)
     {

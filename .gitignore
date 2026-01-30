@@ -6,3 +6,6 @@ bin/
 launch.json
 Shared/
 **/.DS_Store
+**/iOS_Build/
+**/Pods/
+**/build/pods/

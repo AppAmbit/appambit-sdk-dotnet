@@ -5,7 +5,8 @@
         "dotnet clean": true,
         "dotnet build": true,
         "lsof": true,
-        "true": true
+        "true": true,
+        "dotnet run": true
     },
     "csharp.debugging.enableSourceLinkDownloadForDebugging": false,
     "csharp.debugging.enableSourceLinkSupport": false,

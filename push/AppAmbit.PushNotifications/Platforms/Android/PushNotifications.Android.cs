@@ -15,12 +15,31 @@ internal static class PushNotificationsAndroid
     private static string? _lastPushToken;
     private const string LogTag = PushNotifications.LogTag;
 
+    private static ActivityBase? _currentActivity;
+
     public static void Start(Context context, bool enableNotifications)
     {
         if (context == null) throw new System.ArgumentNullException(nameof(context));
 
-        var appContext = context.ApplicationContext;
+        // Attempt to capture activity if context is one, though explicit Init is better
+        if (context is ActivityBase activity)
+        {
+            _currentActivity = activity;
+        }
 
+        var appContext = context.ApplicationContext;
+        // ... rest of start logic
+        InternalStart(appContext ?? context, enableNotifications);
+    }
+    
+    // Explicit Init for Activity
+    public static void Init(ActivityBase activity)
+    {
+        _currentActivity = activity;
+    }
+
+    private static void InternalStart(Context appContext, bool enableNotifications) 
+    {
         if (!_initialized)
         {
             PushKernel.SetTokenListener(new TokenListenerProxy(appContext));
@@ -65,13 +84,19 @@ internal static class PushNotificationsAndroid
         });
     }
 
-    public static void SetNotificationsEnabled(Context context, bool enabled)
+    public static void SetNotificationsEnabled(Context? context, bool enabled)
     {
-        if (context == null) throw new System.ArgumentNullException(nameof(context));
+        // Try to get context from stored activity if null
+        var targetContext = context ?? _currentActivity?.ApplicationContext;
+        if (targetContext == null) 
+        {
+            Log.Error(LogTag, "SetNotificationsEnabled: Context is null and no activity initialized.");
+            return;
+        }
 
         try
         {
-            PushKernel.SetNotificationsEnabled(context.ApplicationContext, enabled);
+            PushKernel.SetNotificationsEnabled(targetContext.ApplicationContext, enabled);
         }
         catch (Java.Lang.IllegalStateException ex)
         {
@@ -106,11 +131,37 @@ internal static class PushNotificationsAndroid
         }
     }
 
-    public static bool IsNotificationsEnabled(Context context) =>
-        PushKernel.IsNotificationsEnabled(context.ApplicationContext);
+    public static bool IsNotificationsEnabled(Context? context = null)
+    {
+        var targetContext = context ?? _currentActivity?.ApplicationContext;
+        if (targetContext == null) return false;
+        return PushKernel.IsNotificationsEnabled(targetContext);
+    }
 
-    public static void RequestNotificationPermission(ActivityBase activity, PushNotifications.IPermissionListener? listener) =>
-        PushKernel.RequestNotificationPermission(activity, listener is null ? null : new PermissionListenerProxy(listener));
+    // New parameterless/simplified methods
+    public static bool HasSystemPermission()
+    {
+        if (_currentActivity == null) return false;
+        if ((int)Android.OS.Build.VERSION.SdkInt < 33) return true;
+        return AndroidX.Core.Content.ContextCompat.CheckSelfPermission(_currentActivity, Android.Manifest.Permission.PostNotifications) == Android.Content.PM.Permission.Granted;
+    }
+
+    public static void RequestNotificationPermission(PushNotifications.IPermissionListener? listener)
+    {
+        if (_currentActivity == null)
+        {
+            Log.Error(LogTag, "RequestNotificationPermission: Activity is not initialized. Call PushNotifications.Init(activity) or Start(activity) first.");
+            return;
+        }
+        PushKernel.RequestNotificationPermission(_currentActivity, listener is null ? null : new PermissionListenerProxy(listener));
+    }
+
+    // Keep old signature for compatibility/internal use but forward
+    public static void RequestNotificationPermission(ActivityBase activity, PushNotifications.IPermissionListener? listener) 
+    {
+        _currentActivity = activity; // Update reference
+        RequestNotificationPermission(listener);
+    }
 
     public static void SetNotificationCustomizer(PushNotifications.INotificationCustomizer? customizer)
     {

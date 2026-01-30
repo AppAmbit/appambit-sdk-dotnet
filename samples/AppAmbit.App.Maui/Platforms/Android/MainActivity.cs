@@ -16,6 +16,6 @@ public class MainActivity : MauiAppCompatActivity
         base.OnCreate(savedInstanceState);
 
         // Start push and wire token updates to AppAmbit.
-        PushNotifications.Start(ApplicationContext);
+        PushNotifications.Start(this);
     }
 }

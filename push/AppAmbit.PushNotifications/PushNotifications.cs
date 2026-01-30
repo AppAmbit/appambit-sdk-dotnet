@@ -21,12 +21,22 @@ public static class PushNotifications
     public static void Start(object? platformContext = null, bool enableNotifications = true)
     {
 #if ANDROID
-        if (platformContext is not Context androidContext)
+        if (platformContext is ActivityBase activity)
         {
-            throw new ArgumentNullException(nameof(platformContext), "Android context is required when running on Android.");
+            PushNotificationsAndroid.Init(activity);
+            PushNotificationsAndroid.Start(activity, enableNotifications);
+            return;
         }
-
-        PushNotificationsAndroid.Start(androidContext, enableNotifications);
+        
+        if (platformContext is Context androidContext)
+        {
+            PushNotificationsAndroid.Start(androidContext, enableNotifications);
+        }
+        else
+        {
+             // Try to start without context if already initialized, or it will throw/log inside
+             PushNotificationsAndroid.Start(null!, enableNotifications); 
+        }
 #elif IOS
         PushNotificationsIos.Start();
 #else
@@ -37,12 +47,7 @@ public static class PushNotifications
     public static void SetNotificationsEnabled(bool enabled, object? platformContext = null)
     {
 #if ANDROID
-        if (platformContext is not Context androidContext)
-        {
-            throw new ArgumentNullException(nameof(platformContext), "Android context is required when running on Android.");
-        }
-
-        PushNotificationsAndroid.SetNotificationsEnabled(androidContext, enabled);
+        PushNotificationsAndroid.SetNotificationsEnabled(platformContext as Context, enabled);
 #elif IOS
         PushNotificationsIos.SetNotificationsEnabled(enabled);
 #else
@@ -53,12 +58,7 @@ public static class PushNotifications
     public static bool IsNotificationsEnabled(object? platformContext = null)
     {
 #if ANDROID
-        if (platformContext is not Context androidContext)
-        {
-            throw new ArgumentNullException(nameof(platformContext), "Android context is required when running on Android.");
-        }
-
-        return PushNotificationsAndroid.IsNotificationsEnabled(androidContext);
+        return PushNotificationsAndroid.IsNotificationsEnabled(platformContext as Context);
 #elif IOS
         return PushNotificationsIos.IsNotificationsEnabled();
 #else
@@ -70,12 +70,14 @@ public static class PushNotifications
     public static void RequestNotificationPermission(object? platformActivity = null)
     {
 #if ANDROID
-        if (platformActivity is not ActivityBase activity)
+        if (platformActivity is ActivityBase activity)
         {
-            throw new ArgumentNullException(nameof(platformActivity), "Android Activity is required when running on Android.");
+             PushNotificationsAndroid.RequestNotificationPermission(activity, null);
         }
-
-        PushNotificationsAndroid.RequestNotificationPermission(activity, null);
+        else
+        {
+             PushNotificationsAndroid.RequestNotificationPermission(null);
+        }
 #elif IOS
         PushNotificationsIos.RequestNotificationPermission();
 #else
@@ -83,9 +85,22 @@ public static class PushNotifications
 #endif
     }
 
+    public static bool HasSystemPermission()
+    {
+#if ANDROID
+        return PushNotificationsAndroid.HasSystemPermission();
+#elif IOS
+        // On iOS, IsNotificationsEnabled typically reflects system permission status + user preference
+        return PushNotificationsIos.IsNotificationsEnabled(); 
+#else
+        NotSupported();
+        return false;
+#endif
+    }
+
     private static void NotSupported()
     {
-        throw new PlatformNotSupportedException("AppAmbit push notifications are only supported on Android and iOS.");
+        // throw new PlatformNotSupportedException("AppAmbit push notifications are only supported on Android and iOS.");
     }
 
     public interface IPermissionListener
