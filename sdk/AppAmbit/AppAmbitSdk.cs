@@ -14,6 +14,7 @@ public static class AppAmbitSdk
     private static readonly SemaphoreSlim _ensureBatchLocked = new(1, 1);
     private static bool _configuredByBuilder = false;
     private static bool _servicesReady = false;
+    public static bool IsInitialized => _servicesReady;
     private static bool _skippedFirstResume = false;
     public static void MarkConfiguredByBuilder() => _configuredByBuilder = true;
 
@@ -149,6 +150,7 @@ public static class AppAmbitSdk
             BreadcrumbManager.Initialize(apiService!, storageService!);
 
             _servicesReady = true;
+            Debug.WriteLine("[AppAmbitSdk] Services initialized successfully.");
         }
         catch (Exception ex)
         {

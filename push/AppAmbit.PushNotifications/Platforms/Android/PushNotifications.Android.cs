@@ -170,12 +170,6 @@ internal static class PushNotificationsAndroid
             : new NotificationCustomizerProxy(customizer);
     }
 
-    public static PushNotifications.INotificationCustomizer? GetNotificationCustomizer()
-    {
-        return PushKernel.NotificationCustomizer is NotificationCustomizerProxy proxy
-            ? proxy.Managed
-            : null;
-    }
 
     private sealed class PermissionListenerProxy : Java.Lang.Object, Com.Appambit.Sdk.PushKernel.IPermissionListener
     {

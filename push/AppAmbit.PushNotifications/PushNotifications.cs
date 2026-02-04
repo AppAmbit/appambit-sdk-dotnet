@@ -6,6 +6,7 @@ using Com.Appambit.Sdk.Models;
 using ActivityBase = AndroidX.Activity.ComponentActivity;
 #endif
 using System;
+using System.Diagnostics;
 
 namespace AppAmbit.PushNotifications;
 
@@ -16,29 +17,48 @@ public record PushNotificationData(string Title, string Body, string Color, stri
 /// </summary>
 public static class PushNotifications
 {
-    internal const string LogTag = "AppAmbitPushSDK";
+    internal const string LogTag = "AppAmbitPushSDKNET";
 
     public static void Start(object? platformContext = null, bool enableNotifications = true)
     {
+        if (!AppAmbitSdk.IsInitialized)
+        {
+            Debug.WriteLine($"[{LogTag}] ERROR: AppAmbit SDK has not been started. Please call AppAmbit.Start() before starting the Push SDK.");
+            return;
+        }
+
+        Debug.WriteLine($"[{LogTag}] Starting Push SDK and binding to AppAmbit Core.");
+
 #if ANDROID
         if (platformContext is ActivityBase activity)
         {
             PushNotificationsAndroid.Init(activity);
             PushNotificationsAndroid.Start(activity, enableNotifications);
-            return;
         }
-        
-        if (platformContext is Context androidContext)
+        else if (platformContext is Context androidContext)
         {
             PushNotificationsAndroid.Start(androidContext, enableNotifications);
         }
         else
         {
-             // Try to start without context if already initialized, or it will throw/log inside
+             // Try to start without context if already initialized
              PushNotificationsAndroid.Start(null!, enableNotifications); 
         }
 #elif IOS
+        // Auto-detect debug mode inside native if needed, or pass it if exposed.
+        // For now, we respect the user preference: autoRequestPermissions defaults to false.
         PushNotificationsIos.Start();
+        
+        // Sync logic
+        if (PushNotificationsIos.IsNotificationsEnabled())
+        {
+            var token = PushNotificationsIos.GetCurrentToken();
+            if (!string.IsNullOrEmpty(token))
+            {
+                Debug.WriteLine($"[{LogTag}] Push SDK started. Syncing current token with backend.");
+                _ = System.Threading.Tasks.Task.Run(() => AppAmbitSdk.UpdateConsumerAsync(token, true));
+            }
+        }
 #else
         NotSupported();
 #endif
@@ -46,6 +66,12 @@ public static class PushNotifications
 
     public static void SetNotificationsEnabled(bool enabled, object? platformContext = null)
     {
+        if (!AppAmbitSdk.IsInitialized)
+        {
+            Debug.WriteLine($"[{LogTag}] ERROR: AppAmbit SDK is not initialized. Cannot set notification status.");
+            return;
+        }
+
 #if ANDROID
         PushNotificationsAndroid.SetNotificationsEnabled(platformContext as Context, enabled);
 #elif IOS
@@ -67,36 +93,40 @@ public static class PushNotifications
 #endif
     }
 
-    public static void RequestNotificationPermission(object? platformActivity = null)
+    public static bool HasSystemPermission(object? platformContext = null)
     {
 #if ANDROID
-        if (platformActivity is ActivityBase activity)
+        return PushNotificationsAndroid.HasSystemPermission();
+#elif IOS
+        return PushNotificationsIos.HasSystemPermission();
+#else
+        NotSupported();
+        return false;
+#endif
+    }
+
+    public static void RequestNotificationPermission(object? platformContext = null, Action<bool>? callback = null)
+    {
+#if ANDROID
+        if (platformContext is ActivityBase activity)
         {
-             PushNotificationsAndroid.RequestNotificationPermission(activity, null);
+             // TODO: Update Android implementation to support Action<bool>
+             PushNotificationsAndroid.RequestNotificationPermission(activity, null); 
+             // Note: Current Android impl uses interface. Future refactor needed for Action<bool> parity if desired.
+             // For now, we keep existing behavior or adapt if Android API allows. 
+             // Since user focused on iOS/MAUI fix first, we'll leave Android mostly as-is but matching signature.
         }
         else
         {
              PushNotificationsAndroid.RequestNotificationPermission(null);
         }
 #elif IOS
-        PushNotificationsIos.RequestNotificationPermission();
+        PushNotificationsIos.RequestNotificationPermission(callback);
 #else
         NotSupported();
 #endif
     }
 
-    public static bool HasSystemPermission()
-    {
-#if ANDROID
-        return PushNotificationsAndroid.HasSystemPermission();
-#elif IOS
-        // On iOS, IsNotificationsEnabled typically reflects system permission status + user preference
-        return PushNotificationsIos.IsNotificationsEnabled(); 
-#else
-        NotSupported();
-        return false;
-#endif
-    }
 
     private static void NotSupported()
     {
@@ -123,20 +153,10 @@ public static class PushNotifications
     {
         PushNotificationsAndroid.SetNotificationCustomizer(customizer);
     }
-
-    public static INotificationCustomizer? GetNotificationCustomizer()
-    {
-        return PushNotificationsAndroid.GetNotificationCustomizer();
-    }
 #elif IOS
     public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
     {
         PushNotificationsIos.SetNotificationCustomizer(customizer);
-    }
-
-    public static INotificationCustomizer? GetNotificationCustomizer()
-    {
-        return PushNotificationsIos.GetNotificationCustomizer();
     }
 #endif
 }

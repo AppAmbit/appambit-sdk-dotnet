@@ -76,6 +76,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
     <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
+    <PackageReference Include="Xamarin.AndroidX.Annotation" Version="1.9.1.5" />
     <GoogleServicesJson Include="Platforms/Android/google-services.json" />
   </ItemGroup>
 
