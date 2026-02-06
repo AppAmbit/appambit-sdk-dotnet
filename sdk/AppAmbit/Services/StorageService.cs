@@ -1,11 +1,10 @@
 using System.Diagnostics;
 using AppAmbit.Enums;
-using AppAmbit.Models;
 using AppAmbit.Models.Analytics;
 using AppAmbit.Models.App;
 using AppAmbit.Models.Breadcrumbs;
 using AppAmbit.Models.Logs;
-using AppAmbit.Services.Endpoints;
+using AppAmbit.Models.RemoteConfigs;
 using AppAmbit.Services.Interfaces;
 using SQLite;
 
@@ -29,6 +28,7 @@ public class StorageService : IStorageService
         await _database.CreateTableAsync<EventEntity>();
         await _database.CreateTableAsync<SessionBatch>();
         await _database.CreateTableAsync<BreadcrumbsEntity>();
+        await _database.CreateTableAsync<RemoteConfigEntity>();
         await EnsureAppSecretsColumns();
     }
 
@@ -476,5 +476,35 @@ public class StorageService : IStorageService
                 tran.Execute("DELETE FROM BreadcrumbsEntity WHERE Id = ?", id);
             }
         });
+    }
+
+    public async Task AddConfigsAsync(List<RemoteConfigEntity> configs)
+    {
+        if (configs == null || configs.Count == 0) return;
+
+        foreach (var config in configs)
+        {
+            var existingConfig = await _database.Table<RemoteConfigEntity>()
+                .Where(c => c.Key == config.Key)
+                .FirstOrDefaultAsync();
+
+            if (existingConfig != null)
+            {
+                existingConfig.Value = config.Value;
+                await _database.UpdateAsync(existingConfig);
+            }
+            else
+            {
+                await _database.InsertAsync(config);
+            }
+        }
+    }
+
+    public async Task<String?> GetConfig(String key)
+    {
+        var config = await _database.Table<RemoteConfigEntity>()
+            .Where(c => c.Key == key)
+            .FirstOrDefaultAsync();
+        return config?.Value;
     }
 }
