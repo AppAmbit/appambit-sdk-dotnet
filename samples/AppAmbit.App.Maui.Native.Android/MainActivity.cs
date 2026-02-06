@@ -22,6 +22,7 @@ public class MainActivity : AppCompatActivity
     FrameLayout? _container;
     View? _viewCrashes;
     View? _viewAnalytics;
+    View? _viewRemoteConfig;
     Button? _btnPushNotifications;
     bool _hasNotificationPermission;
     bool _notificationsEnabled;
@@ -37,6 +38,15 @@ public class MainActivity : AppCompatActivity
         //Uncomment the line for automatic session management
         //Analytics.EnableManualSession();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
+        AppAmbit.RemoteConfig.SetDefaults(new Dictionary<string, object>
+        {
+            { "banner", true },
+            { "data", "Default local data" },
+            { "discount", 5 },
+            { "max_upload", 15.6f }
+        });
+        
+        Task.Run(async () => await AppAmbit.RemoteConfig.FetchAndActivate());
         
         PushNotifications.Start(ApplicationContext);
 
@@ -47,15 +57,18 @@ public class MainActivity : AppCompatActivity
         var inflater = LayoutInflater.From(this);
         _viewCrashes   = inflater?.Inflate(L("fragment_crashes"), _container, false);
         _viewAnalytics = inflater?.Inflate(L("fragment_analytics"), _container, false);
+        _viewRemoteConfig = inflater?.Inflate(L("fragment_remote_config"), _container, false);
 
         WireCrashesView(_viewCrashes!);
         WireAnalyticsView(_viewAnalytics!);
 
         var btnCrashes   = FindViewById<Button>(I("btn_nav_crashes"))!;
         var btnAnalytics = FindViewById<Button>(I("btn_nav_analytics"))!;
+        var btnRemoteConfig = FindViewById<Button>(I("btn_nav_remote_config"))!;
 
         btnCrashes.Click   += (s, e) => ShowView(_viewCrashes!);
         btnAnalytics.Click += (s, e) => ShowView(_viewAnalytics!);
+        btnRemoteConfig.Click += (s, e) => ShowRemoteConfigView(_viewRemoteConfig!);
 
         ShowView(_viewCrashes!);
     }
@@ -316,5 +329,26 @@ public class MainActivity : AppCompatActivity
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
+    }
+
+    void ShowRemoteConfigView(View v)
+    {
+        ShowView(v);
+        
+        var banner = v.FindViewById<FrameLayout>(I("banner_view"));
+        var dataLabel = v.FindViewById<TextView>(I("data_label"));
+        var discountLabel = v.FindViewById<TextView>(I("discount_label"));
+
+        if (banner != null) 
+            banner.Visibility = AppAmbit.RemoteConfig.GetBoolean("banner") ? ViewStates.Visible : ViewStates.Gone;
+        
+        if (dataLabel != null)
+            dataLabel.Text = AppAmbit.RemoteConfig.GetString("data");
+
+        if (discountLabel != null)
+        {
+            int discount = AppAmbit.RemoteConfig.GetInt("discount");
+            discountLabel.Text = $"{discount}% OFF";
+        }
     }
 }

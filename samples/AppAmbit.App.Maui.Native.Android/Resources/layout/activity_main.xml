@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
-        android:weightSum="2"
+        android:weightSum="3"
         android:padding="8dp"
         android:elevation="8dp"
         android:background="@android:color/white">
@@ -30,12 +30,20 @@
             android:layout_weight="1"
             android:text="@string/crashes" />
 
-        <Button
+    <Button
             android:id="@+id/btn_nav_analytics"
             style="@style/AppButton.Nav"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="@string/analytics" />
+
+        <Button
+            android:id="@+id/btn_nav_remote_config"
+            style="@style/AppButton.Nav"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Config" />
     </LinearLayout>
 </LinearLayout>
