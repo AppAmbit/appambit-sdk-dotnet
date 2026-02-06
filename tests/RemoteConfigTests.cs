@@ -1,104 +1,209 @@
 using System.Reflection;
 using AppAmbit;
+using AppAmbit.Enums;
 using AppAmbit.Models.RemoteConfigs;
+using AppAmbit.Models.Responses;
+using AppAmbit.Services.Endpoints;
 using AppAmbit.Services.Interfaces;
-using AppAmbit.Services;
+using Moq;
 using Xunit;
 
 namespace AppAmbitTest;
 
+[Collection("RemoteConfig Tests")]
 public class RemoteConfigTests : IDisposable
 {
-    public RemoteConfigTests() => ResetState();
-    public void Dispose() => ResetState();
+    private readonly Mock<IStorageService> _mockStorage;
+    private readonly Mock<IAPIService> _mockApiService;
+    private readonly Mock<IAppInfoService> _mockAppInfoService;
 
-    [Fact]
-    public void SetDefaults_And_GetString_ReturnsDefault_WhenDbEmpty()
+    public RemoteConfigTests()
     {
-        // Arrange
-        var storage = new FakeStorageService();
-        AppAmbit.RemoteConfig.Initialize(storage, null, null);
+        _mockStorage = new Mock<IStorageService>();
+        _mockApiService = new Mock<IAPIService>();
+        _mockAppInfoService = new Mock<IAppInfoService>();
 
-        var defaults = new Dictionary<string, object>
-        {
-            { "banner", false },
-            { "data", "Offline Mode" },
-            { "discount", 5 }
-        };
-
-        // Act
-        AppAmbit.RemoteConfig.SetDefaults(defaults);
-        
-        // Assert
-        var data = AppAmbit.RemoteConfig.GetString("data");
-        Assert.Equal("Offline Mode", data);
-
-        var banner = AppAmbit.RemoteConfig.GetBoolean("banner");
-        Assert.False(banner);
-
-        var discount = AppAmbit.RemoteConfig.GetInt("discount");
-        Assert.Equal(5, discount);
+        ResetState();
+        AppAmbit.RemoteConfig.Initialize(_mockStorage.Object, _mockAppInfoService.Object, _mockApiService.Object);
     }
 
+    public void Dispose()
+    {
+        ResetState();
+    }
+
+    [Fact]
+    public async Task Fetch_Success_ShouldStoreConfigsInMemory_AndReturnTrue()
+    {
+        // Arrange
+        var mockResponse = new RemoteConfigResponse
+        {
+            Configs = new Dictionary<string, object>
+            {
+                { "welcome_msg", "Hello" }
+            }
+        };
+        var apiResult = new ApiResult<RemoteConfigResponse>(mockResponse, ApiErrorType.None, null);
+
+        _mockApiService
+            .Setup(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()))
+            .ReturnsAsync(apiResult);
+
+        _mockAppInfoService.Setup(s => s.AppVersion).Returns("1.0.0");
+
+        // Act
+        var result = await AppAmbit.RemoteConfig.Fetch();
+
+        // Assert
+        Assert.True(result);
+        _mockApiService.Verify(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Fetch_Failure_ShouldReturnFalse()
+    {
+        // Arrange
+        var apiResult = new ApiResult<RemoteConfigResponse>(null, ApiErrorType.NetworkUnavailable, null);
+
+        _mockApiService
+            .Setup(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()))
+            .ReturnsAsync(apiResult);
+
+        _mockAppInfoService.Setup(s => s.AppVersion).Returns("1.0.0");
+
+        // Act
+        var result = await AppAmbit.RemoteConfig.Fetch();
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task Activate_ShouldValidFetchedConfigToStorable()
+    {
+        // Arrange
+        // 1. Mock fetch first to populate private _fetchedConfig
+        var mockResponse = new RemoteConfigResponse
+        {
+            Configs = new Dictionary<string, object>
+            {
+                { "feature_enabled", true }
+            }
+        };
+        var apiResult = new ApiResult<RemoteConfigResponse>(mockResponse, ApiErrorType.None, null);
+
+        _mockApiService
+            .Setup(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()))
+            .ReturnsAsync(apiResult);
+        
+        await AppAmbit.RemoteConfig.Fetch();
+
+        // Act
+        var activated = await AppAmbit.RemoteConfig.Activate();
+
+        // Assert
+        Assert.True(activated);
+        
+        _mockStorage.Verify(s => s.AddConfigsAsync(It.Is<List<RemoteConfigEntity>>(l => 
+            l.Count == 1 && 
+            l[0].Key == "feature_enabled" && 
+            l[0].Value == "True"
+        )), Times.Once);
+    }
+
+    [Fact]
+    public void GetString_ShouldReturnValueFromStorage()
+    {
+        // Arrange
+        _mockStorage.Setup(s => s.GetConfig("banner_text"))
+            .ReturnsAsync("Welcome User");
+
+        // Act
+        var value = AppAmbit.RemoteConfig.GetString("banner_text");
+
+        // Assert
+        Assert.Equal("Welcome User", value);
+    }
+
+    [Fact]
+    public void GetString_ShouldFallbackToDefaults_IfStorageReturnsNull()
+    {
+        // Arrange
+        _mockStorage.Setup(s => s.GetConfig("banner_text"))
+            .ReturnsAsync((string?)null); // Use null for string
+
+        AppAmbit.RemoteConfig.SetDefaults(new Dictionary<string, object>
+        {
+            { "banner_text", "Default Welcome" }
+        });
+
+        // Act
+        var value = AppAmbit.RemoteConfig.GetString("banner_text");
+
+        // Assert
+        Assert.Equal("Default Welcome", value);
+    }
+
+    [Fact]
+    public void GetInt_ShouldReturnParsedIntegerFromStorage()
+    {
+        // Arrange
+        _mockStorage.Setup(s => s.GetConfig("max_items"))
+            .ReturnsAsync("10");
+
+        // Act
+        var value = AppAmbit.RemoteConfig.GetInt("max_items");
+
+        // Assert
+        Assert.Equal(10, value);
+    }
+
+    [Fact]
+    public void GetDouble_ShouldReturnParsedDoubleFromStorage()
+    {
+        // Arrange
+        _mockStorage.Setup(s => s.GetConfig("discount_rate"))
+            .ReturnsAsync("0.5");
+
+        // Act
+        var value = AppAmbit.RemoteConfig.GetDouble("discount_rate");
+
+        // Assert
+        Assert.Equal(0.5, value);
+    }
+
+    [Fact]
+    public void GetBoolean_ShouldReturnParsedBooleanFromStorage()
+    {
+        // Arrange
+        _mockStorage.Setup(s => s.GetConfig("is_new_ui"))
+            .ReturnsAsync("true");
+
+        // Act
+        var value = AppAmbit.RemoteConfig.GetBoolean("is_new_ui");
+
+        // Assert
+        Assert.True(value);
+    }
+    
     private void ResetState()
     {
         // Access private static fields via reflection to reset RemoteConfig state
         var type = typeof(AppAmbit.RemoteConfig);
+        
         var defaultsField = type.GetField("_defaults", BindingFlags.NonPublic | BindingFlags.Static);
         defaultsField?.SetValue(null, new Dictionary<string, object>());
 
+        var fetchedConfigField = type.GetField("_fetchedConfig", BindingFlags.NonPublic | BindingFlags.Static);
+        fetchedConfigField?.SetValue(null, null);
+        
         var storageField = type.GetField("_storageService", BindingFlags.NonPublic | BindingFlags.Static);
         storageField?.SetValue(null, null);
-    }
 
-    private class FakeStorageService : IStorageService
-    {
-        private Dictionary<string, string> _configs = new();
+        var apiField = type.GetField("_apiService", BindingFlags.NonPublic | BindingFlags.Static);
+        apiField?.SetValue(null, null);
 
-        public Task AddConfigsAsync(List<RemoteConfigEntity> configs)
-        {
-            foreach (var c in configs) _configs[c.Key] = c.Value;
-            return Task.CompletedTask;
-        }
-
-        public Task<string?> GetConfig(string key)
-        {
-            _configs.TryGetValue(key, out var val);
-            return Task.FromResult(val);
-        }
-
-        // Other interface members with dummy implementation
-        public Task InitializeAsync() => Task.CompletedTask;
-        public Task SetDeviceId(string? deviceId) => Task.CompletedTask;
-        public Task<string?> GetDeviceId() => Task.FromResult<string?>(null);
-        public Task SetAppId(string? appId) => Task.CompletedTask;
-        public Task<string?> GetAppId() => Task.FromResult<string?>(null);
-        public Task SetUserId(string userId) => Task.CompletedTask;
-        public Task<string?> GetUserId() => Task.FromResult<string?>(null);
-        public Task SetUserEmail(string? email) => Task.CompletedTask;
-        public Task<string?> GetUserEmail() => Task.FromResult<string?>(null);
-        public Task<string?> GetConsumerId() => Task.FromResult<string?>(null);
-        public Task SetConsumerId(string consumerId) => Task.CompletedTask;
-        public Task<string?> GetPushDeviceToken() => Task.FromResult<string?>(null);
-        public Task SetPushDeviceToken(string? token) => Task.CompletedTask;
-        public Task<bool?> GetPushEnabled() => Task.FromResult<bool?>(null);
-        public Task SetPushEnabled(bool enabled) => Task.CompletedTask;
-        public Task LogEventAsync(AppAmbit.Models.Logs.LogEntity logEntity) => Task.CompletedTask;
-        public Task LogAnalyticsEventAsync(AppAmbit.Models.Analytics.EventEntity analyticsLog) => Task.CompletedTask;
-        public Task<List<AppAmbit.Models.Logs.LogEntity>> GetOldest100LogsAsync() => Task.FromResult(new List<AppAmbit.Models.Logs.LogEntity>());
-        public Task DeleteLogList(List<AppAmbit.Models.Logs.LogEntity> logs) => Task.CompletedTask;
-        public Task DeleteAllLogs() => Task.CompletedTask;
-        public Task<List<AppAmbit.Models.Analytics.EventEntity>> GetOldest100EventsAsync() => Task.FromResult(new List<AppAmbit.Models.Analytics.EventEntity>());
-        public Task DeleteEventList(List<AppAmbit.Models.Analytics.EventEntity> logs) => Task.CompletedTask;
-        public Task SessionData(AppAmbit.Models.Analytics.SessionData sessionData) => Task.CompletedTask;
-        public Task<List<AppAmbit.Models.Analytics.SessionBatch>> GetOldest100SessionsAsync() => Task.FromResult(new List<AppAmbit.Models.Analytics.SessionBatch>());
-        public Task DeleteSessionsList(List<AppAmbit.Models.Analytics.SessionBatch> sessions) => Task.CompletedTask;
-        public Task<AppAmbit.Models.Analytics.SessionData?> GetUnpairedSessionStart() => Task.FromResult<AppAmbit.Models.Analytics.SessionData?>(null);
-        public Task<AppAmbit.Models.Analytics.SessionData?> GetUnpairedSessionEnd() => Task.FromResult<AppAmbit.Models.Analytics.SessionData?>(null);
-        public Task DeleteSessionById(string id) => Task.CompletedTask;
-        public Task UpdateSessionIdsForAllTrackingData(List<AppAmbit.Models.Analytics.SessionBatch> sessions) => Task.CompletedTask;
-        public Task<List<AppAmbit.Models.Breadcrumbs.BreadcrumbsEntity>> GetOldest100BreadcrumbsAsync() => Task.FromResult(new List<AppAmbit.Models.Breadcrumbs.BreadcrumbsEntity>());
-        public Task AddBreadcrumbAsync(AppAmbit.Models.Breadcrumbs.BreadcrumbsEntity breadcrumb) => Task.CompletedTask;
-        public Task DeleteBreadcrumbs(List<AppAmbit.Models.Breadcrumbs.BreadcrumbsEntity> breadcrumbs) => Task.CompletedTask;
+        var appInfoField = type.GetField("_appInfoService", BindingFlags.NonPublic | BindingFlags.Static);
+        appInfoField?.SetValue(null, null);
     }
 }
