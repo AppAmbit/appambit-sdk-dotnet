@@ -64,6 +64,9 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         this.BindingContext = this;
         UserId = Guid.NewGuid().ToString();
+        
+        // Configure notification customizer
+        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
     }
 
     private async void OnGenerateLogsForBatch(object? sender, EventArgs e)
@@ -155,17 +158,14 @@ public partial class MainPage : ContentPage
 
     private async Task RefreshPushButtonAsync()
     {
-        ButtonPushNotifications.IsVisible = true;
-
         if (DeviceInfo.Platform == DevicePlatform.iOS || DeviceInfo.Platform == DevicePlatform.Android)
         {
-            _hasNotificationPermission = PushNotifications.HasSystemPermission();
-            _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
-            UpdatePushButtonText();
+            ButtonPushNotifications.IsVisible = true;
+            UpdateNotificationButtonState();
         }
         else
         {
-             ButtonPushNotifications.IsVisible = false;
+            ButtonPushNotifications.IsVisible = false;
         }
 
         await Task.CompletedTask;
@@ -179,33 +179,51 @@ public partial class MainPage : ContentPage
         _isUpdatingPushButton = true;
         try
         {
+            _hasNotificationPermission = PushNotifications.HasSystemPermission();
+
             if (!_hasNotificationPermission)
             {
-                var tcs = new TaskCompletionSource<bool>();
-                PushNotifications.RequestNotificationPermission(new PermissionListener(granted => tcs.TrySetResult(granted)));
-
-                var granted = await tcs.Task;
-                if (granted)
+                // Request permission
+                PushNotifications.RequestNotificationPermission(new PermissionListener(granted => 
                 {
-                    PushNotifications.SetNotificationsEnabled(true);
-                    _hasNotificationPermission = true;
-                    _notificationsEnabled = true;
-                    UpdatePushButtonText();
-                    await DisplayAlert("Done", "Notifications enabled", "OK");
-                }
-                else
-                {
-                    await DisplayAlert("Permission denied", "Notification permission denied by the user.", "OK");
-                }
+                    MainThread.BeginInvokeOnMainThread(async () =>
+                    {
+                        if (granted)
+                        {
+                            // Update state fields directly
+                            _hasNotificationPermission = true;
+                            _notificationsEnabled = true;
+                            
+                            // Once permission is granted, we enable notifications
+                            PushNotifications.SetNotificationsEnabled(true);
+                            
+                            // Update button text directly
+                            ButtonPushNotifications.Text = "Disable Notifications";
+                            
+                            await DisplayAlert("Notification Status", "Notifications have been enabled.", "OK");
+                        }
+                        else
+                        {
+                            UpdateNotificationButtonState();
+                            await DisplayAlert("Permission Denied", "Notifications cannot be enabled without permission.", "OK");
+                        }
+                        
+                        _isUpdatingPushButton = false;
+                    });
+                }));
 
                 return;
             }
 
-            var targetEnabled = !_notificationsEnabled;
-            PushNotifications.SetNotificationsEnabled(targetEnabled);
-            _notificationsEnabled = targetEnabled;
-            UpdatePushButtonText();
-            await DisplayAlert("Done", targetEnabled ? "Notifications enabled" : "Notifications disabled", "OK");
+            // Toggle notifications enabled state
+            _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
+            var newState = !_notificationsEnabled;
+            PushNotifications.SetNotificationsEnabled(newState);
+            
+            var message = $"Notifications have been {(newState ? "enabled" : "disabled")}.";
+            await DisplayAlert("Notification Status", message, "OK");
+            
+            UpdateNotificationButtonState();
         }
         catch (Exception ex)
         {
@@ -217,13 +235,18 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private void UpdatePushButtonText()
+    private void UpdateNotificationButtonState()
     {
-        ButtonPushNotifications.Text = !_hasNotificationPermission
-            ? "Allow Notifications"
-            : _notificationsEnabled
-                ? "Disable Notifications"
-                : "Enable Notifications";
+        _hasNotificationPermission = PushNotifications.HasSystemPermission();
+        
+        if (!_hasNotificationPermission)
+        {
+            ButtonPushNotifications.Text = "Allow Notifications";
+            return;
+        }
+        
+        _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
+        ButtonPushNotifications.Text = _notificationsEnabled ? "Disable Notifications" : "Enable Notifications";
     }
 
     private sealed class PermissionListener : PushNotifications.IPermissionListener
@@ -236,6 +259,15 @@ public partial class MainPage : ContentPage
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
+    }
+
+    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, PushNotificationData notification)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
+            
+        }
     }
 
     private async void OnTestErrorLogClicked(object sender, EventArgs e)

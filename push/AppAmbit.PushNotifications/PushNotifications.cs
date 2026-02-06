@@ -154,6 +154,11 @@ public static class PushNotifications
         PushNotificationsAndroid.SetNotificationCustomizer(customizer);
     }
 #elif IOS
+    public static void RequestNotificationPermission(IPermissionListener? listener)
+    {
+        PushNotificationsIos.RequestNotificationPermission(granted => listener?.OnPermissionResult(granted));
+    }
+
     public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
     {
         PushNotificationsIos.SetNotificationCustomizer(customizer);

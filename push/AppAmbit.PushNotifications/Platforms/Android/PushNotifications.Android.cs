@@ -103,32 +103,26 @@ internal static class PushNotificationsAndroid
             Log.Error(LogTag, $"Failed to set notifications enabled={enabled}: {ex}");
         }
 
+        // Update consumer logic - always sync state, even without token
         var token = _lastPushToken;
-        if (!string.IsNullOrWhiteSpace(token))
+        _ = Task.Run(async () =>
         {
-            _ = Task.Run(async () =>
+            try
             {
-                try
+                await AppAmbitSdk.UpdateConsumerAsync(token, enabled);
+            }
+            catch (System.Exception ex)
+            {
+                Log.Error(LogTag, $"Failed to sync consumer push state (enabled={enabled}): {ex}");
+            }
+            finally
+            {
+                if (!enabled)
                 {
-                    await AppAmbitSdk.UpdateConsumerAsync(token, enabled);
+                    _lastPushToken = null;
                 }
-                catch (System.Exception ex)
-                {
-                    Log.Error(LogTag, $"Failed to sync consumer push state (enabled={enabled}): {ex}");
-                }
-                finally
-                {
-                    if (!enabled)
-                    {
-                        _lastPushToken = null;
-                    }
-                }
-            });
-        }
-        else if (!enabled)
-        {
-            _lastPushToken = null;
-        }
+            }
+        });
     }
 
     public static bool IsNotificationsEnabled(Context? context = null)

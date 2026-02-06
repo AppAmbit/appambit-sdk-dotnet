@@ -8,6 +8,7 @@
     <AssemblyName>AppAmbit.PushNotifications</AssemblyName>
     <PackageId>AppAmbit.PushNotifications</PackageId>
     <UseMaui>true</UseMaui>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
