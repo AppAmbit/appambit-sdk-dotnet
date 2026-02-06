@@ -115,7 +115,7 @@ public static class MauiProgram
 * **Crash Reporting**: uncaught crashes are automatically captured and uploaded on next launch
 
   ```csharp
-  // 1. Set default values
+  // 1. Set default values (Optional, but recommended to avoid nulls before fetch)
   RemoteConfig.SetDefaults(new Dictionary<string, object>
   {
       { "banner", true },
