@@ -4,6 +4,12 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>AppAmbitAvalonia</RootNamespace>
     <PackageId>com.AppAmbit.Avalonia</PackageId>
+    <ReadmeFile>readme.md</ReadmeFile>
+    <PackageReadmeFile Condition="Exists('$(ReadmeFile)')">$(ReadmeFile)</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,4 +19,11 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.9" />
   </ItemGroup>
+
+  <Target Name="CopyProjectReferencesToPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference')->WithMetadataValue('PrivateAssets', 'All'))" />
+    </ItemGroup>
+  </Target>
+
 </Project>

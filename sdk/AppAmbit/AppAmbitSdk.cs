@@ -95,19 +95,25 @@ public static class AppAmbitSdk
 
     private static void InitializeConsumer(string appKey)
     {
-        if (!Analytics._isManualSessionEnabled)
+        try
         {
-            AsyncHelpers.RunSync(SessionManager.SaveSessionEndToDatabaseIfExist);
+            if (!Analytics._isManualSessionEnabled)
+            {
+                AsyncHelpers.RunSync(SessionManager.SaveSessionEndToDatabaseIfExist);
+            }
+
+            AsyncHelpers.RunSync(() => GetNewToken(appKey));
+
+            if (Analytics._isManualSessionEnabled)
+                return;
+
+            AsyncHelpers.RunSync(SessionManager.SendEndSessionFromDatabase);
+            AsyncHelpers.RunSync(SessionManager.SendEndSessionFromFile);
+            AsyncHelpers.RunSync(SessionManager.StartSession);
+        }catch (Exception ex)
+        {
+            Debug.WriteLine($"[AppAmbitSdk] Exception during consumer initialization: {ex}");
         }
-
-        AsyncHelpers.RunSync(() => GetNewToken(appKey));
-
-        if (Analytics._isManualSessionEnabled)
-            return;
-
-        AsyncHelpers.RunSync(SessionManager.SendEndSessionFromDatabase);
-        AsyncHelpers.RunSync(SessionManager.SendEndSessionFromFile);
-        AsyncHelpers.RunSync(SessionManager.StartSession);
     }
 
     private static async Task SendDataPending()
@@ -126,7 +132,7 @@ public static class AppAmbitSdk
         }
     }
 
-    private static void InitializeServices()
+    public static void InitializeServices()
     {
         if (_servicesReady) return;
 
@@ -156,7 +162,6 @@ public static class AppAmbitSdk
         {
             Debug.WriteLine(ex.ToString());
             _servicesReady = false;
-            throw;
         }
     }
 

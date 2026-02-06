@@ -119,6 +119,12 @@ public static class SessionManager
 
         if (endSession is null)
             return;
+        
+        if(_storageService == null)
+        {
+            Debug.WriteLine("SaveSessionEndToDatabaseIfExist: StorageService not initialized");
+            return;
+        }
 
         await _storageService.SessionData(endSession);
         await DeleteSingleObject<SessionData>();
@@ -127,6 +133,11 @@ public static class SessionManager
 
     public static async Task SendStartSessionIfExist()
     {
+        if (_storageService == null)
+        {
+            Debug.WriteLine("SendStartSessionIfExist: StorageService not initialized");
+            return;
+        }
         var startSession = await _storageService.GetUnpairedSessionStart();
 
         if (startSession == null)
@@ -176,6 +187,12 @@ public static class SessionManager
 
     public static async Task SendEndSessionFromDatabase()
     {
+        if (_storageService == null)
+        {
+            Debug.WriteLine("SendEndSessionFromDatabase: StorageService not initialized");
+            return;
+        }
+        
         var endSession = await _storageService.GetUnpairedSessionEnd();
 
         if (endSession == null)
@@ -183,7 +200,13 @@ public static class SessionManager
             return;
         }
 
-        var resultEnd = await _apiService!.ExecuteRequest<EndSessionResponse>(new EndSessionEndpoint(endSession));
+        if (_apiService == null)
+        {
+            Debug.WriteLine("SendEndSessionFromDatabase: APIService not initialized");
+            return;
+        }
+
+        var resultEnd = await _apiService.ExecuteRequest<EndSessionResponse>(new EndSessionEndpoint(endSession));
         if (resultEnd?.ErrorType == ApiErrorType.None)
         {
             await _storageService.DeleteSessionById(endSession?.Id ?? "");
@@ -193,28 +216,39 @@ public static class SessionManager
 
     private static async Task SendSession(SessionData sessionData)
     {
-        if (sessionData.SessionType == SessionType.Start)
+        try
         {
-            var resultStart = await _apiService?.ExecuteRequest<SessionResponse>(new StartSessionEndpoint(sessionData.Timestamp))!;
-
-            if (resultStart?.ErrorType != ApiErrorType.None)
+            if(_storageService == null)
             {
-                sessionData.SessionId = _sessionId.IsUIntNumber() ? _sessionId : null;
-                await _storageService.SessionData(sessionData);
+                Debug.WriteLine("SendSession: StorageService not initialized");
                 return;
             }
-
-            Debug.WriteLine("StartSession sent successfully");
-            _sessionId = resultStart.Data?.SessionId;
-        }
-        else
-        {
-            var resultEnd = await _apiService!.ExecuteRequest<EndSessionResponse>(new EndSessionEndpoint(sessionData));
-            if (resultEnd?.ErrorType != ApiErrorType.None)
+            if (sessionData.SessionType == SessionType.Start)
             {
-                await _storageService.SessionData(sessionData);
-                Debug.WriteLine("EndSession sent successfully");
+                var resultStart = await _apiService?.ExecuteRequest<SessionResponse>(new StartSessionEndpoint(sessionData.Timestamp))!;
+
+                if (resultStart?.ErrorType != ApiErrorType.None)
+                {
+                    sessionData.SessionId = _sessionId.IsUIntNumber() ? _sessionId : null;
+                    await _storageService.SessionData(sessionData);
+                    return;
+                }
+
+                Debug.WriteLine("StartSession sent successfully");
+                _sessionId = resultStart.Data?.SessionId;
             }
+            else
+            {
+                var resultEnd = await _apiService!.ExecuteRequest<EndSessionResponse>(new EndSessionEndpoint(sessionData));
+                if (resultEnd?.ErrorType != ApiErrorType.None)
+                {
+                    await _storageService.SessionData(sessionData);
+                    Debug.WriteLine("EndSession sent successfully");
+                }
+            }
+        }catch (Exception ex)
+        {
+            Debug.WriteLine("Error in SendSession: " + ex);
         }
     }
 
@@ -226,6 +260,12 @@ public static class SessionManager
         try
         {
             Debug.WriteLine("SendBatchSessions started");
+
+            if (_storageService == null)
+            {
+                Debug.WriteLine("SendBatchSessions: StorageService not initialized");
+                return;
+            }
 
             var sessions = await _storageService.GetOldest100SessionsAsync();
             if (sessions.Count == 0)

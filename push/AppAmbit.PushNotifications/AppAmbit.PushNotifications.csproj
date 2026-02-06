@@ -4,9 +4,19 @@
     <TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Description>Push Notifications SDK for Android to send push notifications via AppAmbit platform.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/AppAmbit/appambit-sdk-dotnet</RepositoryUrl>
+    <PackageTags>appambit; sdk; push; notifications; push-notifications; mobile; apps;</PackageTags>
+    <Version>2.1.0</Version>
+    <Authors>AppAmbit</Authors>
+    <Company>AppAmbit</Company>
     <RootNamespace>AppAmbit.PushNotifications</RootNamespace>
-    <AssemblyName>AppAmbit.PushNotifications</AssemblyName>
-    <PackageId>AppAmbit.PushNotifications</PackageId>
+    <AssemblyName>com.AppAmbit.PushNotifications</AssemblyName>
+    <PackageId>com.AppAmbit.PushNotifications</PackageId>
+    <PackageIcon>icon.png</PackageIcon>
+    <ReadmeFile>README.md</ReadmeFile>
+    <PackageReadmeFile Condition="Exists('$(ReadmeFile)')">$(ReadmeFile)</PackageReadmeFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
