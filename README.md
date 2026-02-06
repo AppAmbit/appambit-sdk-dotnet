@@ -111,7 +111,32 @@ public static class MauiProgram
   ```csharp
     Crashes.LogError("This code should not be reached");
   ```
+
 * **Crash Reporting**: uncaught crashes are automatically captured and uploaded on next launch
+
+  ```csharp
+  // 1. Set default values
+  RemoteConfig.SetDefaults(new Dictionary<string, object>
+  {
+      { "banner", true },
+      { "data", "Hello from Defaults" },
+      { "discount", 10 },
+      { "max_upload", 15.6 }
+  });
+  ```
+  ```csharp
+  // 2. Fetch and apply
+  await RemoteConfig.FetchAndActivate();
+  Console.WriteLine("Data fetched and activated");
+  ```
+  ```csharp
+  // 3. Get values (using the correct type method)
+  string message = RemoteConfig.GetString("data");
+  bool isFeatureEnabled = RemoteConfig.GetBoolean("banner");
+  int discount = RemoteConfig.GetInt("discount");
+  double maxUpload = RemoteConfig.GetDouble("max_upload");
+  ```
+* **Remote Config**: dynamic configuration values fetched and applied at runtime
 
 ---
 
