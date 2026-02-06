@@ -5,11 +5,38 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>true</ImplicitUsings>
     <SupportedOSPlatformVersion>12.2</SupportedOSPlatformVersion>
+    <!-- Bundle Identifier -->
+    <ApplicationId>com.AppAmbit.TestAppSwift</ApplicationId>
+    <ApplicationTitle>AppAmbitTestingiOS</ApplicationTitle>
     <!-- Disable AOT to workaround .NET 10 iOS AOT compiler issue (exit code 134) -->
     <UseInterpreter>true</UseInterpreter>
   </PropertyGroup>
+
+  <!-- iOS Code Signing - Debug -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <CodesignKey>Apple Development</CodesignKey>
+    <CodesignProvision>Automatic</CodesignProvision>
+    <DevelopmentTeam>U7UXGJ27XV</DevelopmentTeam>
+    <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
+  </PropertyGroup>
+
+  <!-- iOS Code Signing - Release -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <ApplicationId>com.AppAmbit.TestAppSwift</ApplicationId>
+    <ApplicationTitle>AppAmbitTestingiOS</ApplicationTitle>
+    <CodesignKey>Apple Development</CodesignKey>
+    <CodesignProvision>Automatic</CodesignProvision>
+    <DevelopmentTeam>U7UXGJ27XV</DevelopmentTeam>
+  </PropertyGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\..\sdk\AppAmbit.Maui\AppAmbit.Maui.csproj" />
+    <!-- Native iOS apps should reference AppAmbit Core, not AppAmbit.Maui -->
+    <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
     <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
   </ItemGroup>
+
+  <!-- Import AppAmbit.PushNotifications targets for development (with ProjectReference) -->
+  <!-- When using NuGet package, this will be imported automatically -->
+  <Import Project="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.targets" Condition="Exists('..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.targets')" />
+
 </Project>

@@ -1,0 +1,55 @@
+<Project>
+  <!--  Copy iOS native frameworks to app bundle when using AppAmbit.PushNotifications -->
+  
+  <!-- Define framework paths -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+    <_AppAmbitPushSdkPath>$(MSBuildThisFileDirectory)</_AppAmbitPushSdkPath>
+    <_IsSimulator Condition="'$(RuntimeIdentifier)' == '' OR $(RuntimeIdentifier.Contains('simulator'))">true</_IsSimulator>
+    <_IsSimulator Condition="'$(_IsSimulator)' == ''">false</_IsSimulator>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_IsSimulator)' == 'true'">
+    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/Build/Products/Debug-iphonesimulator</_AppAmbitFrameworkPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_IsSimulator)' == 'false'">
+    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/Build/Products/Debug-iphoneos</_AppAmbitFrameworkPath>
+  </PropertyGroup>
+
+  <!-- Compute AppBundleDir if not defined -->
+  <Target Name="_ComputeAppAmbitBundleDir" 
+          BeforeTargets="CopyAppAmbitPushFrameworks" 
+          Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(OutputType)' == 'Exe'">
+    <PropertyGroup Condition="'$(AppBundleDir)' == ''">
+      <!-- Fallback: compute from TargetPath -->
+      <_AppName>$(AssemblyName)</_AppName>
+      <_ComputedAppBundleDir>$(TargetDir.TrimEnd('\').TrimEnd('/'))/$(_AppName).app</_ComputedAppBundleDir>
+      <AppBundleDir Condition="Exists('$(_ComputedAppBundleDir)')">$(_ComputedAppBundleDir)</AppBundleDir>
+    </PropertyGroup>
+    <Message Importance="High" Text="[AppAmbit.PushNotifications] AppBundleDir: $(AppBundleDir)" Condition="'$(AppBundleDir)' != ''" />
+  </Target>
+
+  <!-- Copy frameworks to app bundle -->
+  <Target Name="CopyAppAmbitPushFrameworks" 
+          AfterTargets="_CompileToNative;_CreateAppBundle;_UnpackLibraryResources;Build" 
+          Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(OutputType)' == 'Exe' AND '$(AppBundleDir)' != ''">
+    <PropertyGroup>
+      <_FrameworksDir>$(AppBundleDir)/Frameworks</_FrameworksDir>
+    </PropertyGroup>
+    
+    <Message Importance="High" Text="[AppAmbit.PushNotifications] Copying native frameworks to $(_FrameworksDir)..." />
+    <Message Importance="High" Text="[AppAmbit.PushNotifications] Framework source: $(_AppAmbitFrameworkPath)" />
+    
+    <MakeDir Directories="$(_FrameworksDir)" ContinueOnError="true" />
+    
+    <!-- Copy frameworks -->
+    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework')" 
+          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework&quot; &quot;$(_FrameworksDir)/&quot;" 
+          ContinueOnError="true" />
+    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework')" 
+          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;" 
+          ContinueOnError="true" />
+    
+    <Message Importance="High" Text="[AppAmbit.PushNotifications] Frameworks copied successfully." />
+  </Target>
+</Project>

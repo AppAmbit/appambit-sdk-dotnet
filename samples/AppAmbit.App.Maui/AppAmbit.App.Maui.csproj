@@ -99,14 +99,8 @@
       <CodesignEntitlements>Platforms\iOS\Entitlements.plist</CodesignEntitlements>
     </PropertyGroup>
 
-    <PropertyGroup>
-      <_PushFrameworkPath>$(MSBuildProjectDirectory)/../../push/AppAmbit.PushNotifications/Platforms/iOS_Build/build/Build/Products/Debug-iphonesimulator/AppAmbitPushNotifications</_PushFrameworkPath>
-      <_SdkFrameworkPath>$(MSBuildProjectDirectory)/../../push/AppAmbit.PushNotifications/Platforms/iOS_Build/build/Build/Products/Debug-iphonesimulator/AppAmbitSdk</_SdkFrameworkPath>
-    </PropertyGroup>
+    <!-- Import AppAmbit.PushNotifications targets for development (with ProjectReference) -->
+    <!-- When using NuGet package, this will be imported automatically -->
+    <Import Project="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.targets" Condition="Exists('..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.targets')" />
 
-    <Target Name="CopyFrameworks" AfterTargets="Build" Condition="$(TargetFramework.Contains('-ios'))">
-        <Exec Command="mkdir -p $(AppBundleDir)/Frameworks" />
-        <Exec Command="cp -R $(_PushFrameworkPath)/AppAmbitPushNotifications.framework $(AppBundleDir)/Frameworks/" />
-        <Exec Command="cp -R $(_SdkFrameworkPath)/AppAmbit.framework $(AppBundleDir)/Frameworks/" />
-    </Target>
 </Project>

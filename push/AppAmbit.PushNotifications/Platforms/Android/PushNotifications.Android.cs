@@ -5,7 +5,6 @@ using Com.Appambit.Sdk.Models;
 using Com.Appambit.Sdk;
 using AppAmbit;
 using System.Threading.Tasks;
-using ActivityBase = AndroidX.Activity.ComponentActivity;
 
 namespace AppAmbit.PushNotifications;
 
@@ -15,30 +14,58 @@ internal static class PushNotificationsAndroid
     private static string? _lastPushToken;
     private const string LogTag = PushNotifications.LogTag;
 
-    private static ActivityBase? _currentActivity;
+    private static AndroidX.Activity.ComponentActivity? _currentActivity;
 
-    public static void Start(Context context, bool enableNotifications)
+    // Try to get current activity from MAUI Platform using reflection (to avoid hard dependency)
+    private static AndroidX.Activity.ComponentActivity? GetCurrentActivity()
+    {
+        try
+        {
+            // Try to get Microsoft.Maui.ApplicationModel.Platform.CurrentActivity using reflection
+            var platformType = System.Type.GetType("Microsoft.Maui.ApplicationModel.Platform, Microsoft.Maui.Essentials");
+            if (platformType != null)
+            {
+                var currentActivityProperty = platformType.GetProperty("CurrentActivity", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                if (currentActivityProperty != null)
+                {
+                    var activity = currentActivityProperty.GetValue(null) as AndroidX.Activity.ComponentActivity;
+                    if (activity != null)
+                    {
+                        _currentActivity = activity; // Update cached reference
+                        return activity;
+                    }
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Log.Debug(LogTag, $"Could not get MAUI Platform.CurrentActivity: {ex.Message}");
+        }
+
+        return _currentActivity;
+    }
+
+    public static void Start(Context context)
     {
         if (context == null) throw new System.ArgumentNullException(nameof(context));
 
-        // Attempt to capture activity if context is one, though explicit Init is better
-        if (context is ActivityBase activity)
+        // Attempt to capture activity if context is one
+        if (context is AndroidX.Activity.ComponentActivity activity)
         {
             _currentActivity = activity;
         }
 
         var appContext = context.ApplicationContext;
-        // ... rest of start logic
-        InternalStart(appContext ?? context, enableNotifications);
+        InternalStart(appContext ?? context);
     }
     
     // Explicit Init for Activity
-    public static void Init(ActivityBase activity)
+    public static void Init(AndroidX.Activity.ComponentActivity activity)
     {
         _currentActivity = activity;
     }
 
-    private static void InternalStart(Context appContext, bool enableNotifications) 
+    private static void InternalStart(Context appContext) 
     {
         if (!_initialized)
         {
@@ -48,16 +75,14 @@ internal static class PushNotificationsAndroid
 
         _ = Task.Run(() =>
         {
-            var needsPostStartSync = false;
-
             try
             {
-                PushKernel.SetNotificationsEnabled(appContext, enableNotifications);
+                // Disable notifications by default before starting SDK
+                PushKernel.SetNotificationsEnabled(appContext, false);
             }
             catch (Java.Lang.IllegalStateException ex)
             {
-                needsPostStartSync = true;
-                Log.Warn(LogTag, $"Failed to apply notifications enabled={enableNotifications} before start: {ex}");
+                Log.Warn(LogTag, $"Failed to disable notifications before start: {ex}");
             }
 
             try
@@ -67,19 +92,6 @@ internal static class PushNotificationsAndroid
             catch (Java.Lang.IllegalStateException ex)
             {
                 Log.Error(LogTag, $"Failed to start push: {ex}");
-                return;
-            }
-
-            if (needsPostStartSync)
-            {
-                try
-                {
-                    PushKernel.SetNotificationsEnabled(appContext, enableNotifications);
-                }
-                catch (Java.Lang.IllegalStateException ex)
-                {
-                    Log.Error(LogTag, $"Failed to apply notifications enabled={enableNotifications} after start: {ex}");
-                }
             }
         });
     }
@@ -87,7 +99,7 @@ internal static class PushNotificationsAndroid
     public static void SetNotificationsEnabled(Context? context, bool enabled)
     {
         // Try to get context from stored activity if null
-        var targetContext = context ?? _currentActivity?.ApplicationContext;
+        var targetContext = context ?? GetCurrentActivity()?.ApplicationContext;
         if (targetContext == null) 
         {
             Log.Error(LogTag, "SetNotificationsEnabled: Context is null and no activity initialized.");
@@ -109,7 +121,15 @@ internal static class PushNotificationsAndroid
         {
             try
             {
+                // Wait a bit if token is null to give FCM time to generate it
+                if (token == null && enabled)
+                {
+                    await Task.Delay(1000);
+                    token = _lastPushToken;
+                }
+                
                 await AppAmbitSdk.UpdateConsumerAsync(token, enabled);
+                Log.Debug(LogTag, $"Consumer push state synced: enabled={enabled}, token={token?.Substring(0, Math.Min(10, token?.Length ?? 0))}");
             }
             catch (System.Exception ex)
             {
@@ -127,7 +147,7 @@ internal static class PushNotificationsAndroid
 
     public static bool IsNotificationsEnabled(Context? context = null)
     {
-        var targetContext = context ?? _currentActivity?.ApplicationContext;
+        var targetContext = context ?? GetCurrentActivity()?.ApplicationContext;
         if (targetContext == null) return false;
         return PushKernel.IsNotificationsEnabled(targetContext);
     }
@@ -135,23 +155,27 @@ internal static class PushNotificationsAndroid
     // New parameterless/simplified methods
     public static bool HasSystemPermission()
     {
-        if (_currentActivity == null) return false;
+        var activity = GetCurrentActivity();
+        if (activity == null) return false;
         if ((int)Android.OS.Build.VERSION.SdkInt < 33) return true;
-        return AndroidX.Core.Content.ContextCompat.CheckSelfPermission(_currentActivity, Android.Manifest.Permission.PostNotifications) == Android.Content.PM.Permission.Granted;
+        return AndroidX.Core.Content.ContextCompat.CheckSelfPermission(activity, Android.Manifest.Permission.PostNotifications) == Android.Content.PM.Permission.Granted;
     }
 
     public static void RequestNotificationPermission(PushNotifications.IPermissionListener? listener)
     {
-        if (_currentActivity == null)
+        var activity = GetCurrentActivity();
+        if (activity == null)
         {
             Log.Error(LogTag, "RequestNotificationPermission: Activity is not initialized. Call PushNotifications.Init(activity) or Start(activity) first.");
             return;
         }
-        PushKernel.RequestNotificationPermission(_currentActivity, listener is null ? null : new PermissionListenerProxy(listener));
+        
+        Log.Debug(LogTag, $"Requesting notification permission with activity: {activity.GetType().Name}");
+        PushKernel.RequestNotificationPermission(activity, listener is null ? null : new PermissionListenerProxy(listener));
     }
 
     // Keep old signature for compatibility/internal use but forward
-    public static void RequestNotificationPermission(ActivityBase activity, PushNotifications.IPermissionListener? listener) 
+    public static void RequestNotificationPermission(AndroidX.Activity.ComponentActivity activity, PushNotifications.IPermissionListener? listener) 
     {
         _currentActivity = activity; // Update reference
         RequestNotificationPermission(listener);
@@ -213,16 +237,15 @@ internal static class PushNotificationsAndroid
 
         public void OnNewToken(string token)
         {
-            if (!PushKernel.IsNotificationsEnabled(_context))
-                return;
+            var isEnabled = PushKernel.IsNotificationsEnabled(_context);
 
-            Log.Debug(LogTag, $"FCM token received: {token}");
+            Log.Debug(LogTag, $"FCM token received: {token} || {isEnabled}");
             _lastPushToken = token;
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await AppAmbitSdk.UpdateConsumerAsync(token, true);
+                    await AppAmbitSdk.UpdateConsumerAsync(token, isEnabled);
                 }
                 catch (System.Exception ex)
                 {

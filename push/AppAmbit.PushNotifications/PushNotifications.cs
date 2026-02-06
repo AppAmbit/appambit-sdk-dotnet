@@ -1,9 +1,5 @@
 #if ANDROID
 using Android.Content;
-using AndroidX.Core.App;
-using Com.Appambit.Sdk.Models;
-//using Com.Appambit.Sdk.Models;
-using ActivityBase = AndroidX.Activity.ComponentActivity;
 #endif
 using System;
 using System.Diagnostics;
@@ -19,7 +15,7 @@ public static class PushNotifications
 {
     internal const string LogTag = "AppAmbitPushSDKNET";
 
-    public static void Start(object? platformContext = null, bool enableNotifications = true)
+    public static void Start(object? platformContext = null)
     {
         if (!AppAmbitSdk.IsInitialized)
         {
@@ -30,19 +26,19 @@ public static class PushNotifications
         Debug.WriteLine($"[{LogTag}] Starting Push SDK and binding to AppAmbit Core.");
 
 #if ANDROID
-        if (platformContext is ActivityBase activity)
+        if (platformContext is AndroidX.Activity.ComponentActivity activity)
         {
             PushNotificationsAndroid.Init(activity);
-            PushNotificationsAndroid.Start(activity, enableNotifications);
+            PushNotificationsAndroid.Start(activity);
         }
         else if (platformContext is Context androidContext)
         {
-            PushNotificationsAndroid.Start(androidContext, enableNotifications);
+            PushNotificationsAndroid.Start(androidContext);
         }
         else
         {
              // Try to start without context if already initialized
-             PushNotificationsAndroid.Start(null!, enableNotifications); 
+             PushNotificationsAndroid.Start(null!); 
         }
 #elif IOS
         // Auto-detect debug mode inside native if needed, or pass it if exposed.
@@ -108,7 +104,7 @@ public static class PushNotifications
     public static void RequestNotificationPermission(object? platformContext = null, Action<bool>? callback = null)
     {
 #if ANDROID
-        if (platformContext is ActivityBase activity)
+        if (platformContext is AndroidX.Activity.ComponentActivity activity)
         {
              // TODO: Update Android implementation to support Action<bool>
              PushNotificationsAndroid.RequestNotificationPermission(activity, null); 
@@ -144,7 +140,7 @@ public static class PushNotifications
     }
 
 #if ANDROID
-    public static void RequestNotificationPermission(ActivityBase activity, IPermissionListener? listener)
+    public static void RequestNotificationPermission(AndroidX.Activity.ComponentActivity activity, IPermissionListener? listener)
     {
         PushNotificationsAndroid.RequestNotificationPermission(activity, listener);
     }

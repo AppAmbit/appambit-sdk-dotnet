@@ -11,7 +11,12 @@ public class AppDelegate : MauiUIApplicationDelegate
 
     public override bool FinishedLaunching(UIApplication app, NSDictionary options)
     {
-        return base.FinishedLaunching(app, options);
+        var result = base.FinishedLaunching(app, options);
+        
+        // Start push and wire token updates to AppAmbit (same pattern as Android)
+        PushNotifications.Start(null);
+        
+        return result;
     }
 
     [System.Runtime.InteropServices.DllImport("/usr/lib/libSystem.dylib")]

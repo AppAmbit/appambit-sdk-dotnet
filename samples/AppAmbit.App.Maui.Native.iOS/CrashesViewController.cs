@@ -1,5 +1,6 @@
 using System.Diagnostics;
-using AppAmbitMaui;
+using AppAmbit;
+using AppAmbit.PushNotifications;
 
 namespace AppAmbitTestingiOS;
 
@@ -8,6 +9,11 @@ public class CrashesViewController : UIViewController
     string userId = Guid.NewGuid().ToString();
     string email = "test@gmail.com";
     string messgeCutsom = "Test Log Message";
+
+    private bool _hasNotificationPermission;
+    private bool _notificationsEnabled;
+    private bool _isUpdatingPushButton;
+    private UIButton? _pushButton;
 
     UITextField userIdField;
     UITextField emailField;
@@ -108,6 +114,9 @@ UIButton MakeButton(string title)
         base.ViewDidLoad();
         View.BackgroundColor = BackgroundCompat();
 
+        // Configure notification customizer
+        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+
         var scroll = new UIScrollView { TranslatesAutoresizingMaskIntoConstraints = false };
         var container = new UIView { TranslatesAutoresizingMaskIntoConstraints = false };
         var stack = new UIStackView
@@ -198,8 +207,12 @@ UIButton MakeButton(string title)
             _ = Crashes.GenerateTestCrash();
         };
 
+        _pushButton = MakeButton("Allow Notifications");
+        _pushButton.TouchUpInside += OnPushButtonClicked;
+
         var items = new UIView[]
         {
+            _pushButton,
             btnDidCrash,
             userIdView,
             btnChangeUserId,
@@ -238,5 +251,126 @@ UIButton MakeButton(string title)
             stack.TrailingAnchor.ConstraintEqualTo(container.TrailingAnchor, -16),
             stack.BottomAnchor.ConstraintEqualTo(container.BottomAnchor, -16),
         });
+    }
+
+    public override void ViewWillAppear(bool animated)
+    {
+        base.ViewWillAppear(animated);
+        UpdateNotificationButtonState();
+    }
+
+    private async void OnPushButtonClicked(object? sender, EventArgs e)
+    {
+        await HandlePushNotificationsAsync();
+    }
+
+    private async Task HandlePushNotificationsAsync()
+    {
+        if (_isUpdatingPushButton)
+            return;
+
+        _isUpdatingPushButton = true;
+        try
+        {
+            _hasNotificationPermission = PushNotifications.HasSystemPermission();
+
+            if (!_hasNotificationPermission)
+            {
+                // Request permission
+                PushNotifications.RequestNotificationPermission(new PermissionListener(granted =>
+                {
+                    InvokeOnMainThread(async () =>
+                    {
+                        if (granted)
+                        {
+                            // Update state fields directly
+                            _hasNotificationPermission = true;
+                            _notificationsEnabled = true;
+
+                            // Once permission is granted, we enable notifications
+                            PushNotifications.SetNotificationsEnabled(true);
+
+                            // Update button text directly
+                            _pushButton!.SetTitle("Disable Notifications", UIControlState.Normal);
+
+                            await ShowAlertAsync("Notification Status", "Notifications have been enabled.");
+                        }
+                        else
+                        {
+                            UpdateNotificationButtonState();
+                            await ShowAlertAsync("Permission Denied", "Notifications cannot be enabled without permission.");
+                        }
+
+                        _isUpdatingPushButton = false;
+                    });
+                }));
+
+                return;
+            }
+
+            // Toggle notifications enabled state
+            _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
+            var newState = !_notificationsEnabled;
+            PushNotifications.SetNotificationsEnabled(newState);
+
+            var message = $"Notifications have been {(newState ? "enabled" : "disabled")}.";
+            await ShowAlertAsync("Notification Status", message);
+
+            UpdateNotificationButtonState();
+        }
+        catch (Exception ex)
+        {
+            await ShowAlertAsync("Error", ex.Message);
+        }
+        finally
+        {
+            _isUpdatingPushButton = false;
+        }
+    }
+
+    private void UpdateNotificationButtonState()
+    {
+        _hasNotificationPermission = PushNotifications.HasSystemPermission();
+
+        if (!_hasNotificationPermission)
+        {
+            _pushButton!.SetTitle("Allow Notifications", UIControlState.Normal);
+            return;
+        }
+
+        _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
+        _pushButton!.SetTitle(_notificationsEnabled ? "Disable Notifications" : "Enable Notifications", UIControlState.Normal);
+    }
+
+    private Task ShowAlertAsync(string title, string message)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+
+        var alert = UIAlertController.Create(title, message, UIAlertControllerStyle.Alert);
+        alert.AddAction(UIAlertAction.Create("OK", UIAlertActionStyle.Default, _ => tcs.SetResult(true)));
+
+        PresentViewController(alert, true, null);
+
+        return tcs.Task;
+    }
+
+    private sealed class PermissionListener : PushNotifications.IPermissionListener
+    {
+        private readonly Action<bool> _onResult;
+
+        public PermissionListener(Action<bool> onResult)
+        {
+            _onResult = onResult;
+        }
+
+        public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
+    }
+
+    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, PushNotificationData notification)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
+        }
     }
 }

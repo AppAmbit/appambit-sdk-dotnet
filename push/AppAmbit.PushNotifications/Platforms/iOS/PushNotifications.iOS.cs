@@ -41,6 +41,22 @@ internal static class PushNotificationsIos
     // Hold reference to listener to prevent GC
     private static object? _tokenListener;
 
+    /// <summary>
+    /// Cross-platform main thread dispatch helper.
+    /// Uses Microsoft.Maui.ApplicationModel.MainThread if available (MAUI),
+    /// otherwise uses NSRunLoop.Main.InvokeOnMainThread (Native iOS).
+    /// </summary>
+    private static void InvokeOnMainThreadSafe(Action action)
+    {
+#if __MAUI__
+        // When UseMaui is true and MAUI assemblies are available
+        Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(action);
+#else
+        // For Native iOS projects without MAUI
+        NSRunLoop.Main.InvokeOnMainThread(action);
+#endif
+    }
+
     private static void EnsureNativeAvailable()
     {
         if (_classHandle == IntPtr.Zero)
@@ -415,8 +431,8 @@ internal static class PushNotificationsIos
         public void OnPermissionResult(bool granted)
         {
             Debug.WriteLine($"{LogTag}: (C#) Permission Result: {granted}");
-            // Marshal back to main thread if needed, usually callbacks are updated on UI thread
-            MainThread.BeginInvokeOnMainThread(() => _callback(granted));
+            // Marshal back to main thread
+            InvokeOnMainThreadSafe(() => _callback(granted));
         }
     }
 

@@ -1,5 +1,5 @@
 using AppAmbit.PushNotifications;
-using AppAmbitMaui;
+using AppAmbit;
 namespace AppAmbitTestingiOS;
 
 
