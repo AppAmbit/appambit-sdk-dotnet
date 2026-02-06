@@ -1,3 +1,4 @@
+using AppAmbit;
 using AppAmbitMaui;
 namespace AppAmbitTestingMacOs;
 
@@ -6,7 +7,18 @@ public class AppDelegate : UIApplicationDelegate
 {
 	public override bool FinishedLaunching(UIApplication application, NSDictionary? launchOptions)
 	{
-		AppAmbitSdk.Start("<YOUR-APPKEY>");
+		AppAmbitMaui.AppAmbitSdk.Start("<YOUR-APPKEY>");
+
+		RemoteConfig.SetDefaults(new Dictionary<string, object>
+		{
+			{ "banner", true },
+			{ "data", "If you can see this message you are using local values" },
+			{ "discount", 8 },
+			{ "max_upload", 15.6 }
+		});
+
+        _ = Task.Run(async () => await RemoteConfig.FetchAndActivate());
+
 		return true;
 	}
 

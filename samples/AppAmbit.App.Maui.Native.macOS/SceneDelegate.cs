@@ -27,6 +27,7 @@ public class SceneDelegate : UIResponder, IUIWindowSceneDelegate
 
             var crashesViewController = CreateCrashesViewController();
             var analyticsViewController = CreateAnalyticsViewController();
+            var remoteConfigViewController = new RemoteConfigViewController();
 
             _crashesNav = new UINavigationController(crashesViewController);
             _crashesNav.TabBarItem = new UITabBarItem("Crashes", UIImage.GetSystemImage("exclamationmark.triangle"), 0);
@@ -34,12 +35,16 @@ public class SceneDelegate : UIResponder, IUIWindowSceneDelegate
             _analyticsNav = new UINavigationController(analyticsViewController);
             _analyticsNav.TabBarItem = new UITabBarItem("Analytics", UIImage.GetSystemImage("chart.bar"), 1);
 
+            var remoteConfigNav = new UINavigationController(remoteConfigViewController);
+            remoteConfigNav.TabBarItem = new UITabBarItem("Remote Config", UIImage.GetSystemImage("antenna.radiowaves.left.and.right"), 2);
+
             var tabBarController = new UITabBarController
             {
                 ViewControllers = new UIViewController[]
                 {
                     _crashesNav,
-                    _analyticsNav
+                    _analyticsNav,
+                    remoteConfigNav
                 }
             };
 
