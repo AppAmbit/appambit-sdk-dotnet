@@ -171,7 +171,7 @@ internal static class PushNotificationsIos
         _tokenListener = listener; // Keep alive
 
         // 3. Setup Swizzling
-        objc_msgSend(_classHandle, _selSetupSwizzling);        
+        objc_msgSend(_classHandle, _selSetupSwizzling);
     }
 
     public static void SetNotificationsEnabled(bool enabled)
@@ -384,7 +384,6 @@ internal static class PushNotificationsIos
         }
     }
 
-
     // --- Internal Token Listener ---
     [Register("TokenListenerImpl")]
     private class TokenListenerImpl : NSObject
@@ -400,16 +399,13 @@ internal static class PushNotificationsIos
 
              _ = Task.Run(async () =>
             {
-                // Check if enabled before syncing
-                if (IsNotificationsEnabled())
-                {
-                    
-                    try {
-                        await AppAmbitSdk.UpdateConsumerAsync(tokenStr, true);
-                        Debug.WriteLine($"{LogTag}: (C#) Token synced.");
-                    } catch (Exception ex) {
-                         Debug.WriteLine($"{LogTag}: Error syncing token: {ex.Message}");
-                    }
+                // Always sync token if received - let backend handle logic
+                try {
+                    // Implicitly enable for the backend since we have a token
+                    await AppAmbitSdk.UpdateConsumerAsync(tokenStr, true);
+                    Debug.WriteLine($"{LogTag}: (C#) Token synced.");
+                } catch (Exception ex) {
+                        Debug.WriteLine($"{LogTag}: Error syncing token: {ex.Message}");
                 }
             });
         }

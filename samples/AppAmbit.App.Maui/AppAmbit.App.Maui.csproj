@@ -20,6 +20,9 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
+        <!-- Disable AOT to workaround .NET 10 iOS AOT compiler issue (exit code 134) -->
+        <UseInterpreter Condition="$(TargetFramework.Contains('-ios'))">true</UseInterpreter>
+
         <!-- Display name -->
         <ApplicationTitle>AppAmbitTestingApp</ApplicationTitle>
 

@@ -162,6 +162,10 @@ public partial class MainPage : ContentPage
         {
             ButtonPushNotifications.IsVisible = true;
             UpdateNotificationButtonState();
+            
+            bool isEnabled = PushNotifications.IsNotificationsEnabled();
+            bool hasPermission = PushNotifications.HasSystemPermission();
+            DebugLabel.Text = $"Enabled: {isEnabled}\nPermission: {hasPermission}";
         }
         else
         {
