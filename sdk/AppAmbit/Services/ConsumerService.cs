@@ -155,12 +155,17 @@ internal class ConsumerService
             var normalizedToken = string.IsNullOrWhiteSpace(deviceToken) ? storedToken : deviceToken.Trim();
             var normalizedEnabled = pushEnabled ?? storedEnabled ?? true;
 
-            if (string.IsNullOrWhiteSpace(normalizedToken) && pushEnabled == null && storedEnabled == null)
+            // Check if data has changed
+            bool tokenChanged = !string.Equals(storedToken, normalizedToken, StringComparison.Ordinal);
+            bool enabledChanged = storedEnabled != normalizedEnabled;
+
+            if (!tokenChanged && !enabledChanged)
             {
-                Debug.WriteLine("[ConsumerService] No push data to update (token and flag missing).");
+                Debug.WriteLine("[ConsumerService] No changes detected, skipping update.");
                 return;
             }
 
+            // Update storage with new values
             await _storageService.SetPushDeviceToken(normalizedToken);
             await _storageService.SetPushEnabled(normalizedEnabled);
 
@@ -177,14 +182,16 @@ internal class ConsumerService
                 return;
             }
 
-            var payloadToken = string.IsNullOrWhiteSpace(normalizedToken) ? null : normalizedToken;
-            var payloadEnabled = pushEnabled ?? storedEnabled;
-
-            if (payloadToken == null && payloadEnabled == null)
+            // If push_enabled = true, device_token is REQUIRED
+            if (normalizedEnabled && string.IsNullOrWhiteSpace(normalizedToken))
             {
-                Debug.WriteLine("[ConsumerService] Nothing to send to backend (token empty and enabled flag null).");
+                Debug.WriteLine("[ConsumerService] Cannot enable push notifications without device token, skipping backend update.");
                 return;
             }
+
+            // Prepare payload
+            var payloadToken = string.IsNullOrWhiteSpace(normalizedToken) ? null : normalizedToken;
+            var payloadEnabled = normalizedEnabled;
 
             var endpoint = new UpdateConsumerEndpoint(consumerId, new UpdateConsumer(payloadToken, payloadEnabled));
             var response = await _apiService.ExecuteRequest<object>(endpoint);

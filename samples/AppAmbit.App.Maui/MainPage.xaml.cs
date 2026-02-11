@@ -163,9 +163,6 @@ public partial class MainPage : ContentPage
             ButtonPushNotifications.IsVisible = true;
             UpdateNotificationButtonState();
             
-            bool isEnabled = PushNotifications.IsNotificationsEnabled();
-            bool hasPermission = PushNotifications.HasSystemPermission();
-            DebugLabel.Text = $"Enabled: {isEnabled}\nPermission: {hasPermission}";
         }
         else
         {
@@ -219,15 +216,18 @@ public partial class MainPage : ContentPage
                 return;
             }
 
-            // Toggle notifications enabled state
-            _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
+            // Toggle notifications enabled state - just flip the current local state
             var newState = !_notificationsEnabled;
             PushNotifications.SetNotificationsEnabled(newState);
             
+            // Update the local state to match what we just set
+            _notificationsEnabled = newState;
+            
+            // Update button text directly based on new state
+            ButtonPushNotifications.Text = _notificationsEnabled ? "Disable Notifications" : "Enable Notifications";
+            
             var message = $"Notifications have been {(newState ? "enabled" : "disabled")}.";
             await DisplayAlert("Notification Status", message, "OK");
-            
-            UpdateNotificationButtonState();
         }
         catch (Exception ex)
         {

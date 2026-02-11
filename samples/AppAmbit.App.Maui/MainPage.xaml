@@ -19,13 +19,6 @@
                 Clicked="OnPushNotificationsClicked"
                 HorizontalOptions="Center" />
 
-            <Label
-                x:Name="DebugLabel"
-                Text="Debug Info"
-                TextColor="Red"
-                FontSize="12"
-                HorizontalOptions="Center" />
-                
             <Button
                 Text="Did the app crash during your last session?" 
                 Clicked="OnHasCrashedTheLastSession" />

@@ -123,12 +123,6 @@ public static class PushNotifications
 #endif
     }
 
-
-    private static void NotSupported()
-    {
-        // throw new PlatformNotSupportedException("AppAmbit push notifications are only supported on Android and iOS.");
-    }
-
     public interface IPermissionListener
     {
         void OnPermissionResult(bool isGranted);

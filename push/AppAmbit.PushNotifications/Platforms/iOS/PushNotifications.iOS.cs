@@ -200,14 +200,27 @@ internal static class PushNotificationsIos
     public static bool IsNotificationsEnabled()
     {
         EnsureNativeAvailable();
-        return objc_msgSend_bool_ret(_classHandle, _selIsNotificationsEnabled);
+        var enabled = objc_msgSend_bool_ret(_classHandle, _selIsNotificationsEnabled);
+        
+        // Safety check: If native says disabled, but we have system permission, trust system
+        // This handles cases where permission was granted outside the SDK flow.
+        if (!enabled && HasSystemPermission())
+        {
+             // Auto-fix internal state
+             SetNotificationsEnabled(true);
+             return true;
+        }
+
+        return enabled;
     }
 
     public static bool HasSystemPermission()
     {
         EnsureNativeAvailable();
         // Use the new native hasNotificationPermission method which caches the result
-        return objc_msgSend_bool_ret(_classHandle, _selHasNotificationPermission);
+        var specialized = objc_msgSend_bool_ret(_classHandle, _selHasNotificationPermission);
+        Debug.WriteLine($"{LogTag}: HasSystemPermission (Native) = {specialized}");
+        return specialized;
     }
 
     public static string? GetCurrentToken()
