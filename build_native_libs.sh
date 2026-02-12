@@ -8,8 +8,8 @@ echo "Installing Pods..."
 pod install
 
 echo "Building Frameworks (Simulator)..."
-xcodebuild -workspace BuildProject.xcworkspace \
-    -scheme "Pods-AppAmbitPushNotificationsBuild" \
+xcodebuild -workspace AppAmbit.xcworkspace \
+    -scheme "AppAmbitPushNotifications" \
     -sdk iphonesimulator \
     -configuration Debug \
     -derivedDataPath ./build/pods
@@ -17,8 +17,8 @@ xcodebuild -workspace BuildProject.xcworkspace \
 echo "Native build complete (Simulator)."
 
 echo "Building Frameworks (Device)..."
-xcodebuild -workspace BuildProject.xcworkspace \
-    -scheme "Pods-AppAmbitPushNotificationsBuild" \
+xcodebuild -workspace AppAmbit.xcworkspace \
+    -scheme "AppAmbitPushNotifications" \
     -sdk iphoneos \
     -configuration Debug \
     -derivedDataPath ./build/pods
