@@ -1,7 +1,7 @@
 platform :ios, '12.0'
 use_frameworks!
 
-target 'AppAmbitPushNotificationsBuild' do
+target 'AppAmbit.App.Swift' do
     # AppAmbit SDK Core
     pod 'AppAmbitSdk', :path => '../../../../../appambit-sdk-ios/AppAmbitSdk'
     
