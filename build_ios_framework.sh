@@ -50,7 +50,7 @@ echo "Copying to $OUTPUT_DIR..."
 # We need to go back to appambit-sdk-maui/push/AppAmbit.PushNotifications/libs
 # Path from here to maui root: ../../../appambit-sdk-maui
 
-DESTINATION="../../../appambit-sdk-maui/$OUTPUT_DIR"
+DESTINATION="../../../appambit-sdk-dotnet/$OUTPUT_DIR"
 
 # Ensure dest exists
 mkdir -p "$DESTINATION"
