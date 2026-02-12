@@ -72,24 +72,24 @@
     <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
 
     <!-- Simulator -->
-    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')" Include="Platforms\iOS_Build\build\Build\Products\Debug-iphonesimulator\AppAmbitPushNotifications\AppAmbitPushNotifications.framework">
+    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')" Include="Platforms\iOS_Build\build\pods\Build\Products\Debug-iphonesimulator\AppAmbitPushNotifications\AppAmbitPushNotifications.framework">
         <Kind>Framework</Kind>
         <SmartLink>True</SmartLink>
         <ForceLoad>True</ForceLoad>
     </NativeReference>
-    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')" Include="Platforms\iOS_Build\build\Build\Products\Debug-iphonesimulator\AppAmbitSdk\AppAmbit.framework">
+    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')" Include="Platforms\iOS_Build\build\pods\Build\Products\Debug-iphonesimulator\AppAmbitSdk\AppAmbit.framework">
         <Kind>Framework</Kind>
         <SmartLink>True</SmartLink>
         <ForceLoad>True</ForceLoad>
     </NativeReference>
 
     <!-- Device -->
-    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')" Include="Platforms\iOS_Build\build\Build\Products\Debug-iphoneos\AppAmbitPushNotifications\AppAmbitPushNotifications.framework">
+    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')" Include="Platforms\iOS_Build\build\pods\Build\Products\Debug-iphoneos\AppAmbitPushNotifications\AppAmbitPushNotifications.framework">
         <Kind>Framework</Kind>
         <SmartLink>True</SmartLink>
         <ForceLoad>True</ForceLoad>
     </NativeReference>
-    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')" Include="Platforms\iOS_Build\build\Build\Products\Debug-iphoneos\AppAmbitSdk\AppAmbit.framework">
+    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')" Include="Platforms\iOS_Build\build\pods\Build\Products\Debug-iphoneos\AppAmbitSdk\AppAmbit.framework">
         <Kind>Framework</Kind>
         <SmartLink>True</SmartLink>
         <ForceLoad>True</ForceLoad>

@@ -1,6 +1,9 @@
 platform :ios, '12.0'
 use_frameworks!
 
+# Point to the external iOS SDK Xcode project (sibling repo)
+project '../../../../../appambit-sdk-ios/AppAmbit.xcodeproj'
+
 target 'AppAmbit.App.Swift' do
     # AppAmbit SDK Core
     pod 'AppAmbitSdk', :path => '../../../../../appambit-sdk-ios/AppAmbitSdk'
