@@ -41,7 +41,7 @@ public class MainActivity : AppCompatActivity
         AppAmbit.RemoteConfig.SetDefaults(new Dictionary<string, object>
         {
             { "banner", true },
-            { "data", "Default local data" },
+            { "data", "If you can see this message you are using local values" },
             { "discount", 5 },
             { "max_upload", 15.6f }
         });
@@ -61,6 +61,7 @@ public class MainActivity : AppCompatActivity
 
         WireCrashesView(_viewCrashes!);
         WireAnalyticsView(_viewAnalytics!);
+        WireRemoteConfigView(_viewRemoteConfig!);
 
         var btnCrashes   = FindViewById<Button>(I("btn_nav_crashes"))!;
         var btnAnalytics = FindViewById<Button>(I("btn_nav_analytics"))!;
@@ -318,6 +319,40 @@ public class MainActivity : AppCompatActivity
                 ? "Disable Notifications"
                 : "Enable Notifications";
     }
+    
+    void WireRemoteConfigView(View root)
+    {
+        var fetchBtn = root.FindViewById<Button>(I("fetch_btn"));
+        if (fetchBtn != null)
+        {
+            fetchBtn.Click += async (s, e) =>
+            {
+                bool success = await AppAmbit.RemoteConfig.FetchAndActivate();
+                string title = success ? "Success" : "Error";
+                string message = success ? "Fetch success" : "Fetch Throttled";
+                ShowAlert(title, message);
+            };
+        }
+    }
+
+    void UpdateRemoteConfigUI(View v)
+    {
+        var banner = v.FindViewById<FrameLayout>(I("banner_view"));
+        var dataLabel = v.FindViewById<TextView>(I("data_label"));
+        var discountLabel = v.FindViewById<TextView>(I("discount_label"));
+
+        if (banner != null) 
+            banner.Visibility = AppAmbit.RemoteConfig.GetBoolean("banner") ? ViewStates.Visible : ViewStates.Gone;
+        
+        if (dataLabel != null)
+            dataLabel.Text = AppAmbit.RemoteConfig.GetString("data");
+
+        if (discountLabel != null)
+        {
+            int discount = AppAmbit.RemoteConfig.GetInt("discount");
+            discountLabel.Text = $"{discount}% OFF";
+        }
+    }
 
     private sealed class PermissionListener : Java.Lang.Object, PushNotifications.IPermissionListener
     {
@@ -334,21 +369,6 @@ public class MainActivity : AppCompatActivity
     void ShowRemoteConfigView(View v)
     {
         ShowView(v);
-        
-        var banner = v.FindViewById<FrameLayout>(I("banner_view"));
-        var dataLabel = v.FindViewById<TextView>(I("data_label"));
-        var discountLabel = v.FindViewById<TextView>(I("discount_label"));
-
-        if (banner != null) 
-            banner.Visibility = AppAmbit.RemoteConfig.GetBoolean("banner") ? ViewStates.Visible : ViewStates.Gone;
-        
-        if (dataLabel != null)
-            dataLabel.Text = AppAmbit.RemoteConfig.GetString("data");
-
-        if (discountLabel != null)
-        {
-            int discount = AppAmbit.RemoteConfig.GetInt("discount");
-            discountLabel.Text = $"{discount}% OFF";
-        }
+        UpdateRemoteConfigUI(v);
     }
 }

@@ -13,6 +13,8 @@ public static class RemoteConfig
     private static IStorageService? _storageService;
     private static IAppInfoService? _appInfoService;
     private static RemoteConfigResponse? _fetchedConfig;
+    private static long _minimumFetchIntervalInSeconds = 60;
+    private static long _lastFetchTime = 0;
     private static Dictionary<string, object> _defaults = [];
 
     public static void Initialize(IStorageService? storageService, IAppInfoService? appInfoService, IAPIService? apiService)
@@ -32,6 +34,11 @@ public static class RemoteConfig
         }
     }
 
+    public static void SetMinimumFetchIntervalInSeconds(long minimumFetchIntervalInSeconds)
+    {
+        _minimumFetchIntervalInSeconds = minimumFetchIntervalInSeconds;
+    }
+
     public static async Task<Boolean> Fetch()
     {
         try
@@ -42,6 +49,14 @@ public static class RemoteConfig
                 return false;
             }
 
+            long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            if((currentTime - _lastFetchTime) < _minimumFetchIntervalInSeconds)
+            {
+                Debug.WriteLine($"[RemoteConfig] Fetch throttled. Last fetch was less than {_minimumFetchIntervalInSeconds} seconds ago.");
+                return false;
+            }
+
             var remoteConfigResponse = await _apiService?.ExecuteRequest<RemoteConfigResponse>(new RemoteConfigEndpoint(_appInfoService.AppVersion));
             if (remoteConfigResponse?.ErrorType == ApiErrorType.NetworkUnavailable)
             {
@@ -49,6 +64,7 @@ public static class RemoteConfig
                 return false;
             }
             _fetchedConfig = remoteConfigResponse?.Data;
+            _lastFetchTime = currentTime;
             Debug.WriteLine("[RemoteConfig] Successfully fetched remote config.");
             return true;
         }

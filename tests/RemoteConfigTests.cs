@@ -25,6 +25,7 @@ public class RemoteConfigTests : IDisposable
 
         ResetState();
         AppAmbit.RemoteConfig.Initialize(_mockStorage.Object, _mockAppInfoService.Object, _mockApiService.Object);
+        AppAmbit.RemoteConfig.SetMinimumFetchIntervalInSeconds(0);
     }
 
     public void Dispose()
@@ -205,5 +206,11 @@ public class RemoteConfigTests : IDisposable
 
         var appInfoField = type.GetField("_appInfoService", BindingFlags.NonPublic | BindingFlags.Static);
         appInfoField?.SetValue(null, null);
+
+        var lastFetchTimeField = type.GetField("_lastFetchTime", BindingFlags.NonPublic | BindingFlags.Static);
+        lastFetchTimeField?.SetValue(null, 0L);
+
+        var intervalField = type.GetField("_minimumFetchIntervalInSeconds", BindingFlags.NonPublic | BindingFlags.Static);
+        intervalField?.SetValue(null, 60L);
     }
 }

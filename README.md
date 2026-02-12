@@ -136,6 +136,10 @@ public static class MauiProgram
   int discount = RemoteConfig.GetInt("discount");
   double maxUpload = RemoteConfig.GetDouble("max_upload");
   ```
+  ```csharp
+  // Setup fetch interval time for debug mode
+  RemoteConfig.SetMinimumFetchIntervalInSeconds(10);
+  ```
 * **Remote Config**: dynamic configuration values fetched and applied at runtime
 
 ---

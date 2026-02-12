@@ -482,22 +482,36 @@ public class StorageService : IStorageService
     {
         if (configs == null || configs.Count == 0) return;
 
-        foreach (var config in configs)
+        await _database.RunInTransactionAsync(tran =>
         {
-            var existingConfig = await _database.Table<RemoteConfigEntity>()
-                .Where(c => c.Key == config.Key)
-                .FirstOrDefaultAsync();
+            var existingEntities = tran.Table<RemoteConfigEntity>().ToList();
+            var incomingKeys = new HashSet<string>(configs.Select(c => c.Key));
 
-            if (existingConfig != null)
+            foreach (var entity in existingEntities)
             {
-                existingConfig.Value = config.Value;
-                await _database.UpdateAsync(existingConfig);
+                if (!incomingKeys.Contains(entity.Key))
+                {
+                    tran.Delete(entity);
+                }
             }
-            else
+
+            foreach (var config in configs)
             {
-                await _database.InsertAsync(config);
+                var match = existingEntities.FirstOrDefault(e => e.Key == config.Key);
+                if (match != null)
+                {
+                    if (match.Value != config.Value)
+                    {
+                        match.Value = config.Value;
+                        tran.Update(match);
+                    }
+                }
+                else
+                {
+                    tran.Insert(config);
+                }
             }
-        }
+        });
     }
 
     public async Task<String?> GetConfig(String key)
