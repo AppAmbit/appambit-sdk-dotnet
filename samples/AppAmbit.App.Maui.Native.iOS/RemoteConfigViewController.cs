@@ -117,33 +117,6 @@ public class RemoteConfigViewController : UIViewController
         PinToCard(discountStack, discountCard);
         mainStack.AddArrangedSubview(discountCard);
 
-        // Fetch Button
-        var fetchButton = new UIButton(UIButtonType.System)
-        {
-            BackgroundColor = UIColor.SystemIndigo,
-            TranslatesAutoresizingMaskIntoConstraints = false
-        };
-        fetchButton.SetTitle("Fetch test", UIControlState.Normal);
-        fetchButton.SetTitleColor(UIColor.White, UIControlState.Normal);
-        fetchButton.TitleLabel.Font = UIFont.BoldSystemFontOfSize(18);
-        fetchButton.Layer.CornerRadius = 10;
-        
-        // Add padding using constraints if needed, or simply height
-        fetchButton.HeightAnchor.ConstraintEqualTo(50).Active = true;
-
-        fetchButton.TouchUpInside += async (sender, e) =>
-        {
-            var success = await RemoteConfig.FetchAndActivate();
-            var title = success ? "Success" : "Error";
-            var message = success ? "Fetch success" : "Fetch Throttled";
-            
-            var alert = UIAlertController.Create(title, message, UIAlertControllerStyle.Alert);
-            alert.AddAction(UIAlertAction.Create("OK", UIAlertActionStyle.Default, null));
-            PresentViewController(alert, true, null);
-        };
-
-        mainStack.AddArrangedSubview(fetchButton);
-
         // Constraints
         NSLayoutConstraint.ActivateConstraints(new[]
         {

@@ -25,91 +25,12 @@ public class RemoteConfigTests : IDisposable
 
         ResetState();
         AppAmbit.RemoteConfig.Initialize(_mockStorage.Object, _mockAppInfoService.Object, _mockApiService.Object);
-        AppAmbit.RemoteConfig.SetMinimumFetchIntervalInSeconds(0);
+
     }
 
     public void Dispose()
     {
         ResetState();
-    }
-
-    [Fact]
-    public async Task Fetch_Success_ShouldStoreConfigsInMemory_AndReturnTrue()
-    {
-        // Arrange
-        var mockResponse = new RemoteConfigResponse
-        {
-            Configs = new Dictionary<string, object>
-            {
-                { "welcome_msg", "Hello" }
-            }
-        };
-        var apiResult = new ApiResult<RemoteConfigResponse>(mockResponse, ApiErrorType.None, null);
-
-        _mockApiService
-            .Setup(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()))
-            .ReturnsAsync(apiResult);
-
-        _mockAppInfoService.Setup(s => s.AppVersion).Returns("1.0.0");
-
-        // Act
-        var result = await AppAmbit.RemoteConfig.Fetch();
-
-        // Assert
-        Assert.True(result);
-        _mockApiService.Verify(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Fetch_Failure_ShouldReturnFalse()
-    {
-        // Arrange
-        var apiResult = new ApiResult<RemoteConfigResponse>(null, ApiErrorType.NetworkUnavailable, null);
-
-        _mockApiService
-            .Setup(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()))
-            .ReturnsAsync(apiResult);
-
-        _mockAppInfoService.Setup(s => s.AppVersion).Returns("1.0.0");
-
-        // Act
-        var result = await AppAmbit.RemoteConfig.Fetch();
-
-        // Assert
-        Assert.False(result);
-    }
-
-    [Fact]
-    public async Task Activate_ShouldValidFetchedConfigToStorable()
-    {
-        // Arrange
-        // 1. Mock fetch first to populate private _fetchedConfig
-        var mockResponse = new RemoteConfigResponse
-        {
-            Configs = new Dictionary<string, object>
-            {
-                { "feature_enabled", true }
-            }
-        };
-        var apiResult = new ApiResult<RemoteConfigResponse>(mockResponse, ApiErrorType.None, null);
-
-        _mockApiService
-            .Setup(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()))
-            .ReturnsAsync(apiResult);
-        
-        await AppAmbit.RemoteConfig.Fetch();
-
-        // Act
-        var activated = await AppAmbit.RemoteConfig.Activate();
-
-        // Assert
-        Assert.True(activated);
-        
-        _mockStorage.Verify(s => s.AddConfigsAsync(It.Is<List<RemoteConfigEntity>>(l => 
-            l.Count == 1 && 
-            l[0].Key == "feature_enabled" && 
-            l[0].Value == "True"
-        )), Times.Once);
     }
 
     [Fact]
@@ -124,25 +45,6 @@ public class RemoteConfigTests : IDisposable
 
         // Assert
         Assert.Equal("Welcome User", value);
-    }
-
-    [Fact]
-    public void GetString_ShouldFallbackToDefaults_IfStorageReturnsNull()
-    {
-        // Arrange
-        _mockStorage.Setup(s => s.GetConfig("banner_text"))
-            .ReturnsAsync((string?)null); // Use null for string
-
-        AppAmbit.RemoteConfig.SetDefaults(new Dictionary<string, object>
-        {
-            { "banner_text", "Default Welcome" }
-        });
-
-        // Act
-        var value = AppAmbit.RemoteConfig.GetString("banner_text");
-
-        // Assert
-        Assert.Equal("Default Welcome", value);
     }
 
     [Fact]
@@ -192,12 +94,6 @@ public class RemoteConfigTests : IDisposable
         // Access private static fields via reflection to reset RemoteConfig state
         var type = typeof(AppAmbit.RemoteConfig);
         
-        var defaultsField = type.GetField("_defaults", BindingFlags.NonPublic | BindingFlags.Static);
-        defaultsField?.SetValue(null, new Dictionary<string, object>());
-
-        var fetchedConfigField = type.GetField("_fetchedConfig", BindingFlags.NonPublic | BindingFlags.Static);
-        fetchedConfigField?.SetValue(null, null);
-        
         var storageField = type.GetField("_storageService", BindingFlags.NonPublic | BindingFlags.Static);
         storageField?.SetValue(null, null);
 
@@ -207,10 +103,65 @@ public class RemoteConfigTests : IDisposable
         var appInfoField = type.GetField("_appInfoService", BindingFlags.NonPublic | BindingFlags.Static);
         appInfoField?.SetValue(null, null);
 
-        var lastFetchTimeField = type.GetField("_lastFetchTime", BindingFlags.NonPublic | BindingFlags.Static);
-        lastFetchTimeField?.SetValue(null, 0L);
+        var isEnableField = type.GetField("_isEnable", BindingFlags.NonPublic | BindingFlags.Static);
+        isEnableField?.SetValue(null, false);
 
-        var intervalField = type.GetField("_minimumFetchIntervalInSeconds", BindingFlags.NonPublic | BindingFlags.Static);
-        intervalField?.SetValue(null, 60L);
+        var isFetchCompletedField = type.GetField("_isFetchCompleted", BindingFlags.NonPublic | BindingFlags.Static);
+        isFetchCompletedField?.SetValue(null, false);
+    }
+
+    [Fact]
+    public async Task Fetch_Success_ShouldStoreConfigsToStorage()
+    {
+        // Arrange
+        var mockResponse = new RemoteConfigResponse
+        {
+            Configs = new Dictionary<string, object>
+            {
+                { "welcome_msg", "Hello" }
+            }
+        };
+        var apiResult = new ApiResult<RemoteConfigResponse>(mockResponse, ApiErrorType.None, null);
+
+        _mockApiService
+            .Setup(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()))
+            .ReturnsAsync(apiResult);
+
+        _mockAppInfoService.Setup(s => s.AppVersion).Returns("1.0.0");
+
+        AppAmbit.RemoteConfig.Enable();
+
+        // Act
+        await AppAmbit.RemoteConfig.FetchAndStoreConfig();
+
+        // Assert
+        _mockApiService.Verify(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()), Times.Once);
+        
+        _mockStorage.Verify(s => s.AddConfigsAsync(It.Is<List<RemoteConfigEntity>>(l => 
+            l.Count == 1 && 
+            l[0].Key == "welcome_msg" && 
+            l[0].Value == "Hello"
+        )), Times.Once);
+    }
+
+    [Fact]
+    public async Task Fetch_Failure_ShouldNotStoreConfigs()
+    {
+        // Arrange
+        var apiResult = new ApiResult<RemoteConfigResponse>(null, ApiErrorType.NetworkUnavailable, null);
+
+        _mockApiService
+            .Setup(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()))
+            .ReturnsAsync(apiResult);
+
+        _mockAppInfoService.Setup(s => s.AppVersion).Returns("1.0.0");
+
+        AppAmbit.RemoteConfig.Enable();
+
+        // Act
+        await AppAmbit.RemoteConfig.FetchAndStoreConfig();
+
+        // Assert
+        _mockStorage.Verify(s => s.AddConfigsAsync(It.IsAny<List<RemoteConfigEntity>>()), Times.Never);
     }
 }

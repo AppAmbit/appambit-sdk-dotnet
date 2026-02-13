@@ -115,30 +115,15 @@ public static class MauiProgram
 * **Crash Reporting**: uncaught crashes are automatically captured and uploaded on next launch
 
   ```csharp
-  // 1. Set default values (Optional, but recommended to avoid nulls before fetch)
-  RemoteConfig.SetDefaults(new Dictionary<string, object>
-  {
-      { "banner", true },
-      { "data", "Hello from Defaults" },
-      { "discount", 10 },
-      { "max_upload", 15.6 }
-  });
+  // Enable remote config (MainActivity.cs or AppDelegate.cs)
+  RemoteConfig.SetEnable()
   ```
   ```csharp
-  // 2. Fetch and apply
-  await RemoteConfig.FetchAndActivate();
-  Console.WriteLine("Data fetched and activated");
-  ```
-  ```csharp
-  // 3. Get values (using the correct type method)
+  // Get remote config values with type-safe methods
   string message = RemoteConfig.GetString("data");
   bool isFeatureEnabled = RemoteConfig.GetBoolean("banner");
   int discount = RemoteConfig.GetInt("discount");
   double maxUpload = RemoteConfig.GetDouble("max_upload");
-  ```
-  ```csharp
-  // Setup fetch interval time for debug mode
-  RemoteConfig.SetMinimumFetchIntervalInSeconds(10);
   ```
 * **Remote Config**: dynamic configuration values fetched and applied at runtime
 

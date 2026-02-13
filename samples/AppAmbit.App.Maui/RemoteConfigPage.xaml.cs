@@ -27,17 +27,5 @@ public partial class RemoteConfigPage : ContentPage
         DiscountLabel.Text = $"{discount}% OFF";
     }
 
-    private async void OnFetchClicked(object sender, EventArgs e)
-    {
-        bool success = await RemoteConfig.FetchAndActivate();
-        if (success)
-        {
-            UpdateUI();
-            await DisplayAlert("Success", "Fetch success", "OK");
-        }
-        else
-        {
-            await DisplayAlert("Error", "Fetch Throttled", "OK");
-        }
-    }
+
 }

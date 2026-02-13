@@ -37,16 +37,8 @@ public class MainActivity : AppCompatActivity
         
         //Uncomment the line for automatic session management
         //Analytics.EnableManualSession();
+        AppAmbit.RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
-        AppAmbit.RemoteConfig.SetDefaults(new Dictionary<string, object>
-        {
-            { "banner", true },
-            { "data", "If you can see this message you are using local values" },
-            { "discount", 5 },
-            { "max_upload", 15.6f }
-        });
-        
-        Task.Run(async () => await AppAmbit.RemoteConfig.FetchAndActivate());
         
         PushNotifications.Start(ApplicationContext);
 
@@ -61,8 +53,7 @@ public class MainActivity : AppCompatActivity
 
         WireCrashesView(_viewCrashes!);
         WireAnalyticsView(_viewAnalytics!);
-        WireRemoteConfigView(_viewRemoteConfig!);
-
+        
         var btnCrashes   = FindViewById<Button>(I("btn_nav_crashes"))!;
         var btnAnalytics = FindViewById<Button>(I("btn_nav_analytics"))!;
         var btnRemoteConfig = FindViewById<Button>(I("btn_nav_remote_config"))!;
@@ -320,21 +311,6 @@ public class MainActivity : AppCompatActivity
                 : "Enable Notifications";
     }
     
-    void WireRemoteConfigView(View root)
-    {
-        var fetchBtn = root.FindViewById<Button>(I("fetch_btn"));
-        if (fetchBtn != null)
-        {
-            fetchBtn.Click += async (s, e) =>
-            {
-                bool success = await AppAmbit.RemoteConfig.FetchAndActivate();
-                string title = success ? "Success" : "Error";
-                string message = success ? "Fetch success" : "Fetch Throttled";
-                ShowAlert(title, message);
-            };
-        }
-    }
-
     void UpdateRemoteConfigUI(View v)
     {
         var banner = v.FindViewById<FrameLayout>(I("banner_view"));

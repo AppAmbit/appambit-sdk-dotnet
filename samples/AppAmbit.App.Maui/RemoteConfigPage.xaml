@@ -38,11 +38,7 @@
                 </VerticalStackLayout>
             </Border>
             
-            <Button Text="Fetch Remote Config" 
-                    Clicked="OnFetchClicked"
-                    BackgroundColor="#512BD4"
-                    TextColor="White"
-                    FontAttributes="Bold" />
+
 
         </VerticalStackLayout>
     </ScrollView>

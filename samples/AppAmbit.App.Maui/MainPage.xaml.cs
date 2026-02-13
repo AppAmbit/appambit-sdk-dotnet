@@ -157,15 +157,6 @@ public partial class MainPage : ContentPage
 #else
         ButtonPushNotifications.IsVisible = false;
 #endif
-        var defaults = new Dictionary<string, object>
-        {
-            { "banner", true },
-            { "data", "If you can see this message you are using local values" },
-            { "discount", 8 },
-            { "max_upload", 15.6f }
-        };
-        AppAmbit.RemoteConfig.SetDefaults(defaults);
-        bool success = await AppAmbit.RemoteConfig.FetchAndActivate();
     }
 
     private async void OnPushNotificationsClicked(object? sender, EventArgs e)

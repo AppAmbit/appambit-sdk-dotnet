@@ -12,10 +12,7 @@ public static class RemoteConfig
     private static IAPIService? _apiService;
     private static IStorageService? _storageService;
     private static IAppInfoService? _appInfoService;
-    private static RemoteConfigResponse? _fetchedConfig;
-    private static long _minimumFetchIntervalInSeconds = 60;
-    private static long _lastFetchTime = 0;
-    private static Dictionary<string, object> _defaults = [];
+
 
     public static void Initialize(IStorageService? storageService, IAppInfoService? appInfoService, IAPIService? apiService)
     {
@@ -24,94 +21,49 @@ public static class RemoteConfig
         _apiService = apiService;
     }
 
-    public static void SetDefaults(Dictionary<string, object> defaults)
+    private static bool _isEnable = false;
+    private static bool _isFetchCompleted = false;
+
+    public static bool Enable()
     {
-        _defaults = defaults ?? [];
-        Debug.WriteLine($"[RemoteConfig] Defaults set. Count: {_defaults.Count}");
-        foreach (var key in _defaults.Keys)
+        return _isEnable = true;
+    }
+
+    public static async Task FetchAndStoreConfig()
+    {
+        if (!_isEnable || _isFetchCompleted)
+            return;
+
+        if (_apiService == null || _appInfoService == null || _storageService == null)
         {
-            Debug.WriteLine($"[RemoteConfig] Default key: {key}, Value: {_defaults[key]}");
+            Debug.WriteLine("[RemoteConfig] No initialized services");
+            return;
         }
-    }
 
-    public static void SetMinimumFetchIntervalInSeconds(long minimumFetchIntervalInSeconds)
-    {
-        _minimumFetchIntervalInSeconds = minimumFetchIntervalInSeconds;
-    }
-
-    public static async Task<Boolean> Fetch()
-    {
         try
         {
-            if (_apiService == null || _appInfoService == null)
-            {
-                Debug.WriteLine("[RemoteConfig] APIService or AppInfoService is null. Cannot fetch remote config.");
-                return false;
-            }
+            var remoteConfigResponse = await _apiService.ExecuteRequest<RemoteConfigResponse>(new RemoteConfigEndpoint(_appInfoService.AppVersion));
 
-            long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-            if((currentTime - _lastFetchTime) < _minimumFetchIntervalInSeconds)
+            if (remoteConfigResponse?.ErrorType == ApiErrorType.None)
             {
-                Debug.WriteLine($"[RemoteConfig] Fetch throttled. Last fetch was less than {_minimumFetchIntervalInSeconds} seconds ago.");
-                return false;
-            }
+                if (remoteConfigResponse.Data != null && remoteConfigResponse.Data.Configs != null)
+                {
+                    var configsToSave = remoteConfigResponse.Data.Configs.Select(kvp => new RemoteConfigEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        Key = kvp.Key,
+                        Value = kvp.Value?.ToString()
+                    }).ToList();
 
-            var remoteConfigResponse = await _apiService?.ExecuteRequest<RemoteConfigResponse>(new RemoteConfigEndpoint(_appInfoService.AppVersion));
-            if (remoteConfigResponse?.ErrorType == ApiErrorType.NetworkUnavailable)
-            {
-                Debug.WriteLine("[RemoteConfig] Network unavailable. Cannot fetch remote config.");
-                return false;
+                    await _storageService.AddConfigsAsync(configsToSave);
+                }
+                _isFetchCompleted = true;
             }
-            _fetchedConfig = remoteConfigResponse?.Data;
-            _lastFetchTime = currentTime;
-            Debug.WriteLine("[RemoteConfig] Successfully fetched remote config.");
-            return true;
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[RemoteConfig] Exception during Fetch: {ex}");
-            return false;
+           Debug.WriteLine($"[RemoteConfig] Exception: {ex}");
         }
-    }
-
-    public static async Task<Boolean> Activate()
-    {
-        try
-        {
-            if (_fetchedConfig == null || _fetchedConfig.Configs == null)
-            {
-                Debug.WriteLine("[RemoteConfig] No remote config to activate.");
-                return false;
-            }
-
-            var configsToSave = _fetchedConfig.Configs.Select(kvp => new RemoteConfigEntity
-            {
-                Id = Guid.NewGuid(),
-                Key = kvp.Key,
-                Value = kvp.Value?.ToString()
-            }).ToList();
-
-            await _storageService.AddConfigsAsync(configsToSave);
-
-            Debug.WriteLine("[RemoteConfig] Remote config activated.");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[RemoteConfig] Exception during Activate: {ex}");
-            return false;
-        }
-    }
-
-    public static async Task<Boolean> FetchAndActivate()
-    {
-        var fetchResult = await Fetch();
-        if (fetchResult)
-        {
-            return await Activate();
-        }
-        return false;
     }
 
     public static int GetInt(String key)
@@ -175,37 +127,30 @@ public static class RemoteConfig
     {
         try
         {
-        if (_storageService != null)
-        {
-            try
+            if (_storageService != null)
             {
-                var dbValue = AsyncHelpers.RunSync(() => _storageService.GetConfig(key));
-                if (dbValue != null)
+                try
                 {
-                   Debug.WriteLine($"[RemoteConfig] fetching '{key}' from database: {dbValue}");
-                   return dbValue;
+                    var dbValue = AsyncHelpers.RunSync(() => _storageService.GetConfig(key));
+                    if (dbValue != null)
+                    {
+                       Debug.WriteLine($"[RemoteConfig] fetching '{key}' from database: {dbValue}");
+                       return dbValue;
+                    }
+                    Debug.WriteLine($"[RemoteConfig] Key '{key}' not found in database.");
                 }
-                Debug.WriteLine($"[RemoteConfig] Key '{key}' not found in database.");
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[RemoteConfig] Error fetching key '{key}' from database: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Debug.WriteLine($"[RemoteConfig] Error fetching key '{key}' from database: {ex.Message}");
+                Debug.WriteLine("[RemoteConfig] StorageService is null. Skipping database lookup.");
             }
+            return null;
         }
-        else
-        {
-            Debug.WriteLine("[RemoteConfig] StorageService is null. Skipping database lookup.");
-        }
-
-        if (_defaults.ContainsKey(key))
-        {
-            Debug.WriteLine($"[RemoteConfig] fetching '{key}' from defaults: {_defaults[key]}");
-            return _defaults[key];
-        }
-
-        Debug.WriteLine($"[RemoteConfig] Key '{key}' not found in remote config or defaults. Defaults count: {_defaults.Count}");
-        return null;
-    }catch (Exception ex)
+        catch (Exception ex)
         {
             Debug.WriteLine($"[RemoteConfig] Exception in getValue for key '{key}': {ex}");
             return null;
