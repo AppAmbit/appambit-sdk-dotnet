@@ -3,9 +3,9 @@ use_frameworks!
 install! 'cocoapods', :integrate_targets => false
 
 target 'AppAmbitPushNotificationsBuild' do
-    # AppAmbit SDK Core - Remote Reference (Podspec)
-    pod 'AppAmbitSdk', :podspec => 'https://raw.githubusercontent.com/AppAmbit/appambit-sdk-ios/main/AppAmbitSdk/AppAmbitSdk.podspec'
+    # AppAmbit SDK Core - Local Reference
+    pod 'AppAmbitSdk', :path => '../../../../../appambit-sdk-ios/AppAmbitSdk'
     
-    # AppAmbit Push SDK - Remote Reference (Podspec)
-    pod 'AppAmbitPushNotifications', :podspec => 'https://raw.githubusercontent.com/AppAmbit/appambit-sdk-ios/main/Push/AppAmbitPushNotifications/AppAmbitPushNotifications.podspec'
+    # AppAmbit Push SDK - Local Reference
+    pod 'AppAmbitPushNotifications', :path => '../../../../../appambit-sdk-ios/Push/AppAmbitPushNotifications'
 end
