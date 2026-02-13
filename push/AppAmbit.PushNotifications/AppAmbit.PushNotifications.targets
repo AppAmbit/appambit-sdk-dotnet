@@ -9,11 +9,12 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_IsSimulator)' == 'true'">
-    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/Build/Products/Debug-iphonesimulator</_AppAmbitFrameworkPath>
+    <!-- Matches build_native_libs.sh derivedDataPath ./build/pods -->
+    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/pods/Build/Products/Debug-iphonesimulator</_AppAmbitFrameworkPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_IsSimulator)' == 'false'">
-    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/Build/Products/Debug-iphoneos</_AppAmbitFrameworkPath>
+    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/pods/Build/Products/Debug-iphoneos</_AppAmbitFrameworkPath>
   </PropertyGroup>
 
   <!-- Compute AppBundleDir if not defined -->

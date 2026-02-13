@@ -1,20 +1,17 @@
-# Setup Instructions - iOS Push Notifications Build
+# Universal iOS Build Setup
+
+This setup allows building the AppAmbit iOS Push Notifications SDK without requiring any local clones of other repositories. It uses remote Git references and standalone CocoaPods builds.
 
 ## Prerequisites
 
-1. **Clone repositories in parallel:**
-   ```
-   workspace/
-   ├── appambit-sdk-dotnet/
-   └── appambit-sdk-ios/
-   ```
+1.  **Install CocoaPods**:
+    ```bash
+    sudo gem install cocoapods
+    ```
 
-2. **Install CocoaPods:**
-   ```bash
-   sudo gem install cocoapods
-   ```
+## Build Process (One-Time Setup)
 
-## Build Commands (for any team member)
+To compile the native iOS frameworks and the .NET bindings, run:
 
 ```bash
 cd /path/to/appambit-sdk-dotnet
@@ -24,31 +21,23 @@ dotnet clean
 dotnet build -c Debug -f net10.0-ios
 ```
 
-## What gets built
+### What does `build_native_libs.sh` do?
+1.  Downloads the iOS SDK source code directly from GitHub (using `Podfile` with remote `podspec` URLs).
+2.  Compiles the frameworks for **Simulator** and **Device** using a standalone CocoaPods workspace.
+3.  Places artifacts in `push/AppAmbit.PushNotifications/Platforms/iOS_Build/build/pods`.
 
-- **iOS Simulator frameworks** in `push/AppAmbit.PushNotifications/Platforms/iOS_Build/build/pods/`
-- **iOS Device frameworks** in same location
-- **.NET iOS assemblies** for MAUI/Avalonia apps
+### How does .NET binding work?
+1.  `AppAmbit.PushNotifications.csproj` references the compiled frameworks from `build/pods`.
+2.  `AppAmbit.PushNotifications.targets` automatically copies these frameworks into your App Bundle (`.app/Frameworks`) during build, ensuring they are available at runtime.
 
 ## Troubleshooting
 
-### "BuildProject.xcworkspace does not exist"
-- Run `git pull` to get latest `build_native_libs.sh`
-- Delete `iOS_Build/Pods/` and re-run `./build_native_libs.sh`
+-   **"Command not found: pod"**: Run `sudo gem install cocoapods`.
+-   **"Framework not found"**: Ensure you ran `./build_native_libs.sh` successfully before building the .NET project.
+-   **"Repo not found"**: If prompted for git credentials, ensure you have access to `https://github.com/AppAmbit/appambit-sdk-ios.git`.
 
-### "AppAmbitPushNotificationsBuild target not found"  
-- The Podfile uses target `AppAmbit.App.Swift` which matches the Xcode project
-- Run `git pull` to get latest `Podfile`
+## Wrapper Project Structure
 
-### CocoaPods errors
-- Verify `appambit-sdk-ios` is cloned at same level as `appambit-sdk-dotnet`
-- Check paths in `Podfile` relative to your setup
-
-## Files NOT in Git (auto-generated)
-
-- `iOS_Build/Pods/` - CocoaPods dependencies
-- `iOS_Build/build/` - Compiled frameworks
-- `iOS_Build/*.xcworkspace` - Xcode workspace
-- `iOS_Build/Podfile.lock` - Lock file
-
-Only `Podfile` and `.gitignore` are in Git.
+-   `Platforms/iOS_Build/Podfile`: Defines remote dependencies.
+-   `AppAmbit.PushNotifications.targets`: Handles copying frameworks to app bundle.
+-   `build_native_libs.sh`: Orchestrates the native build.

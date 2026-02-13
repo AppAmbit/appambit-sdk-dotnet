@@ -4,12 +4,12 @@ set -e
 CD_DIR="push/AppAmbit.PushNotifications/Platforms/iOS_Build"
 cd "$CD_DIR" || exit 1
 
-echo "Installing Pods..."
+echo "Installing Pods (Standalone)..."
 pod install
 
 echo "Building Frameworks (Simulator)..."
-xcodebuild -workspace AppAmbit.xcworkspace \
-    -scheme "AppAmbitPushNotifications" \
+xcodebuild -project ./Pods/Pods.xcodeproj \
+    -scheme "Pods-AppAmbitPushNotificationsBuild" \
     -sdk iphonesimulator \
     -configuration Debug \
     -derivedDataPath ./build/pods
@@ -17,8 +17,8 @@ xcodebuild -workspace AppAmbit.xcworkspace \
 echo "Native build complete (Simulator)."
 
 echo "Building Frameworks (Device)..."
-xcodebuild -workspace AppAmbit.xcworkspace \
-    -scheme "AppAmbitPushNotifications" \
+xcodebuild -project ./Pods/Pods.xcodeproj \
+    -scheme "Pods-AppAmbitPushNotificationsBuild" \
     -sdk iphoneos \
     -configuration Debug \
     -derivedDataPath ./build/pods
