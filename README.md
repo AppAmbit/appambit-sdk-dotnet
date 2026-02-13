@@ -116,7 +116,7 @@ public static class MauiProgram
 
   ```csharp
   // Enable remote config (MainActivity.cs or AppDelegate.cs)
-  RemoteConfig.SetEnable()
+  RemoteConfig.Enable()
   ```
   ```csharp
   // Get remote config values with type-safe methods
