@@ -31,7 +31,7 @@
   <!-- Include .targets file and frameworks in NuGet package -->
   <ItemGroup>
     <None Include="AppAmbit.PushNotifications.targets" Pack="true" PackagePath="build\$(PackageId).targets" />
-    <None Include="Platforms\iOS_Build\build\Build\Products\**\*.framework\**" Pack="true" PackagePath="Platforms\iOS_Build\build\Build\Products\" />
+    <None Include="Platforms\iOS_Build\build\Debug-**\*.framework\**" Pack="true" PackagePath="build\Platforms\iOS_Build\build\" />
   </ItemGroup>
 
   <!-- Import targets for development (when referenced as ProjectReference) -->
