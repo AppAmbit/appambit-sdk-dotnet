@@ -9,12 +9,12 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_IsSimulator)' == 'true'">
-    <!-- Matches build_native_libs.sh derivedDataPath ./build/pods -->
-    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/pods/Build/Products/Debug-iphonesimulator</_AppAmbitFrameworkPath>
+    <!-- Matches build_native_libs.sh output location -->
+    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/Debug-iphonesimulator</_AppAmbitFrameworkPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_IsSimulator)' == 'false'">
-    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/pods/Build/Products/Debug-iphoneos</_AppAmbitFrameworkPath>
+    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/Debug-iphoneos</_AppAmbitFrameworkPath>
   </PropertyGroup>
 
   <!-- Compute AppBundleDir if not defined -->
@@ -50,7 +50,13 @@
     <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework')" 
           Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;" 
           ContinueOnError="true" />
+
+    <!-- CLEANUP: Remove _CodeSignature to allow dotnet to sign it fresh -->
+    <Exec Condition="Exists('$(_FrameworksDir)/AppAmbitPushNotifications.framework/_CodeSignature')"
+          Command="rm -rf &quot;$(_FrameworksDir)/AppAmbitPushNotifications.framework/_CodeSignature&quot;" />
+    <Exec Condition="Exists('$(_FrameworksDir)/AppAmbit.framework/_CodeSignature')"
+          Command="rm -rf &quot;$(_FrameworksDir)/AppAmbit.framework/_CodeSignature&quot;" />
     
-    <Message Importance="High" Text="[AppAmbit.PushNotifications] Frameworks copied successfully." />
+    <Message Importance="High" Text="[AppAmbit.PushNotifications] Frameworks copied and signatures cleaned." />
   </Target>
 </Project>
