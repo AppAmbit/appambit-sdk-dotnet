@@ -5,7 +5,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>AppAmbitTestingAppAvalonia</string>
 	<key>CFBundleIdentifier</key>
-	<string>companyName.AppAmbitTestingAppAvalonia</string>
+	<string>com.AppAmbit.TestAppSwift</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
@@ -38,6 +38,10 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>

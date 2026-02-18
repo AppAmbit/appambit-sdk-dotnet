@@ -1,10 +1,7 @@
-using Foundation;
-using UIKit;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.iOS;
-using Avalonia.Media;
 using AppAmbitAvalonia;
+using AppAmbit.PushNotifications;
 
 namespace AppAmbitTestingAppAvalonia.iOS;
 
@@ -16,9 +13,15 @@ namespace AppAmbitTestingAppAvalonia.iOS;
 public partial class AppDelegate : AvaloniaAppDelegate<App>
 #pragma warning restore CA1711 // Identifiers should not have incorrect suffix
 {
+
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
-        AppAmbitSdk.Start("<YOUR-APPKEY>");
+        // Init SDK
+        AppAmbitSdk.Start("<YOUR_APPKEY>");
+        
+        // Init Push
+        PushNotifications.Start(null);
+
         return base.CustomizeAppBuilder(builder)
             .WithInterFont();
     }

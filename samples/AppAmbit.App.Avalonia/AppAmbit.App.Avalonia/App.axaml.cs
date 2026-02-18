@@ -7,6 +7,7 @@ using Avalonia.Markup.Xaml;
 using AppAmbitTestingAppAvalonia.ViewModels;
 using AppAmbitTestingAppAvalonia.Views;
 using AppAmbitAvalonia;
+using AppAmbit.PushNotifications;
 
 namespace AppAmbitTestingAppAvalonia;
 
@@ -19,7 +20,13 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        AppAmbitSdk.Start("<YOUR-APPKEY>");
+        Console.WriteLine("[AppAmbit] OnFrameworkInitializationCompleted called.");
+
+
+        AppAmbitSdk.Start("<YOUR_APPKEY>");
+
+        PushNotifications.Start();
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 

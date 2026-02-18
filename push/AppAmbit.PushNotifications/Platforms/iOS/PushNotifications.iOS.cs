@@ -40,21 +40,15 @@ internal static class PushNotificationsIos
     
     // Hold reference to listener to prevent GC
     private static object? _tokenListener;
+    // PermissionListener manages its own lifetime via GCHandle now
 
     /// <summary>
     /// Cross-platform main thread dispatch helper.
-    /// Uses Microsoft.Maui.ApplicationModel.MainThread if available (MAUI),
-    /// otherwise uses NSRunLoop.Main.InvokeOnMainThread (Native iOS).
+    /// Uses NSRunLoop directly to ensure compatibility with both MAUI and Native/Avalonia.
     /// </summary>
     private static void InvokeOnMainThreadSafe(Action action)
     {
-#if __MAUI__
-        // When UseMaui is true and MAUI assemblies are available
-        Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(action);
-#else
-        // For Native iOS projects without MAUI
-        NSRunLoop.Main.InvokeOnMainThread(action);
-#endif
+        NSRunLoop.Main.BeginInvokeOnMainThread(action);
     }
 
     private static void EnsureNativeAvailable()
@@ -234,21 +228,80 @@ internal static class PushNotificationsIos
         return null;
     }
 
+    private static System.Collections.Generic.List<object> _pendingCallbacks = new System.Collections.Generic.List<object>();
+
     public static void RequestNotificationPermission(Action<bool>? callback)
     {
         EnsureNativeAvailable();
         
-        NSObject? listenerInfo = null;
+        Debug.WriteLine($"{LogTag}: RequestNotificationPermission called. Callback is null? {callback == null}");
+        
+        // DIRECT IMPLEMENTATION: The native SDK's requestNotificationPermissionWithListener 
+        // fails to callback the C# listener in Avalonia (likely ABI/Registrar mismatch).
+        // we use the standard iOS API directly, which is robust and triggers the same system behavior.
+        
+        // Retain the callback to prevent premature GC
         if (callback != null)
         {
-            var listener = new PermissionListenerImpl(callback);
-            listenerInfo = listener; // Keep alive if needed, or pass directly
-            objc_msgSend_IntPtr(_classHandle, _selRequestNotificationPermission, listener.Handle);
+            lock (_pendingCallbacks)
+            {
+                _pendingCallbacks.Add(callback);
+            }
         }
-        else
+        
+        Debug.WriteLine($"{LogTag}: Requesting permission via UNUserNotificationCenter directly.");
+        
+        var center = UNUserNotificationCenter.Current;
+        var options = UNAuthorizationOptions.Alert | UNAuthorizationOptions.Badge | UNAuthorizationOptions.Sound;
+        
+        center.RequestAuthorization(options, (granted, error) =>
         {
-            objc_msgSend_IntPtr(_classHandle, _selRequestNotificationPermission, IntPtr.Zero);
-        }
+            if (error != null)
+            {
+                Debug.WriteLine($"{LogTag}: Error requesting permission: {error.LocalizedDescription}");
+            }
+            
+            Debug.WriteLine($"{LogTag}: (C# Direct) Permission Result: {granted}");
+            
+            // 1. Sync Native Logic (Register APNs)
+            if (granted)
+            {
+                InvokeOnMainThreadSafe(() => 
+                {
+                    UIApplication.SharedApplication.RegisterForRemoteNotifications();
+                });
+                
+                // 2. Update SDK State
+                SetNotificationsEnabled(true);
+            }
+            
+            // 3. User Callback (Call directly, let user handle thread dispatch if needed)
+            if (callback != null)
+            {
+                try
+                {
+                    Debug.WriteLine($"{LogTag}: Invoking user callback...");
+                    callback(granted);
+                    Debug.WriteLine($"{LogTag}: User callback invoked.");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"{LogTag}: Error invoking user callback: {ex}");
+                }
+                finally
+                {
+                    // Release the callback
+                    lock (_pendingCallbacks)
+                    {
+                        _pendingCallbacks.Remove(callback);
+                    }
+                }
+            }
+            else 
+            {
+                 Debug.WriteLine($"{LogTag}: Callback was null inside closure.");
+            }
+        });
     }
 
     private static Action<UNNotification>? _customizerAction;
@@ -399,7 +452,8 @@ internal static class PushNotificationsIos
 
     // --- Internal Token Listener ---
     [Register("TokenListenerImpl")]
-    private class TokenListenerImpl : NSObject
+    [Preserve(AllMembers = true)]
+    internal class TokenListenerImpl : NSObject
     {
         [Export("onNewToken:")]
         public void OnNewToken(NSString token)
@@ -408,40 +462,21 @@ internal static class PushNotificationsIos
             _lastPushToken = tokenStr;
             
             // LOG TOKEN AS REQUESTED
-            Debug.WriteLine($"{LogTag}: (C#) Received Token: {tokenStr}");
+            Console.WriteLine($"{LogTag}: (C#) Received Token: {tokenStr}");
 
-             _ = Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 // Always sync token if received - let backend handle logic
                 try {
-                    // Implicitly enable for the backend since we have a token
-                    await AppAmbitSdk.UpdateConsumerAsync(tokenStr, true);
-                    Debug.WriteLine($"{LogTag}: (C#) Token synced.");
+                    // Use actual notification state instead of hardcoded true
+                    var isEnabled = PushNotificationsIos.IsNotificationsEnabled();
+                    Console.WriteLine($"{LogTag}: (C#) Syncing token. Enabled? {isEnabled}");
+                    await AppAmbitSdk.UpdateConsumerAsync(tokenStr, isEnabled);
+                    Console.WriteLine($"{LogTag}: (C#) Token synced.");
                 } catch (Exception ex) {
-                        Debug.WriteLine($"{LogTag}: Error syncing token: {ex.Message}");
+                        Console.WriteLine($"{LogTag}: Error syncing token: {ex.Message}");
                 }
             });
-        }
-    }
-
-    // --- Internal Permission Listener ---
-    [Register("PermissionListenerImpl")]
-    private class PermissionListenerImpl : NSObject
-    {
-        private readonly Action<bool> _callback;
-
-        public PermissionListenerImpl(Action<bool> callback)
-        {
-            _callback = callback;
-        }
-        
-        // Native Protocol: @objc func onPermissionResult(_ granted: Bool)
-        [Export("onPermissionResult:")]
-        public void OnPermissionResult(bool granted)
-        {
-            Debug.WriteLine($"{LogTag}: (C#) Permission Result: {granted}");
-            // Marshal back to main thread
-            InvokeOnMainThreadSafe(() => _callback(granted));
         }
     }
 
@@ -468,4 +503,6 @@ internal static class PushNotificationsIos
     [DllImport("/usr/lib/libSystem.dylib")]
     private static extern IntPtr dlerror();
 }
+
+
 #endif

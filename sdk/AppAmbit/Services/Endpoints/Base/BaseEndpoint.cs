@@ -6,8 +6,8 @@ internal class BaseEndpoint : IEndpoint
 {
     public string Url { get; set; }
     
-    public string BaseUrl { get; set; } = "https://staging-appambit.com/api";
-    
+    public string BaseUrl { get; set; } = "https://appambit.com/api";
+     
     public bool SkipAuthorization { get; set;  } = false;
     
     public object Payload { get; set; } = null;

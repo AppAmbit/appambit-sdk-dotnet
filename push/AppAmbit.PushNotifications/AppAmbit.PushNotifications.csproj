@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks>
+    <TargetFrameworks>net10.0;net10.0-android;net10.0-ios</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Description>Push Notifications SDK for Android to send push notifications via AppAmbit platform.</Description>
@@ -19,6 +19,10 @@
     <PackageReadmeFile Condition="Exists('$(ReadmeFile)')">$(ReadmeFile)</PackageReadmeFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="AppAmbit" />
+  </ItemGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
     <SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
@@ -56,7 +60,7 @@
     <PackageReference Include="Xamarin.Firebase.Messaging" Version="123.2.1" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
+  <ItemGroup>
     <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
   </ItemGroup>
 
@@ -69,8 +73,6 @@
   </ItemGroup>  
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
-    <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
-
     <!-- Simulator -->
     <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')" Include="Platforms\iOS_Build\build\Debug-iphonesimulator\AppAmbitPushNotifications\AppAmbitPushNotifications.framework">
         <Kind>Framework</Kind>

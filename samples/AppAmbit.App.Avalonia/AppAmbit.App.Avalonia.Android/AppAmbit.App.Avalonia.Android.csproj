@@ -4,7 +4,7 @@
     <TargetFramework>net10.0-android</TargetFramework>
     <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
-    <ApplicationId>com.CompanyName.AppAmbitTestingAppAvalonia</ApplicationId>
+    <ApplicationId>com.AppAmbit.TestAppSwift</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
@@ -24,5 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AppAmbit.App.Avalonia\AppAmbit.App.Avalonia.csproj" />
+    <ProjectReference Include="..\..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
   </ItemGroup>
 </Project>

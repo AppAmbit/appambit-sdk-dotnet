@@ -117,7 +117,48 @@ public static class PushNotifications
              PushNotificationsAndroid.RequestNotificationPermission(null);
         }
 #elif IOS
-        PushNotificationsIos.RequestNotificationPermission(callback);
+        Debug.WriteLine($"[{LogTag}] RequestNotificationPermission generic called. (Reflection Fix Applied) platformContext={platformContext}, callback={callback}");
+
+        // Handle case where overloaded resolution picked this method instead of the IPermissionListener one
+        // (common in shared projects targeting netstandard/net8.0 where #if IOS methods are hidden)
+        
+        // 1. Try Direct Interface Cast
+        if (platformContext is IPermissionListener listener)
+        {
+             Debug.WriteLine($"[{LogTag}] platformContext IS IPermissionListener. Adapting to callback.");
+             PushNotificationsIos.RequestNotificationPermission(granted => listener.OnPermissionResult(granted));
+        }
+        // 2. Try Reflection (Duck Typing) - in case of type mismatch/context issues
+        else if (platformContext != null) 
+        {
+             Debug.WriteLine($"[{LogTag}] platformContext is NOT IPermissionListener (Type: {platformContext.GetType().FullName}). Trying reflection...");
+             var method = platformContext.GetType().GetMethod("OnPermissionResult");
+             if (method != null)
+             {
+                 Debug.WriteLine($"[{LogTag}] Found OnPermissionResult method via reflection. Adapting.");
+                 PushNotificationsIos.RequestNotificationPermission(granted => 
+                 {
+                     try 
+                     {
+                        method.Invoke(platformContext, new object[] { granted });
+                     }
+                     catch(Exception ex)
+                     {
+                        Debug.WriteLine($"[{LogTag}] Reflection invocation failed: {ex}");
+                     }
+                 });
+             }
+             else
+             {
+                 Debug.WriteLine($"[{LogTag}] No OnPermissionResult method found. Fallback to callback arg.");
+                 PushNotificationsIos.RequestNotificationPermission(callback);
+             }
+        }
+        else
+        {
+             Debug.WriteLine($"[{LogTag}] platformContext is null. Using callback directly.");
+             PushNotificationsIos.RequestNotificationPermission(callback);
+        }
 #else
         NotSupported();
 #endif
@@ -154,4 +195,8 @@ public static class PushNotifications
         PushNotificationsIos.SetNotificationCustomizer(customizer);
     }
 #endif
+    private static void NotSupported()
+    {
+        Debug.WriteLine($"[{LogTag}] Push Notifications are not supported on this platform.");
+    }
 }

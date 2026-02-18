@@ -17,14 +17,7 @@ public class AppDelegate : UIApplicationDelegate
         try
         {
             AppAmbitSdk.Start("<YOUR-APPKEY>");
-            try
-            {
-                PushNotifications.Start();
-            }
-            catch (System.Exception exPush)
-            {
-                Console.WriteLine($"PushNotifications.Start() failed: {exPush}");
-            }
+            PushNotifications.Start();
         }
         catch (System.Exception ex)
         {
