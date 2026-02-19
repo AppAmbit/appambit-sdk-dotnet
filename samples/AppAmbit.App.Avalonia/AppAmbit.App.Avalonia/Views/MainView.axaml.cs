@@ -29,6 +29,9 @@ public partial class MainView : UserControl
         txtChangeUserEmail.Text = "test@gmail.com";
         txtCustomLogError.Text = "Test Log Message";
 
+        // Configure notification customizer
+        AppAmbit.PushNotifications.PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+
         // Initial state update
         UpdateNotificationButtonState();
 
@@ -228,6 +231,26 @@ public partial class MainView : UserControl
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
+    }
+
+    private sealed class SimpleNotificationCustomizer : AppAmbit.PushNotifications.PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, AppAmbit.PushNotifications.PushNotificationData notification)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
+
+            if (notification.Data is System.Collections.IDictionary dict)
+            {
+                foreach (var key in dict.Keys)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
+                }
+            }
+            else if (notification.Data != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
+            }
+        }
     }
 
     private async void OnSessionStartClicked(object? sender, RoutedEventArgs e)

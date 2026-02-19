@@ -23,7 +23,7 @@ public partial class App : Application
         Console.WriteLine("[AppAmbit] OnFrameworkInitializationCompleted called.");
 
 
-        AppAmbitSdk.Start("<YOUR_APPKEY>");
+        AppAmbitSdk.Start("<YOUR-APPKEY>");
 
         PushNotifications.Start();
 

@@ -201,6 +201,16 @@ public static class PushNotifications
     {
         PushNotificationsIos.SetNotificationCustomizer(customizer);
     }
+#else
+    public static void RequestNotificationPermission(IPermissionListener? listener)
+    {
+        NotSupported();
+    }
+
+    public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
+    {
+        NotSupported();
+    }
 #endif
     private static void NotSupported()
     {

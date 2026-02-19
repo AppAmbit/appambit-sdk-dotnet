@@ -29,11 +29,11 @@ public class MainActivity : Activity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        
+
         //Uncomment the line for automatic session management
         //Analytics.EnableManualSession();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
-        
+
         PushNotifications.Start(this);
         PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
 
@@ -42,16 +42,16 @@ public class MainActivity : Activity
         _container = FindViewById<FrameLayout>(I("content_container"));
 
         var inflater = LayoutInflater.From(this);
-        _viewCrashes   = inflater?.Inflate(L("fragment_crashes"), _container, false);
+        _viewCrashes = inflater?.Inflate(L("fragment_crashes"), _container, false);
         _viewAnalytics = inflater?.Inflate(L("fragment_analytics"), _container, false);
 
         WireCrashesView(_viewCrashes!);
         WireAnalyticsView(_viewAnalytics!);
 
-        var btnCrashes   = FindViewById<Button>(I("btn_nav_crashes"))!;
+        var btnCrashes = FindViewById<Button>(I("btn_nav_crashes"))!;
         var btnAnalytics = FindViewById<Button>(I("btn_nav_analytics"))!;
 
-        btnCrashes.Click   += (s, e) => ShowView(_viewCrashes!);
+        btnCrashes.Click += (s, e) => ShowView(_viewCrashes!);
         btnAnalytics.Click += (s, e) => ShowView(_viewAnalytics!);
 
         ShowView(_viewCrashes!);
@@ -72,20 +72,20 @@ public class MainActivity : Activity
     void WireAnalyticsView(View root)
     {
         Button B(string id) => root.FindViewById<Button>(I(id))!;
-        var btnStartSession                 = B("btnStartSession");
-        var btnEndSession                   = B("btnEndSession");
-        var btnGenerate30DaysTestSessions   = B("btnGenerate30DaysTestSessions");
-        var btnClearToken                   = B("btnClearToken");
-        var btnTokenRenew                   = B("btnTokenRenew");
-        var btnEventWProperty               = B("btnEventWProperty");
+        var btnStartSession = B("btnStartSession");
+        var btnEndSession = B("btnEndSession");
+        var btnGenerate30DaysTestSessions = B("btnGenerate30DaysTestSessions");
+        var btnClearToken = B("btnClearToken");
+        var btnTokenRenew = B("btnTokenRenew");
+        var btnEventWProperty = B("btnEventWProperty");
         var btnDefaultClickedEventWProperty = B("btnDefaultClickedEventWProperty");
-        var btnMax300LengthEvent            = B("btnMax300LengthEvent");
-        var btnMax20PropertiesEvent         = B("btnMax20PropertiesEvent");
-        var btn220BatchEvents               = B("btn220BatchEvents");
-        var btnSecondActivity               = B("btnSecondActivity");
+        var btnMax300LengthEvent = B("btnMax300LengthEvent");
+        var btnMax20PropertiesEvent = B("btnMax20PropertiesEvent");
+        var btn220BatchEvents = B("btn220BatchEvents");
+        var btnSecondActivity = B("btnSecondActivity");
 
         btnStartSession.Click += (s, e) => { try { Analytics.StartSession(); } catch { } };
-        btnEndSession.Click   += (s, e) => { try { Analytics.EndSession(); } catch { } };
+        btnEndSession.Click += (s, e) => { try { Analytics.EndSession(); } catch { } };
 
         btnEventWProperty.Click += (s, e) =>
         {
@@ -152,19 +152,19 @@ public class MainActivity : Activity
     void WireCrashesView(View root)
     {
         T Find<T>(string id) where T : View => (T)root.FindViewById(I(id))!;
-        var btnDidCrash                   = Find<Button>("btnDidCrash");
-        var btnSendCustomLogError         = Find<Button>("btnSendCustomLogError");
-        var btnSendDefaultLogError        = Find<Button>("btnSendDefaultLogError");
-        var btnSendExceptionLogError      = Find<Button>("btnSendExceptionLogError");
-        var btnSetUserId                  = Find<Button>("btnSetUserId");
-        var btnSetUserEmail               = Find<Button>("btnSetUserEmail");
-        var btnThrowNewCrash              = Find<Button>("btnThrowNewCrash");
-        var btnGenerateTestCrash          = Find<Button>("btnGenerateTestCrash");
-        _btnPushNotifications             = Find<Button>("btnPushNotifications");
+        var btnDidCrash = Find<Button>("btnDidCrash");
+        var btnSendCustomLogError = Find<Button>("btnSendCustomLogError");
+        var btnSendDefaultLogError = Find<Button>("btnSendDefaultLogError");
+        var btnSendExceptionLogError = Find<Button>("btnSendExceptionLogError");
+        var btnSetUserId = Find<Button>("btnSetUserId");
+        var btnSetUserEmail = Find<Button>("btnSetUserEmail");
+        var btnThrowNewCrash = Find<Button>("btnThrowNewCrash");
+        var btnGenerateTestCrash = Find<Button>("btnGenerateTestCrash");
+        _btnPushNotifications = Find<Button>("btnPushNotifications");
 
-        var etUserId           = Find<EditText>("etUserId");
-        var etUserEmail        = Find<EditText>("etUserEmail");
-        var etCustomLogErrorText= Find<EditText>("etCustomLogErrorText");
+        var etUserId = Find<EditText>("etUserId");
+        var etUserEmail = Find<EditText>("etUserEmail");
+        var etCustomLogErrorText = Find<EditText>("etCustomLogErrorText");
 
         etUserId.Text = Guid.NewGuid().ToString();
         etUserEmail.Text = "test@gmail.com";
@@ -205,11 +205,11 @@ public class MainActivity : Activity
             }
         };
 
-        btnSetUserId.Click                  += (s, e) => { Analytics.SetUserId(etUserId.Text); ShowAlert("Info", "User ID changed"); };
-        btnSetUserEmail.Click               += (s, e) => { Analytics.SetUserEmail(etUserEmail.Text); ShowAlert("Info", "User email changed"); };
-        btnThrowNewCrash.Click              += (s, e) => { throw new NullReferenceException(); };
-        btnGenerateTestCrash.Click          += (s, e) => Crashes.GenerateTestCrash();
-        _btnPushNotifications!.Click        += async (s, e) => await HandlePushToggleAsync();
+        btnSetUserId.Click += (s, e) => { Analytics.SetUserId(etUserId.Text); ShowAlert("Info", "User ID changed"); };
+        btnSetUserEmail.Click += (s, e) => { Analytics.SetUserEmail(etUserEmail.Text); ShowAlert("Info", "User email changed"); };
+        btnThrowNewCrash.Click += (s, e) => { throw new NullReferenceException(); };
+        btnGenerateTestCrash.Click += (s, e) => Crashes.GenerateTestCrash();
+        _btnPushNotifications!.Click += async (s, e) => await HandlePushToggleAsync();
 
         RefreshPushToggle();
     }
