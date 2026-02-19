@@ -71,8 +71,24 @@ internal static class PushNotificationsAndroid
         _currentActivity = activity;
     }
 
-    private static void InternalStart(Context appContext) 
+    private static void InternalStart(Context appContext)
     {
+        // Explicitly initialize Firebase before any SDK call.
+        // FirebaseApp.InitializeApp is a no-op if already initialized, so this is safe.
+        // This avoids relying solely on FirebaseInitProvider auto-init timing.
+        try
+        {
+            if (Firebase.FirebaseApp.Instance == null)
+            {
+                Firebase.FirebaseApp.InitializeApp(appContext);
+                Log.Debug(LogTag, "Firebase explicitly initialized.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warn(LogTag, $"Firebase.InitializeApp skipped or failed: {ex.Message}");
+        }
+
         if (!_initialized)
         {
             PushKernel.SetTokenListener(new TokenListenerProxy(appContext));
