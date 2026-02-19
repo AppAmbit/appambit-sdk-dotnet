@@ -4,20 +4,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
-using Android.Content.PM;
 using Android.Views;
 using Android.OS;
-using AndroidX.AppCompat.App;
-using AndroidX.Core.Content;
 using Android.Widget;
 using AppAmbit.PushNotifications;
 using AppAmbitMaui;
-using AlertDialog = AndroidX.AppCompat.App.AlertDialog;
 
 namespace AppAmbitTestingAppAndroid;
 
-[Activity(Label = "@string/app_name", MainLauncher = true, Theme = "@style/Theme.AppCompat.Light.NoActionBar")]
-public class MainActivity : AppCompatActivity
+[Activity(Label = "@string/app_name", MainLauncher = true, Theme = "@android:style/Theme.Material.Light.NoActionBar")]
+public class MainActivity : Activity
 {
     FrameLayout? _container;
     View? _viewCrashes;
@@ -38,7 +34,8 @@ public class MainActivity : AppCompatActivity
         //Analytics.EnableManualSession();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
         
-        PushNotifications.Start(ApplicationContext);
+        PushNotifications.Start(this);
+        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
 
         SetContentView(L("activity_main"));
 
@@ -221,10 +218,10 @@ public class MainActivity : AppCompatActivity
     {
         RunOnUiThread(() =>
         {
-            new AlertDialog.Builder(this)
-                .SetTitle(title)
-                .SetMessage(message)
-                .SetPositiveButton("OK", (s, e) => { })
+            new AlertDialog.Builder(this)!
+                .SetTitle(title)!
+                .SetMessage(message)!
+                .SetPositiveButton("OK", (s, e) => { })!
                 .Show();
         });
     }
@@ -241,19 +238,20 @@ public class MainActivity : AppCompatActivity
             if (!_hasNotificationPermission)
             {
                 var tcs = new TaskCompletionSource<bool>();
-                PushNotifications.RequestNotificationPermission(this, new PermissionListener(granted => tcs.TrySetResult(granted)));
+                PushNotifications.RequestNotificationPermission(new PermissionListener(granted => tcs.TrySetResult(granted)));
                 var granted = await tcs.Task;
 
                 if (granted)
                 {
-                    PushNotifications.SetNotificationsEnabled(true, ApplicationContext);
                     _hasNotificationPermission = true;
                     _notificationsEnabled = true;
+                    PushNotifications.SetNotificationsEnabled(true);
                     UpdatePushButtonText();
                     ShowAlert("Done", "Notifications enabled");
                 }
                 else
                 {
+                    RefreshPushToggle();
                     ShowAlert("Permission denied", "Notification permission denied by the user.");
                 }
 
@@ -261,7 +259,7 @@ public class MainActivity : AppCompatActivity
             }
 
             var targetEnabled = !_notificationsEnabled;
-            PushNotifications.SetNotificationsEnabled(targetEnabled, ApplicationContext);
+            PushNotifications.SetNotificationsEnabled(targetEnabled);
             _notificationsEnabled = targetEnabled;
             UpdatePushButtonText();
             ShowAlert("Done", targetEnabled ? "Notifications enabled" : "Notifications disabled");
@@ -281,17 +279,9 @@ public class MainActivity : AppCompatActivity
         if (_btnPushNotifications == null)
             return;
 
-        _hasNotificationPermission = HasSystemPermission();
-        _notificationsEnabled = PushNotifications.IsNotificationsEnabled(ApplicationContext);
+        _hasNotificationPermission = PushNotifications.HasSystemPermission();
+        _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
         UpdatePushButtonText();
-    }
-
-    bool HasSystemPermission()
-    {
-        if ((int)Build.VERSION.SdkInt < 33)
-            return true;
-
-        return ContextCompat.CheckSelfPermission(this, Android.Manifest.Permission.PostNotifications) == Permission.Granted;
     }
 
     void UpdatePushButtonText()
@@ -306,7 +296,7 @@ public class MainActivity : AppCompatActivity
                 : "Enable Notifications";
     }
 
-    private sealed class PermissionListener : Java.Lang.Object, PushNotifications.IPermissionListener
+    private sealed class PermissionListener : PushNotifications.IPermissionListener
     {
         private readonly Action<bool> _onResult;
 
@@ -316,5 +306,25 @@ public class MainActivity : AppCompatActivity
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
+    }
+
+    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, PushNotificationData notification)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
+
+            if (notification.Data is System.Collections.IDictionary dict)
+            {
+                foreach (var key in dict.Keys)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
+                }
+            }
+            else if (notification.Data != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
+            }
+        }
     }
 }

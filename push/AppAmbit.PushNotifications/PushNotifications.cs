@@ -26,12 +26,12 @@ public static class PushNotifications
         Debug.WriteLine($"[{LogTag}] Starting Push SDK and binding to AppAmbit Core.");
 
 #if ANDROID
-        if (platformContext is AndroidX.Activity.ComponentActivity activity)
+        if (platformContext is Android.App.Activity activity)
         {
             PushNotificationsAndroid.Init(activity);
             PushNotificationsAndroid.Start(activity);
         }
-        else if (platformContext is Context androidContext)
+        else if (platformContext is Android.Content.Context androidContext)
         {
             PushNotificationsAndroid.Start(androidContext);
         }
@@ -110,7 +110,7 @@ public static class PushNotifications
             Debug.WriteLine($"[{LogTag}] RequestNotificationPermission: platformContext is IPermissionListener. Routing correctly.");
             PushNotificationsAndroid.RequestNotificationPermission(listener);
         }
-        else if (platformContext is AndroidX.Activity.ComponentActivity activity)
+        else if (platformContext is Android.App.Activity activity)
         {
              PushNotificationsAndroid.RequestNotificationPermission(activity, null); 
         }
@@ -182,7 +182,7 @@ public static class PushNotifications
         PushNotificationsAndroid.RequestNotificationPermission(listener);
     }
 
-    public static void RequestNotificationPermission(AndroidX.Activity.ComponentActivity activity, IPermissionListener? listener)
+    public static void RequestNotificationPermission(Android.App.Activity activity, IPermissionListener? listener)
     {
         PushNotificationsAndroid.RequestNotificationPermission(activity, listener);
     }

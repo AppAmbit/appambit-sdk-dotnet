@@ -13,12 +13,7 @@
     <ProjectReference Include="..\..\sdk\AppAmbit.Maui\AppAmbit.Maui.csproj" />
     <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Xamarin.AndroidX.AppCompat" Version="1.7.0.4" />
-    <PackageReference Include="Xamarin.AndroidX.Core" Version="1.15.0.1" />
-  </ItemGroup>
-
+  
   <ItemGroup>
     <GoogleServicesJson Include="google-services.json" />
   </ItemGroup>

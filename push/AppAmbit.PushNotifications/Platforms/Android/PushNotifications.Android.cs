@@ -17,13 +17,13 @@ internal static class PushNotificationsAndroid
     private static string? _lastPushToken;
     private const string LogTag = PushNotifications.LogTag;
 
-    private static AndroidX.Activity.ComponentActivity? _currentActivity;
+    private static Activity? _currentActivity;
 
     // Hold reference to listener to prevent GC
     internal static PushNotifications.IPermissionListener? _permissionListener;
 
     // Try to get current activity from MAUI Platform using reflection (to avoid hard dependency)
-    private static AndroidX.Activity.ComponentActivity? GetCurrentActivity()
+    private static Activity? GetCurrentActivity()
     {
         try
         {
@@ -34,10 +34,10 @@ internal static class PushNotificationsAndroid
                 var currentActivityProperty = platformType.GetProperty("CurrentActivity", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
                 if (currentActivityProperty != null)
                 {
-                    var activity = currentActivityProperty.GetValue(null) as AndroidX.Activity.ComponentActivity;
+                    var activity = currentActivityProperty.GetValue(null) as Activity;
                     if (activity != null)
                     {
-                        _currentActivity = activity; // Update cached reference
+                        _currentActivity = activity;
                         return activity;
                     }
                 }
@@ -56,7 +56,7 @@ internal static class PushNotificationsAndroid
         if (context == null) throw new System.ArgumentNullException(nameof(context));
 
         // Attempt to capture activity if context is one
-        if (context is AndroidX.Activity.ComponentActivity activity)
+        if (context is Activity activity)
         {
             _currentActivity = activity;
         }
@@ -66,7 +66,7 @@ internal static class PushNotificationsAndroid
     }
     
     // Explicit Init for Activity
-    public static void Init(AndroidX.Activity.ComponentActivity activity)
+    public static void Init(Activity activity)
     {
         _currentActivity = activity;
     }
@@ -207,7 +207,7 @@ internal static class PushNotificationsAndroid
     }
 
     // Keep old signature for compatibility/internal use but forward
-    public static void RequestNotificationPermission(AndroidX.Activity.ComponentActivity activity, PushNotifications.IPermissionListener? listener) 
+    public static void RequestNotificationPermission(Activity activity, PushNotifications.IPermissionListener? listener) 
     {
         _currentActivity = activity; // Update reference
         RequestNotificationPermission(listener);
