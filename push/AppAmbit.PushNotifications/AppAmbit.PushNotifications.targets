@@ -1,7 +1,6 @@
 <Project>
-  <!--  Copy iOS native frameworks to app bundle when using AppAmbit.PushNotifications -->
-  
-  <!-- Define framework paths -->
+  <!-- Copy iOS native dynamic frameworks to app bundle -->
+
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
     <_AppAmbitPushSdkPath>$(MSBuildThisFileDirectory)</_AppAmbitPushSdkPath>
     <_IsSimulator Condition="'$(RuntimeIdentifier)' == '' OR $(RuntimeIdentifier.Contains('simulator'))">true</_IsSimulator>
@@ -9,7 +8,6 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_IsSimulator)' == 'true'">
-    <!-- Matches build_native_libs.sh output location -->
     <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/Debug-iphonesimulator</_AppAmbitFrameworkPath>
   </PropertyGroup>
 
@@ -22,12 +20,10 @@
           BeforeTargets="CopyAppAmbitPushFrameworks" 
           Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(OutputType)' == 'Exe'">
     <PropertyGroup Condition="'$(AppBundleDir)' == ''">
-      <!-- Fallback: compute from TargetPath -->
       <_AppName>$(AssemblyName)</_AppName>
       <_ComputedAppBundleDir>$(TargetDir.TrimEnd('\').TrimEnd('/'))/$(_AppName).app</_ComputedAppBundleDir>
       <AppBundleDir Condition="Exists('$(_ComputedAppBundleDir)')">$(_ComputedAppBundleDir)</AppBundleDir>
     </PropertyGroup>
-    <Message Importance="High" Text="[AppAmbit.PushNotifications] AppBundleDir: $(AppBundleDir)" Condition="'$(AppBundleDir)' != ''" />
   </Target>
 
   <!-- Copy frameworks to app bundle -->
@@ -37,9 +33,6 @@
     <PropertyGroup>
       <_FrameworksDir>$(AppBundleDir)/Frameworks</_FrameworksDir>
     </PropertyGroup>
-    
-    <Message Importance="High" Text="[AppAmbit.PushNotifications] Copying native frameworks to $(_FrameworksDir)..." />
-    <Message Importance="High" Text="[AppAmbit.PushNotifications] Framework source: $(_AppAmbitFrameworkPath)" />
     
     <MakeDir Directories="$(_FrameworksDir)" ContinueOnError="true" />
     
@@ -51,12 +44,12 @@
           Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;" 
           ContinueOnError="true" />
 
-    <!-- CLEANUP: Remove _CodeSignature to allow dotnet to sign it fresh -->
+    <!-- Remove _CodeSignature to allow dotnet to sign fresh -->
     <Exec Condition="Exists('$(_FrameworksDir)/AppAmbitPushNotifications.framework/_CodeSignature')"
           Command="rm -rf &quot;$(_FrameworksDir)/AppAmbitPushNotifications.framework/_CodeSignature&quot;" />
     <Exec Condition="Exists('$(_FrameworksDir)/AppAmbit.framework/_CodeSignature')"
           Command="rm -rf &quot;$(_FrameworksDir)/AppAmbit.framework/_CodeSignature&quot;" />
     
-    <Message Importance="High" Text="[AppAmbit.PushNotifications] Frameworks copied and signatures cleaned." />
+    <Message Importance="High" Text="[AppAmbit.PushNotifications] Frameworks copied to $(_FrameworksDir)" />
   </Target>
 </Project>

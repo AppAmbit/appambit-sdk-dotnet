@@ -32,13 +32,7 @@
     <SupportedOSPlatformVersion>12.2</SupportedOSPlatformVersion>
   </PropertyGroup>
 
-  <!-- Include .targets file and frameworks in NuGet package -->
-  <ItemGroup>
-    <None Include="AppAmbit.PushNotifications.targets" Pack="true" PackagePath="build\$(PackageId).targets" />
-    <None Include="Platforms\iOS_Build\build\Debug-**\*.framework\**" Pack="true" PackagePath="build\Platforms\iOS_Build\build\" />
-  </ItemGroup>
-
-  <!-- Import targets for development (when referenced as ProjectReference) -->
+  <!-- Import targets for copying dynamic frameworks to app bundle -->
   <Import Project="AppAmbit.PushNotifications.targets" Condition="Exists('AppAmbit.PushNotifications.targets')" />
 
   <ItemGroup>
@@ -48,12 +42,6 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
     <AndroidMavenLibrary Include="com.appambit:appambit.push.notifications" Version="0.3.0" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android' and Exists('$(MSBuildThisFileDirectory)libs/appambit-sdk.aar')">
-    <LibraryProjectZip Include="libs/appambit-sdk.aar" />
-    <!-- Exclude MAUI-specific extensions - users should call PushNotifications.Start() manually in platform code -->
-    <Compile Remove="AppAmbitPushExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
@@ -76,11 +64,13 @@
     <!-- Simulator -->
     <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')" Include="Platforms\iOS_Build\build\Debug-iphonesimulator\AppAmbitPushNotifications\AppAmbitPushNotifications.framework">
         <Kind>Framework</Kind>
+        <IsDynamic>True</IsDynamic>
         <SmartLink>True</SmartLink>
         <ForceLoad>True</ForceLoad>
     </NativeReference>
     <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')" Include="Platforms\iOS_Build\build\Debug-iphonesimulator\AppAmbitSdk\AppAmbit.framework">
         <Kind>Framework</Kind>
+        <IsDynamic>True</IsDynamic>
         <SmartLink>True</SmartLink>
         <ForceLoad>True</ForceLoad>
     </NativeReference>
@@ -88,11 +78,13 @@
     <!-- Device -->
     <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')" Include="Platforms\iOS_Build\build\Debug-iphoneos\AppAmbitPushNotifications\AppAmbitPushNotifications.framework">
         <Kind>Framework</Kind>
+        <IsDynamic>True</IsDynamic>
         <SmartLink>True</SmartLink>
         <ForceLoad>True</ForceLoad>
     </NativeReference>
     <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')" Include="Platforms\iOS_Build\build\Debug-iphoneos\AppAmbitSdk\AppAmbit.framework">
         <Kind>Framework</Kind>
+        <IsDynamic>True</IsDynamic>
         <SmartLink>True</SmartLink>
         <ForceLoad>True</ForceLoad>
     </NativeReference>

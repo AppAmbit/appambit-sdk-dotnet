@@ -3,17 +3,12 @@ use_frameworks!
 install! 'cocoapods', :integrate_targets => false
 
 target 'AppAmbitPushNotificationsBuild' do
-    # AppAmbit SDK Core - Local Reference
-    pod 'AppAmbitSdk', :path => '../../../../../appambit-sdk-ios/AppAmbitSdk'
-    
-    # AppAmbit Push SDK - Local Reference
-    pod 'AppAmbitPushNotifications', :path => '../../../../../appambit-sdk-ios/Push/AppAmbitPushNotifications'
+    pod 'AppAmbitPushNotifications', '0.2.0'
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
-      config.build_settings['MACH_O_TYPE'] = 'mh_dylib'
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
     end
   end

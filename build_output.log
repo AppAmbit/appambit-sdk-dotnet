@@ -1,3 +1,0 @@
-Installing Pods...
-Analyzing dependencies
-[!] Unable to find a target named `AppAmbitPushNotificationsBuild` in project `AppAmbit.xcodeproj`, did find `AppAmbit.App.Swift`, `AppAmbit.App.ObjC`, and `AppAmbitNotificationService`.

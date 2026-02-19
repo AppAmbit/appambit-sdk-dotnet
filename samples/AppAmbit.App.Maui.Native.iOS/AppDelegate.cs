@@ -14,15 +14,8 @@ public class AppDelegate : UIApplicationDelegate
 
     public override bool FinishedLaunching(UIApplication application, NSDictionary launchOptions)
     {
-        try
-        {
-            AppAmbitSdk.Start("<YOUR-APPKEY>");
-            PushNotifications.Start();
-        }
-        catch (System.Exception ex)
-        {
-            Console.WriteLine($"AppAmbitSdk.Start() failed: {ex}");
-        }
+        AppAmbitSdk.Start("<YOUR-APPKEY>");
+        PushNotifications.Start();
 
         Window = new UIWindow(UIScreen.MainScreen.Bounds);
         Window.RootViewController = new MainTabBarController();
