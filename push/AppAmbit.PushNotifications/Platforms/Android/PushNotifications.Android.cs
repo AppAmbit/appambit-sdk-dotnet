@@ -1,4 +1,7 @@
+using Android.App;
 using Android.Content;
+using Android.Content.PM;
+using Android.OS;
 using Android.Util;
 using AndroidX.Core.App;
 using Com.Appambit.Sdk.Models;
@@ -15,6 +18,9 @@ internal static class PushNotificationsAndroid
     private const string LogTag = PushNotifications.LogTag;
 
     private static AndroidX.Activity.ComponentActivity? _currentActivity;
+
+    // Hold reference to listener to prevent GC
+    internal static PushNotifications.IPermissionListener? _permissionListener;
 
     // Try to get current activity from MAUI Platform using reflection (to avoid hard dependency)
     private static AndroidX.Activity.ComponentActivity? GetCurrentActivity()
@@ -77,16 +83,6 @@ internal static class PushNotificationsAndroid
         {
             try
             {
-                // Disable notifications by default before starting SDK
-                PushKernel.SetNotificationsEnabled(appContext, false);
-            }
-            catch (Java.Lang.IllegalStateException ex)
-            {
-                Log.Warn(LogTag, $"Failed to disable notifications before start: {ex}");
-            }
-
-            try
-            {
                 PushKernel.Start(appContext);
             }
             catch (Java.Lang.IllegalStateException ex)
@@ -98,8 +94,9 @@ internal static class PushNotificationsAndroid
 
     public static void SetNotificationsEnabled(Context? context, bool enabled)
     {
-        // Try to get context from stored activity if null
-        var targetContext = context ?? GetCurrentActivity()?.ApplicationContext;
+        // Try to get context from stored activity, then reflection, then Application fallback
+        var targetContext = context ?? GetCurrentActivity()?.ApplicationContext ?? Android.App.Application.Context;
+        
         if (targetContext == null) 
         {
             Log.Error(LogTag, "SetNotificationsEnabled: Context is null and no activity initialized.");
@@ -108,14 +105,14 @@ internal static class PushNotificationsAndroid
 
         try
         {
-            PushKernel.SetNotificationsEnabled(targetContext.ApplicationContext, enabled);
+            PushKernel.SetNotificationsEnabled(targetContext, enabled);
         }
         catch (Java.Lang.IllegalStateException ex)
         {
             Log.Error(LogTag, $"Failed to set notifications enabled={enabled}: {ex}");
         }
 
-        // Update consumer logic - always sync state, even without token
+        // Update consumer logic - always sync state with backend
         var token = _lastPushToken;
         _ = Task.Run(async () =>
         {
@@ -124,7 +121,7 @@ internal static class PushNotificationsAndroid
                 // Wait a bit if token is null to give FCM time to generate it
                 if (token == null && enabled)
                 {
-                    await Task.Delay(1000);
+                    await Task.Delay(2000);
                     token = _lastPushToken;
                 }
                 
@@ -147,7 +144,7 @@ internal static class PushNotificationsAndroid
 
     public static bool IsNotificationsEnabled(Context? context = null)
     {
-        var targetContext = context ?? GetCurrentActivity()?.ApplicationContext;
+        var targetContext = context ?? GetCurrentActivity()?.ApplicationContext ?? Android.App.Application.Context;
         if (targetContext == null) return false;
         return PushKernel.IsNotificationsEnabled(targetContext);
     }
@@ -155,10 +152,10 @@ internal static class PushNotificationsAndroid
     // New parameterless/simplified methods
     public static bool HasSystemPermission()
     {
-        var activity = GetCurrentActivity();
-        if (activity == null) return false;
+        var context = (Context?)GetCurrentActivity() ?? Android.App.Application.Context;
+
         if ((int)Android.OS.Build.VERSION.SdkInt < 33) return true;
-        return AndroidX.Core.Content.ContextCompat.CheckSelfPermission(activity, Android.Manifest.Permission.PostNotifications) == Android.Content.PM.Permission.Granted;
+        return AndroidX.Core.Content.ContextCompat.CheckSelfPermission(context, Android.Manifest.Permission.PostNotifications) == Android.Content.PM.Permission.Granted;
     }
 
     public static void RequestNotificationPermission(PushNotifications.IPermissionListener? listener)
@@ -170,8 +167,43 @@ internal static class PushNotificationsAndroid
             return;
         }
         
-        Log.Debug(LogTag, $"Requesting notification permission with activity: {activity.GetType().Name}");
-        PushKernel.RequestNotificationPermission(activity, listener is null ? null : new PermissionListenerProxy(listener));
+        // Pre-Android 13: permission is auto-granted at install time
+        if ((int)Build.VERSION.SdkInt < 33)
+        {
+            Log.Debug(LogTag, "Pre-Android 13: notification permission auto-granted.");
+            listener?.OnPermissionResult(true);
+            return;
+        }
+
+        // Already granted
+        if (HasSystemPermission())
+        {
+            Log.Debug(LogTag, "Notification permission already granted.");
+            listener?.OnPermissionResult(true);
+            return;
+        }
+
+        Log.Debug(LogTag, $"Launching PushPermissionActivity from: {activity.GetType().Name}");
+
+        // Store listener - PushPermissionActivity will call HandlePermissionResult
+        _permissionListener = listener;
+
+        // Launch transparent activity that handles the permission request directly.
+        // This bypasses PushKernel's Java-to-C# callback which doesn't work in .NET bindings.
+        var intent = new Intent(activity, typeof(PushPermissionActivity));
+        activity.StartActivity(intent);
+    }
+
+    /// <summary>
+    /// Called by PushPermissionActivity when the user grants or denies permission.
+    /// </summary>
+    internal static void HandlePermissionResult(bool granted)
+    {
+        var listener = _permissionListener;
+        _permissionListener = null;
+
+        Log.Debug(LogTag, $"HandlePermissionResult: granted={granted}");
+        listener?.OnPermissionResult(granted);
     }
 
     // Keep old signature for compatibility/internal use but forward
@@ -186,22 +218,6 @@ internal static class PushNotificationsAndroid
         PushKernel.NotificationCustomizer = customizer is null
             ? null
             : new NotificationCustomizerProxy(customizer);
-    }
-
-
-    private sealed class PermissionListenerProxy : Java.Lang.Object, Com.Appambit.Sdk.PushKernel.IPermissionListener
-    {
-        private readonly PushNotifications.IPermissionListener _managed;
-
-        public PermissionListenerProxy(PushNotifications.IPermissionListener managed)
-        {
-            _managed = managed;
-        }
-
-        public void OnPermissionResult(bool isGranted)
-        {
-            _managed.OnPermissionResult(isGranted);
-        }
     }
 
     private sealed class NotificationCustomizerProxy : Java.Lang.Object, Com.Appambit.Sdk.PushKernel.INotificationCustomizer
@@ -237,21 +253,67 @@ internal static class PushNotificationsAndroid
 
         public void OnNewToken(string token)
         {
-            var isEnabled = PushKernel.IsNotificationsEnabled(_context);
-
-            Log.Debug(LogTag, $"FCM token received: {token} || {isEnabled}");
+            // Only cache the token. Do NOT sync to backend here.
+            // Backend sync happens exclusively via SetNotificationsEnabled()
+            // when the user explicitly enables/disables notifications.
             _lastPushToken = token;
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await AppAmbitSdk.UpdateConsumerAsync(token, isEnabled);
-                }
-                catch (System.Exception ex)
-                {
-                    Log.Error(LogTag, $"Failed to update consumer with new FCM token: {ex}");
-                }
-            });
+            Log.Debug(LogTag, $"FCM token cached: {token.Substring(0, Math.Min(10, token.Length))}...");
+        }
+    }
+}
+
+/// <summary>
+/// Transparent Activity that handles POST_NOTIFICATIONS permission request.
+/// Uses AndroidX RegisterForActivityResult API for reliable callback handling.
+/// This bypasses PushKernel's broken Java-to-C# callback mechanism.
+/// </summary>
+[Activity(
+    Theme = "@android:style/Theme.Translucent.NoTitleBar",
+    Exported = false,
+    Name = "com.appambit.pushnotifications.PushPermissionActivity")]
+public class PushPermissionActivity : AndroidX.Activity.ComponentActivity
+{
+    private const string Tag = "AppAmbitPushSDKNET";
+
+    protected override void OnCreate(Bundle? savedInstanceState)
+    {
+        base.OnCreate(savedInstanceState);
+
+        Log.Debug(Tag, "PushPermissionActivity: OnCreate - registering ActivityResult launcher");
+
+        try
+        {
+            // Use the modern ActivityResult API (must be called before onStart, which OnCreate satisfies)
+            var launcher = RegisterForActivityResult(
+                new AndroidX.Activity.Result.Contract.ActivityResultContracts.RequestPermission(),
+                new PermissionResultCallback(this));
+
+            Log.Debug(Tag, "PushPermissionActivity: Launching permission request for POST_NOTIFICATIONS");
+            launcher.Launch(Android.Manifest.Permission.PostNotifications);
+        }
+        catch (System.Exception ex)
+        {
+            Log.Error(Tag, $"PushPermissionActivity: Failed to launch permission request: {ex}");
+            PushNotificationsAndroid.HandlePermissionResult(false);
+            Finish();
+        }
+    }
+
+    private sealed class PermissionResultCallback : Java.Lang.Object, AndroidX.Activity.Result.IActivityResultCallback
+    {
+        private readonly PushPermissionActivity _activity;
+
+        public PermissionResultCallback(PushPermissionActivity activity)
+        {
+            _activity = activity;
+        }
+
+        public void OnActivityResult(Java.Lang.Object? result)
+        {
+            var granted = result is Java.Lang.Boolean b && b.BooleanValue();
+            Log.Debug(Tag, $"PushPermissionActivity: OnActivityResult - granted={granted}");
+            PushNotificationsAndroid.HandlePermissionResult(granted);
+            _activity.Finish();
         }
     }
 }

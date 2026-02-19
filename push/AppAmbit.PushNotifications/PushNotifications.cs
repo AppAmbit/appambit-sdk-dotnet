@@ -104,13 +104,15 @@ public static class PushNotifications
     public static void RequestNotificationPermission(object? platformContext = null, Action<bool>? callback = null)
     {
 #if ANDROID
-        if (platformContext is AndroidX.Activity.ComponentActivity activity)
+        // Check if platformContext is actually an IPermissionListener (overload resolution fix)
+        if (platformContext is IPermissionListener listener)
         {
-             // TODO: Update Android implementation to support Action<bool>
+            Debug.WriteLine($"[{LogTag}] RequestNotificationPermission: platformContext is IPermissionListener. Routing correctly.");
+            PushNotificationsAndroid.RequestNotificationPermission(listener);
+        }
+        else if (platformContext is AndroidX.Activity.ComponentActivity activity)
+        {
              PushNotificationsAndroid.RequestNotificationPermission(activity, null); 
-             // Note: Current Android impl uses interface. Future refactor needed for Action<bool> parity if desired.
-             // For now, we keep existing behavior or adapt if Android API allows. 
-             // Since user focused on iOS/MAUI fix first, we'll leave Android mostly as-is but matching signature.
         }
         else
         {
@@ -175,6 +177,11 @@ public static class PushNotifications
     }
 
 #if ANDROID
+    public static void RequestNotificationPermission(IPermissionListener? listener)
+    {
+        PushNotificationsAndroid.RequestNotificationPermission(listener);
+    }
+
     public static void RequestNotificationPermission(AndroidX.Activity.ComponentActivity activity, IPermissionListener? listener)
     {
         PushNotificationsAndroid.RequestNotificationPermission(activity, listener);

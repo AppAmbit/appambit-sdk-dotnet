@@ -1,21 +1,40 @@
 {
   "project_info": {
-    "project_number": "335203031590",
-    "project_id": "appambit-maui-android",
-    "storage_bucket": "appambit-maui-android.firebasestorage.app"
+    "project_number": "299303695274",
+    "project_id": "appambit-net-android",
+    "storage_bucket": "appambit-net-android.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:335203031590:android:fcd177d50597ef245ba4e7",
+        "mobilesdk_app_id": "1:299303695274:android:ccb2ae8b454ecd5339f1d3",
         "android_client_info": {
-          "package_name": "com.AppAmbit.TestApp"
+          "package_name": "com.AppAmbit.TestAppSwift"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCYSkW1YtX_ChL5W1zaBEqhJuVb_SIWqoM"
+          "current_key": "AIzaSyCn-iPmdP1_2gihqtEUKMSRHabXx4hv5Dk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:299303695274:android:664772468150458e39f1d3",
+        "android_client_info": {
+          "package_name": "com.companyname.AppAmbitTestingAppAndroid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCn-iPmdP1_2gihqtEUKMSRHabXx4hv5Dk"
         }
       ],
       "services": {
