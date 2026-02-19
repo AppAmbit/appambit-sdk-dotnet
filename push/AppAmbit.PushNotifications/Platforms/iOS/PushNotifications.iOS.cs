@@ -171,23 +171,31 @@ internal static class PushNotificationsIos
     public static void SetNotificationsEnabled(bool enabled)
     {
         EnsureNativeAvailable();
+
+        // Guard: auto-initialize if Start() was skipped or called out of order
+        if (!_initialized)
+        {
+            Debug.WriteLine($"[AppAmbit] SetNotificationsEnabled called before Start(). Auto-initializing...");
+            Start();
+        }
+
         objc_msgSend_bool(_classHandle, _selSetNotificationsEnabled, enabled);
 
         // Update consumer state with backend (fire and forget with error handling)
         var token = _lastPushToken;
         _ = Task.Run(async () =>
         {
-            try 
-            { 
-                await AppAmbitSdk.UpdateConsumerAsync(token, enabled); 
+            try
+            {
+                await AppAmbitSdk.UpdateConsumerAsync(token, enabled);
             }
-            catch (Exception ex) 
-            { 
-                Debug.WriteLine($"{LogTag}: Sync error: {ex}"); 
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"{LogTag}: Sync error: {ex}");
             }
         });
-        
-        if (!enabled) 
+
+        if (!enabled)
             _lastPushToken = null;
     }
 
