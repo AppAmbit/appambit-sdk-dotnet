@@ -36,12 +36,22 @@
     
     <MakeDir Directories="$(_FrameworksDir)" ContinueOnError="true" />
     
-    <!-- Copy frameworks -->
-    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework')" 
-          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework&quot; &quot;$(_FrameworksDir)/&quot;" 
+    <!-- Copy AppAmbitPushNotifications.framework (direct path = CONFIGURATION_BUILD_DIR output) -->
+    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications.framework')"
+          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications.framework&quot; &quot;$(_FrameworksDir)/&quot;"
           ContinueOnError="true" />
-    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework')" 
-          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;" 
+    <!-- Fallback: subdirectory layout (legacy / derivedDataPath builds) -->
+    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND !Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications.framework') AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework')"
+          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework&quot; &quot;$(_FrameworksDir)/&quot;"
+          ContinueOnError="true" />
+
+    <!-- Copy AppAmbit.framework (direct path) -->
+    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbit.framework')"
+          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;"
+          ContinueOnError="true" />
+    <!-- Fallback: subdirectory layout -->
+    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND !Exists('$(_AppAmbitFrameworkPath)/AppAmbit.framework') AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework')"
+          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;"
           ContinueOnError="true" />
 
     <!-- Remove _CodeSignature to allow dotnet to sign fresh -->
@@ -49,7 +59,7 @@
           Command="rm -rf &quot;$(_FrameworksDir)/AppAmbitPushNotifications.framework/_CodeSignature&quot;" />
     <Exec Condition="Exists('$(_FrameworksDir)/AppAmbit.framework/_CodeSignature')"
           Command="rm -rf &quot;$(_FrameworksDir)/AppAmbit.framework/_CodeSignature&quot;" />
-    
+
     <Message Importance="High" Text="[AppAmbit.PushNotifications] Frameworks copied to $(_FrameworksDir)" />
   </Target>
 </Project>
