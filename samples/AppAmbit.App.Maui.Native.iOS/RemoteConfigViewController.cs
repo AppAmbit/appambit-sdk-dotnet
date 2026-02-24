@@ -176,7 +176,7 @@ public class RemoteConfigViewController : UIViewController
 
         if (_discountLabel != null)
         {
-            var discount = RemoteConfig.GetInt("discount");
+            var discount = RemoteConfig.GetLong("discount");
             _discountLabel.Text = $"{discount}% OFF";
         }
     }

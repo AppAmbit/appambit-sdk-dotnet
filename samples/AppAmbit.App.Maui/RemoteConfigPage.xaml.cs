@@ -20,7 +20,7 @@ public partial class RemoteConfigPage : ContentPage
     {
         bool showBanner = RemoteConfig.GetBoolean("banner");
         string dataText = RemoteConfig.GetString("data");
-        int discount = RemoteConfig.GetInt("discount");
+        long discount = RemoteConfig.GetLong("discount");
 
         BannerView.IsVisible = showBanner;
         DataLabel.Text = dataText;

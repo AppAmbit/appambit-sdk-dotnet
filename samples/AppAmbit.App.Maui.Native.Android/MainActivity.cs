@@ -325,7 +325,7 @@ public class MainActivity : AppCompatActivity
 
         if (discountLabel != null)
         {
-            int discount = AppAmbit.RemoteConfig.GetInt("discount");
+            long discount = AppAmbit.RemoteConfig.GetLong("discount");
             discountLabel.Text = $"{discount}% OFF";
         }
     }

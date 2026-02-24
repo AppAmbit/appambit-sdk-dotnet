@@ -66,20 +66,17 @@ public static class RemoteConfig
         }
     }
 
-    public static int GetInt(String key)
+    public static long GetLong(String key)
     {
         var value = GetValue(key);
-        
-        if (value is int intValue)
-            return intValue;
-    
+
         if (value is long longValue)
-            return (int)longValue;
+            return longValue;
             
         if (value is double doubleValue)
-            return (int)doubleValue;
+            return (long)doubleValue;
             
-        if (int.TryParse(value?.ToString(), out int parsedValue))
+        if (long.TryParse(value?.ToString(), out long parsedValue))
             return parsedValue;
             
         return 0;

@@ -122,7 +122,7 @@ public static class MauiProgram
   // Get remote config values with type-safe methods
   string message = RemoteConfig.GetString("data");
   bool isFeatureEnabled = RemoteConfig.GetBoolean("banner");
-  int discount = RemoteConfig.GetInt("discount");
+  long discount = RemoteConfig.GetLong("discount");
   double maxUpload = RemoteConfig.GetDouble("max_upload");
   ```
 * **Remote Config**: dynamic configuration values fetched and applied at runtime

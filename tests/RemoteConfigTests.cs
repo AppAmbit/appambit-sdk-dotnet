@@ -48,17 +48,17 @@ public class RemoteConfigTests : IDisposable
     }
 
     [Fact]
-    public void GetInt_ShouldReturnParsedIntegerFromStorage()
+    public void GetLong_ShouldReturnParsedLongFromStorage()
     {
         // Arrange
         _mockStorage.Setup(s => s.GetConfig("max_items"))
             .ReturnsAsync("10");
 
         // Act
-        var value = AppAmbit.RemoteConfig.GetInt("max_items");
+        var value = AppAmbit.RemoteConfig.GetLong("max_items");
 
         // Assert
-        Assert.Equal(10, value);
+        Assert.Equal(10L, value);
     }
 
     [Fact]
