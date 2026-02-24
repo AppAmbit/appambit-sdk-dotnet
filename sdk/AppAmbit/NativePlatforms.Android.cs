@@ -29,8 +29,15 @@ internal static partial class NativePlatforms
 
     private static readonly long _activityDelayMs = 700;
     private static readonly AHandler _handler = new(ALooper.MainLooper);
-    private static readonly Java.Lang.IRunnable _pauseRunnable = new PauseRunnable();
-
+    private static readonly Java.Lang.IRunnable _pauseRunnable = new Java.Lang.Runnable(() =>
+    {
+        if (_resumedActivities == 0 && _inForeground && _waitingPause)
+        {
+            _inForeground = false;
+            AppAmbitSdk.InternalSleep();
+        }
+        _waitingPause = false;
+    });
     private static CManager.NetworkCallback? _netCallback;
     private static volatile bool _firstConnectivityEvent = true;
 
@@ -95,21 +102,12 @@ internal static partial class NativePlatforms
         return i >= 0 ? fqcn.Substring(i + 1) : fqcn;
     }
 
-    private sealed class PauseRunnable : Java.Lang.Object, Java.Lang.IRunnable
+    [Android.Runtime.Register("appambit/internal/LifecycleCallbacks")]
+    internal sealed class LifecycleCallbacks : Java.Lang.Object, AApp.IActivityLifecycleCallbacks
     {
-        public void Run()
-        {
-            if (_resumedActivities == 0 && _inForeground && _waitingPause)
-            {
-                _inForeground = false;
-                AppAmbitSdk.InternalSleep();
-            }
-            _waitingPause = false;
-        }
-    }
+        public LifecycleCallbacks() { }
+        public LifecycleCallbacks(IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
 
-    private sealed class LifecycleCallbacks : Java.Lang.Object, AApp.IActivityLifecycleCallbacks
-    {
         public void OnActivityCreated(AActivity activity, ABundle? savedInstanceState) { }
 
         public void OnActivityStarted(AActivity activity)
@@ -182,8 +180,12 @@ internal static partial class NativePlatforms
         }
     }
 
-    private sealed class NetCb : CManager.NetworkCallback
+    [Android.Runtime.Register("appambit/internal/NetCb")]
+    internal sealed class NetCb : CManager.NetworkCallback
     {
+        public NetCb() { }
+        public NetCb(IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
+
         public override void OnAvailable(Network network)
         {
             base.OnAvailable(network);
