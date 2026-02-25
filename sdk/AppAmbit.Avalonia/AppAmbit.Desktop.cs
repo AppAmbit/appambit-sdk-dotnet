@@ -13,7 +13,7 @@ public static partial class AppAmbitSdk
     {
         try
         {
-            var app = Application.Current;
+            var app = Avalonia.Application.Current;
             if (app == null) return;
 
             if (app.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

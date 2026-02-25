@@ -21,15 +21,15 @@ namespace AppAmbit;
 
 internal static partial class NativePlatforms
 {
-    private static volatile bool _androidInitialized;
-    private static int _startedActivities;
-    private static int _resumedActivities;
-    private static volatile bool _inForeground;
-    private static volatile bool _waitingPause;
+    internal static volatile bool _androidInitialized;
+    internal static int _startedActivities;
+    internal static int _resumedActivities;
+    internal static volatile bool _inForeground;
+    internal static volatile bool _waitingPause;
 
-    private static readonly long _activityDelayMs = 700;
-    private static readonly AHandler _handler = new(ALooper.MainLooper);
-    private static readonly Java.Lang.IRunnable _pauseRunnable = new Java.Lang.Runnable(() =>
+    internal static readonly long _activityDelayMs = 700;
+    internal static readonly Android.OS.Handler _handler = new(Android.OS.Looper.MainLooper!);
+    internal static readonly Java.Lang.IRunnable _pauseRunnable = new Java.Lang.Runnable(() =>
     {
         if (_resumedActivities == 0 && _inForeground && _waitingPause)
         {
@@ -38,8 +38,8 @@ internal static partial class NativePlatforms
         }
         _waitingPause = false;
     });
-    private static CManager.NetworkCallback? _netCallback;
-    private static volatile bool _firstConnectivityEvent = true;
+    internal static Android.Net.ConnectivityManager.NetworkCallback? _netCallback;
+    internal static volatile bool _firstConnectivityEvent = true;
 
     private static readonly object _pageLock = new();
     private static string? _lastPageClassFqcn;
@@ -56,7 +56,7 @@ internal static partial class NativePlatforms
 
     static partial void PlatformEnablePageBreadcrumbs() { }
 
-    private static void TrackPageChange(AActivity activity)
+    internal static void TrackPageChange(Android.App.Activity activity)
     {
         if (IsDialogLike(activity)) return;
         var fqcn = activity.Class?.Name ?? activity.GetType().FullName ?? "";
@@ -102,63 +102,7 @@ internal static partial class NativePlatforms
         return i >= 0 ? fqcn.Substring(i + 1) : fqcn;
     }
 
-    [Android.Runtime.Register("appambit/internal/LifecycleCallbacks")]
-    internal sealed class LifecycleCallbacks : Java.Lang.Object, AApp.IActivityLifecycleCallbacks
-    {
-        public LifecycleCallbacks() { }
-        public LifecycleCallbacks(IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
 
-        public void OnActivityCreated(AActivity activity, ABundle? savedInstanceState) { }
-
-        public void OnActivityStarted(AActivity activity)
-        {
-            Interlocked.Increment(ref _startedActivities);
-        }
-
-        public void OnActivityResumed(AActivity activity)
-        {
-            Interlocked.Increment(ref _resumedActivities);
-
-            if (_waitingPause)
-            {
-                _handler.RemoveCallbacks(_pauseRunnable);
-                _waitingPause = false;
-            }
-
-            if (!_inForeground)
-            {
-                _inForeground = true;
-                _ = AppAmbitSdk.InternalResume();
-            }
-
-            TrackPageChange(activity);
-        }
-
-        public void OnActivityPaused(AActivity activity)
-        {
-            InterlockedExtensions.DecrementToZero(ref _resumedActivities);
-            if (_resumedActivities == 0)
-            {
-                _waitingPause = true;
-                _handler.PostDelayed(_pauseRunnable, _activityDelayMs);
-            }
-        }
-
-        public void OnActivityStopped(AActivity activity)
-        {
-            InterlockedExtensions.DecrementToZero(ref _startedActivities);
-            if (_startedActivities == 0 && !activity.IsChangingConfigurations)
-                AppAmbitSdk.InternalEnd();
-        }
-
-        public void OnActivitySaveInstanceState(AActivity activity, ABundle outState) { }
-
-        public void OnActivityDestroyed(AActivity activity)
-        {
-            if (_startedActivities == 0 && _resumedActivities == 0 && !activity.IsChangingConfigurations)
-                AppAmbitSdk.InternalEnd();
-        }
-    }
 
     private static void TryRegisterNetworkCallback(AContext context)
     {
@@ -180,35 +124,9 @@ internal static partial class NativePlatforms
         }
     }
 
-    [Android.Runtime.Register("appambit/internal/NetCb")]
-    internal sealed class NetCb : CManager.NetworkCallback
-    {
-        public NetCb() { }
-        public NetCb(IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
 
-        public override void OnAvailable(Network network)
-        {
-            base.OnAvailable(network);
-            if (_firstConnectivityEvent)
-            {
-                _firstConnectivityEvent = false;
-                return;
-            }
-            _handler.PostDelayed(new Java.Lang.Runnable(async () =>
-            {
-                await BreadcrumbManager.AddAsync(BreadcrumbsConstants.online);
-                _ = OnConnectivityAvailableAsync();
-            }), 3000);
-        }
 
-        public override void OnLost(Network network)
-        {
-            base.OnLost(network);
-            BreadcrumbManager.SaveFile(BreadcrumbsConstants.offline);
-        }
-    }
-
-    private static class InterlockedExtensions
+    internal static class InterlockedExtensions
     {
         public static void DecrementToZero(ref int target)
         {
@@ -219,6 +137,90 @@ internal static partial class NativePlatforms
                 computed = Math.Max(0, initial - 1);
             } while (Interlocked.CompareExchange(ref target, computed, initial) != initial);
         }
+    }
+}
+
+public sealed class LifecycleCallbacks : Java.Lang.Object, Android.App.Application.IActivityLifecycleCallbacks
+{
+    public LifecycleCallbacks() { }
+    public LifecycleCallbacks(IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
+
+    public void OnActivityCreated(Android.App.Activity activity, Android.OS.Bundle? savedInstanceState) { }
+
+    public void OnActivityStarted(Android.App.Activity activity)
+    {
+        System.Threading.Interlocked.Increment(ref AppAmbit.NativePlatforms._startedActivities);
+    }
+
+    public void OnActivityResumed(Android.App.Activity activity)
+    {
+        System.Threading.Interlocked.Increment(ref AppAmbit.NativePlatforms._resumedActivities);
+
+        if (AppAmbit.NativePlatforms._waitingPause)
+        {
+            AppAmbit.NativePlatforms._handler.RemoveCallbacks(AppAmbit.NativePlatforms._pauseRunnable);
+            AppAmbit.NativePlatforms._waitingPause = false;
+        }
+
+        if (!AppAmbit.NativePlatforms._inForeground)
+        {
+            AppAmbit.NativePlatforms._inForeground = true;
+            _ = AppAmbit.AppAmbitSdk.InternalResume();
+        }
+
+        AppAmbit.NativePlatforms.TrackPageChange(activity);
+    }
+
+    public void OnActivityPaused(Android.App.Activity activity)
+    {
+        AppAmbit.NativePlatforms.InterlockedExtensions.DecrementToZero(ref AppAmbit.NativePlatforms._resumedActivities);
+        if (AppAmbit.NativePlatforms._resumedActivities == 0)
+        {
+            AppAmbit.NativePlatforms._waitingPause = true;
+            AppAmbit.NativePlatforms._handler.PostDelayed(AppAmbit.NativePlatforms._pauseRunnable, AppAmbit.NativePlatforms._activityDelayMs);
+        }
+    }
+
+    public void OnActivityStopped(Android.App.Activity activity)
+    {
+        AppAmbit.NativePlatforms.InterlockedExtensions.DecrementToZero(ref AppAmbit.NativePlatforms._startedActivities);
+        if (AppAmbit.NativePlatforms._startedActivities == 0 && !activity.IsChangingConfigurations)
+            AppAmbit.AppAmbitSdk.InternalEnd();
+    }
+
+    public void OnActivitySaveInstanceState(Android.App.Activity activity, Android.OS.Bundle outState) { }
+
+    public void OnActivityDestroyed(Android.App.Activity activity)
+    {
+        if (AppAmbit.NativePlatforms._startedActivities == 0 && AppAmbit.NativePlatforms._resumedActivities == 0 && !activity.IsChangingConfigurations)
+            AppAmbit.AppAmbitSdk.InternalEnd();
+    }
+}
+
+public sealed class NetCb : Android.Net.ConnectivityManager.NetworkCallback
+{
+    public NetCb() { }
+    public NetCb(IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
+
+    public override void OnAvailable(Android.Net.Network network)
+    {
+        base.OnAvailable(network);
+        if (AppAmbit.NativePlatforms._firstConnectivityEvent)
+        {
+            AppAmbit.NativePlatforms._firstConnectivityEvent = false;
+            return;
+        }
+        AppAmbit.NativePlatforms._handler.PostDelayed(new Java.Lang.Runnable(async () =>
+        {
+            await AppAmbit.BreadcrumbManager.AddAsync(AppAmbit.BreadcrumbsConstants.online);
+            _ = AppAmbit.NativePlatforms.OnConnectivityAvailableAsync();
+        }), 3000);
+    }
+
+    public override void OnLost(Android.Net.Network network)
+    {
+        base.OnLost(network);
+        AppAmbit.BreadcrumbManager.SaveFile(AppAmbit.BreadcrumbsConstants.offline);
     }
 }
 #endif

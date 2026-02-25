@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net10.0-android;net10.0-ios</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -13,7 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\sdk\AppAmbit.Avalonia\AppAmbit.Avalonia.csproj" />
     <ProjectReference Include="..\..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
-  </ItemGroup>  
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />
