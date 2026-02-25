@@ -14,17 +14,31 @@ namespace AppAmbit.PushNotifications;
 internal static class PushNotificationsAndroid
 {
     private static bool _initialized;
-    private static string? _lastPushToken;
-    private const string LogTag = PushNotifications.LogTag;
+    internal static string? _lastPushToken;
+    internal const string LogTag = PushNotifications.LogTag;
 
     private static Activity? _currentActivity;
 
     // Hold reference to listener to prevent GC
     internal static PushNotifications.IPermissionListener? _permissionListener;
 
+    internal static void SetCurrentActivity(Activity activity) => _currentActivity = activity;
+    internal static void ClearCurrentActivity(Activity activity) { if (_currentActivity == activity) _currentActivity = null; }
+
+    private static bool _lifecycleRegistered;
+
     // Try to get current activity from MAUI Platform using reflection (to avoid hard dependency)
     private static Activity? GetCurrentActivity()
     {
+        if (!_lifecycleRegistered)
+        {
+            if (Application.Context is Application app)
+            {
+                app.RegisterActivityLifecycleCallbacks(new PushLifecycleCallbacks());
+                _lifecycleRegistered = true;
+            }
+        }
+
         try
         {
             // Try to get Microsoft.Maui.ApplicationModel.Platform.CurrentActivity using reflection
@@ -51,18 +65,19 @@ internal static class PushNotificationsAndroid
         return _currentActivity;
     }
 
-    public static void Start(Context context)
+    public static void Start(Context? context)
     {
-        if (context == null) throw new System.ArgumentNullException(nameof(context));
+        var targetContext = context ?? GetCurrentActivity() ?? Android.App.Application.Context;
+        if (targetContext == null) throw new System.ArgumentNullException(nameof(context), "Context could not be implicitly resolved.");
 
         // Attempt to capture activity if context is one
-        if (context is Activity activity)
+        if (targetContext is Activity activity)
         {
             _currentActivity = activity;
         }
 
-        var appContext = context.ApplicationContext;
-        InternalStart(appContext ?? context);
+        var appContext = targetContext.ApplicationContext;
+        InternalStart(appContext ?? targetContext);
     }
     
     // Explicit Init for Activity
@@ -235,48 +250,9 @@ internal static class PushNotificationsAndroid
             ? null
             : new NotificationCustomizerProxy(customizer);
     }
-
-    private sealed class NotificationCustomizerProxy : Java.Lang.Object, Com.Appambit.Sdk.PushKernel.INotificationCustomizer
-    {
-        public PushNotifications.INotificationCustomizer Managed { get; }
-
-        public NotificationCustomizerProxy(PushNotifications.INotificationCustomizer managed)
-        {
-            Managed = managed;
-        }
-
-        public void Customize(Context context, NotificationCompat.Builder builder, AppAmbitNotification notification)
-        {
-            var managedNotification = new PushNotificationData(
-                notification.Title,
-                notification.Body,
-                notification.Color,
-                notification.SmallIconName,
-                notification.Data);
-
-            Managed.Customize((object)context, (object)builder, managedNotification);
-        }
-    }
-
-    private sealed class TokenListenerProxy : Java.Lang.Object, Com.Appambit.Sdk.PushKernel.ITokenListener
-    {
-        private readonly Context _context;
-
-        public TokenListenerProxy(Context context)
-        {
-            _context = context;
-        }
-
-        public void OnNewToken(string token)
-        {
-            // Only cache the token. Do NOT sync to backend here.
-            // Backend sync happens exclusively via SetNotificationsEnabled()
-            // when the user explicitly enables/disables notifications.
-            _lastPushToken = token;
-            Log.Debug(LogTag, $"FCM token cached: {token.Substring(0, Math.Min(10, token.Length))}...");
-        }
-    }
 }
+
+
 
 /// <summary>
 /// Transparent Activity that handles POST_NOTIFICATIONS permission request.
@@ -314,22 +290,84 @@ public class PushPermissionActivity : AndroidX.Activity.ComponentActivity
             Finish();
         }
     }
+}
 
-    private sealed class PermissionResultCallback : Java.Lang.Object, AndroidX.Activity.Result.IActivityResultCallback
+public sealed class TokenListenerProxy : Java.Lang.Object, Com.Appambit.Sdk.PushKernel.ITokenListener
+{
+    private readonly Android.Content.Context _context;
+
+    public TokenListenerProxy() { _context = Android.App.Application.Context; }
+    public TokenListenerProxy(System.IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { _context = Android.App.Application.Context; }
+
+    public TokenListenerProxy(Android.Content.Context context)
     {
-        private readonly PushPermissionActivity _activity;
+        _context = context;
+    }
 
-        public PermissionResultCallback(PushPermissionActivity activity)
-        {
-            _activity = activity;
-        }
+    public void OnNewToken(string token)
+    {
+        AppAmbit.PushNotifications.PushNotificationsAndroid._lastPushToken = token;
+        Android.Util.Log.Debug(AppAmbit.PushNotifications.PushNotificationsAndroid.LogTag, $"FCM token cached: {token.Substring(0, System.Math.Min(10, token.Length))}...");
+    }
+}
 
-        public void OnActivityResult(Java.Lang.Object? result)
-        {
-            var granted = result is Java.Lang.Boolean b && b.BooleanValue();
-            Log.Debug(Tag, $"PushPermissionActivity: OnActivityResult - granted={granted}");
-            PushNotificationsAndroid.HandlePermissionResult(granted);
-            _activity.Finish();
-        }
+public sealed class PermissionResultCallback : Java.Lang.Object, AndroidX.Activity.Result.IActivityResultCallback
+{
+    private readonly AppAmbit.PushNotifications.PushPermissionActivity? _activity;
+
+    public PermissionResultCallback() { }
+    public PermissionResultCallback(System.IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
+
+    public PermissionResultCallback(AppAmbit.PushNotifications.PushPermissionActivity activity)
+    {
+        _activity = activity;
+    }
+
+    public void OnActivityResult(Java.Lang.Object? result)
+    {
+        var granted = result is Java.Lang.Boolean b && b.BooleanValue();
+        Android.Util.Log.Debug("AppAmbitPushSDKNET", $"PushPermissionActivity: OnActivityResult - granted={granted}");
+        AppAmbit.PushNotifications.PushNotificationsAndroid.HandlePermissionResult(granted);
+        _activity?.Finish();
+    }
+}
+
+public sealed class PushLifecycleCallbacks : Java.Lang.Object, Android.App.Application.IActivityLifecycleCallbacks
+{
+    public PushLifecycleCallbacks() { }
+    public PushLifecycleCallbacks(System.IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
+
+    public void OnActivityCreated(Android.App.Activity activity, Android.OS.Bundle? savedInstanceState) => AppAmbit.PushNotifications.PushNotificationsAndroid.SetCurrentActivity(activity);
+    public void OnActivityResumed(Android.App.Activity activity) => AppAmbit.PushNotifications.PushNotificationsAndroid.SetCurrentActivity(activity);
+    public void OnActivityDestroyed(Android.App.Activity activity) => AppAmbit.PushNotifications.PushNotificationsAndroid.ClearCurrentActivity(activity);
+    public void OnActivityPaused(Android.App.Activity activity) { }
+    public void OnActivitySaveInstanceState(Android.App.Activity activity, Android.OS.Bundle outState) { }
+    public void OnActivityStarted(Android.App.Activity activity) { }
+    public void OnActivityStopped(Android.App.Activity activity) { }
+}
+
+public sealed class NotificationCustomizerProxy : Java.Lang.Object, Com.Appambit.Sdk.PushKernel.INotificationCustomizer
+{
+    public AppAmbit.PushNotifications.PushNotifications.INotificationCustomizer? Managed { get; }
+
+    public NotificationCustomizerProxy() { }
+    public NotificationCustomizerProxy(System.IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
+
+    public NotificationCustomizerProxy(AppAmbit.PushNotifications.PushNotifications.INotificationCustomizer managed)
+    {
+        Managed = managed;
+    }
+
+    public void Customize(Android.Content.Context context, AndroidX.Core.App.NotificationCompat.Builder builder, Com.Appambit.Sdk.Models.AppAmbitNotification notification)
+    {
+        if (Managed == null) return;
+        var managedNotification = new AppAmbit.PushNotifications.PushNotificationData(
+            notification.Title,
+            notification.Body,
+            notification.Color,
+            notification.SmallIconName,
+            notification.Data);
+
+        Managed.Customize((object)context, (object)builder, managedNotification);
     }
 }

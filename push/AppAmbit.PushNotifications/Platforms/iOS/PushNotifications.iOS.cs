@@ -8,6 +8,7 @@ using Foundation;
 using AppAmbit;
 using System.Diagnostics;
 using UserNotifications;
+using UIKit;
 
 namespace AppAmbit.PushNotifications;
 
@@ -164,8 +165,44 @@ internal static class PushNotificationsIos
         objc_msgSend_IntPtr(_classHandle, _selSetTokenListener, listener.Handle);
         _tokenListener = listener; // Keep alive
 
-        // 3. Setup Swizzling
-        objc_msgSend(_classHandle, _selSetupSwizzling);
+        InvokeOnMainThreadSafe(() => 
+        {
+            var app = UIApplication.SharedApplication;
+            var del = app?.Delegate;
+
+            // To avoid Native Objective-C/Swift double-swizzling bugs AND to flush Apple's 
+            // respondsToSelector: cache, we temporarily detach the delegate before swizzling,
+            // then reattach it so the swizzler catches it exactly once.
+            if (app != null && del != null)
+            {
+                app.Delegate = null;
+            }
+
+            // 3. Setup Swizzling
+            objc_msgSend(_classHandle, _selSetupSwizzling);
+
+            if (app != null)
+            {
+                if (del != null)
+                {
+                    app.Delegate = del;
+                }
+
+                // 4. Zero-Config APNs Registration
+                // We unconditionally request the APNs token on boot. This does not prompt the user
+                // for permissions, but ensures the token is available for silent pushes.
+                app.RegisterForRemoteNotifications();
+            }
+        });
+
+        // 5. Heal system permission locally 
+        UNUserNotificationCenter.Current.GetNotificationSettings((settings) => 
+        {
+            bool isGranted = settings.AuthorizationStatus == UNAuthorizationStatus.Authorized || 
+                             settings.AuthorizationStatus == UNAuthorizationStatus.Provisional;
+            NSUserDefaults.StandardUserDefaults.SetBool(isGranted, "AppAmbit.Push.HasPermission");
+            // Do NOT auto-enable here: we explicitly want to respect the user's manual in-app opt-out choice
+        });
     }
 
     public static void SetNotificationsEnabled(bool enabled)
@@ -181,6 +218,15 @@ internal static class PushNotificationsIos
 
         objc_msgSend_bool(_classHandle, _selSetNotificationsEnabled, enabled);
 
+        // Request APNs token when explicitly enabled
+        if (enabled)
+        {
+            InvokeOnMainThreadSafe(() => 
+            {
+                UIApplication.SharedApplication.RegisterForRemoteNotifications();
+            });
+        }
+
         // Update consumer state with backend (fire and forget with error handling)
         var token = _lastPushToken;
         _ = Task.Run(async () =>
@@ -195,34 +241,29 @@ internal static class PushNotificationsIos
             }
         });
 
-        if (!enabled)
-            _lastPushToken = null;
+        // Token is intentionally kept in memory even if disabled locally
+        // so that it can be synced back as enabled=true if the user toggles again in the same session.
     }
 
     public static bool IsNotificationsEnabled()
     {
         EnsureNativeAvailable();
-        var enabled = objc_msgSend_bool_ret(_classHandle, _selIsNotificationsEnabled);
-        
-        // Safety check: If native says disabled, but we have system permission, trust system
-        // This handles cases where permission was granted outside the SDK flow.
-        if (!enabled && HasSystemPermission())
-        {
-             // Auto-fix internal state
-             SetNotificationsEnabled(true);
-             return true;
-        }
-
-        return enabled;
+        return objc_msgSend_bool_ret(_classHandle, _selIsNotificationsEnabled);
     }
 
     public static bool HasSystemPermission()
     {
         EnsureNativeAvailable();
-        // Use the new native hasNotificationPermission method which caches the result
-        var specialized = objc_msgSend_bool_ret(_classHandle, _selHasNotificationPermission);
-        Debug.WriteLine($"{LogTag}: HasSystemPermission (Native) = {specialized}");
-        return specialized;
+        
+        // The native swift method uses an async cache which is often false on reboot.
+        // We track it synchronously and reliably here in C#.
+        bool hasPerm = NSUserDefaults.StandardUserDefaults.BoolForKey("AppAmbit.Push.HasPermission");
+        
+        // Call native just to trigger its internal async update (for its own sake), but ignore it
+        _ = objc_msgSend_bool_ret(_classHandle, _selHasNotificationPermission);
+        
+        Debug.WriteLine($"{LogTag}: HasSystemPermission (C# Pref) = {hasPerm}");
+        return hasPerm;
     }
 
     public static string? GetCurrentToken()
@@ -274,6 +315,8 @@ internal static class PushNotificationsIos
             // 1. Sync Native Logic (Register APNs)
             if (granted)
             {
+                NSUserDefaults.StandardUserDefaults.SetBool(true, "AppAmbit.Push.HasPermission");
+
                 InvokeOnMainThreadSafe(() => 
                 {
                     UIApplication.SharedApplication.RegisterForRemoteNotifications();
