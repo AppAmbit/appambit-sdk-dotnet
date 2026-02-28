@@ -26,6 +26,12 @@ public static class Analytics
         Debug.WriteLine("Manual Session enabled");
     }
 
+    public static void EnableAlwaysSendBreadcrumbs()
+    {
+        BreadcrumbManager.IsCrashOnlyMode = false;
+        Debug.WriteLine("Always Send Breadcrumbs enabled");
+    }
+
     public static async Task StartSession()
     {
         try

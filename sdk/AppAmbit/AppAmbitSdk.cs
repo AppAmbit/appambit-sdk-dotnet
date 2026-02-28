@@ -26,11 +26,22 @@ public static class AppAmbitSdk
             InitializeServices();
             InitializeConsumer(appKey);
 
-            AsyncHelpers.RunSync(() => BreadcrumbManager.AddAsync(BreadcrumbsConstants.onStart));
+            // Check if there was a crash BEFORE processing/deleting crash files
+            var hadCrash = Crashes.ExistCrashFlag();
 
             _hasStartedSession = true;
-            BreadcrumbManager.LoadBreadcrumbsFromFile();
+
+            // Process crash files
             AsyncHelpers.RunSync(() => Crashes.LoadCrashFileIfExists());
+
+            // Handle breadcrumbs based on crash-only mode and previous crash
+            if (hadCrash || !BreadcrumbManager.IsCrashOnlyMode)
+                BreadcrumbManager.LoadBreadcrumbsFromFile();
+            else
+                BreadcrumbManager.ClearDiskCache();
+
+            AsyncHelpers.RunSync(() => BreadcrumbManager.AddAsync(BreadcrumbsConstants.onStart));
+
             AsyncHelpers.RunSync(SendDataPending);
         }
         catch (Exception ex)
@@ -58,7 +69,10 @@ public static class AppAmbitSdk
             await SessionManager.RemoveSavedEndSession();
         }
 
-        BreadcrumbManager.LoadBreadcrumbsFromFile();
+        if (!BreadcrumbManager.IsCrashOnlyMode)
+        {
+            BreadcrumbManager.LoadBreadcrumbsFromFile();
+        }
 
         if (_skippedFirstResume)
         {

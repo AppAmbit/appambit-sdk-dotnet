@@ -222,6 +222,7 @@ namespace AppAmbit
                 string crashFile = Path.Combine(AppPaths.AppDataDir, fileName);
 
                 File.WriteAllText(crashFile, json);
+                SetCrashFlag(true);
                 Debug.WriteLine($"Crash file saved to: {crashFile}");
             }
             catch (Exception e)
@@ -360,6 +361,11 @@ namespace AppAmbit
             {
                 return;
             }
+        }
+
+        internal static bool ExistCrashFlag()
+        {
+            return File.Exists(GetCrashFilePath());
         }
 
         private static async Task<ExceptionInfo?> ReadAndDeleteCrashFileAsync(string path)

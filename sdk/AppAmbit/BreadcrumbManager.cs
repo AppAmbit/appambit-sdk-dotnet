@@ -10,6 +10,7 @@ namespace AppAmbit;
 
 public static class BreadcrumbManager
 {
+    internal static bool IsCrashOnlyMode = true;
     private static IAPIService? _api;
     private static IStorageService? _storage;
     private static readonly object _lastLock = new();
@@ -35,6 +36,12 @@ public static class BreadcrumbManager
         var breadcrumb = CreateBreadcrumb(name);
         var data = breadcrumb.ToData(sessionId: SessionManager.SessionId);
         GetSaveJsonArray(BreadcrumbsConstants.nameFile, data);
+    }
+
+    internal static void ClearDiskCache()
+    {
+        UpdateJsonArray(BreadcrumbsConstants.nameFile, new List<BreadcrumbData>());
+        Debug.WriteLine("[BreadcrumbManager] Disk cache cleared (no crash detected)");
     }
 
     public static void LoadBreadcrumbsFromFile()
@@ -132,6 +139,13 @@ public static class BreadcrumbManager
     {
         try
         {
+            if (IsCrashOnlyMode)
+            {
+                var data = entity.ToData(sessionId: SessionManager.SessionId);
+                GetSaveJsonArray(BreadcrumbsConstants.nameFile, data);
+                return;
+            }
+
             var sent = await TrySendAsync(entity);
             if (!sent && _storage != null)
             {
