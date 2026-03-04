@@ -8,7 +8,7 @@ public static class MauiProgram
     {
         //Uncomment the line for automatic session management
         //Analytics.EnableManualSession();
-        //Analytics.EnableAlwaysSendBreadcrumbs();
+        AppAmbit.RemoteConfig.Enable();
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
