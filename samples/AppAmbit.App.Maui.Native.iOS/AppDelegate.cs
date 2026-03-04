@@ -1,4 +1,5 @@
-using AppAmbitMaui;
+using AppAmbit.PushNotifications;
+using AppAmbit;
 namespace AppAmbitTestingiOS;
 
 
@@ -15,9 +16,11 @@ public class AppDelegate : UIApplicationDelegate
     {
         AppAmbit.RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
+        PushNotifications.Start();
+
         Window = new UIWindow(UIScreen.MainScreen.Bounds);
         Window.RootViewController = new MainTabBarController();
-        Window.MakeKeyAndVisible();        
+        Window.MakeKeyAndVisible();
         return true;
     }
 }

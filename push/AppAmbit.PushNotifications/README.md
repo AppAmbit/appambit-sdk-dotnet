@@ -2,7 +2,7 @@
 
 **Seamlessly integrate push notifications with your AppAmbit analytics.**
 
-Extension of the core AppAmbit MAUI SDK for handling Firebase Cloud Messaging (FCM). Android-only for now; iOS coming soon.
+Extension of the core AppAmbit MAUI SDK for handling Firebase Cloud Messaging (FCM). Supports both Android and iOS (via the `AppAmbitPushNotifications` CocoaPod).
 
 ---
 
@@ -24,11 +24,12 @@ Extension of the core AppAmbit MAUI SDK for handling Firebase Cloud Messaging (F
 * Optional hook to fully customize the notification.
 
 ## Requirements
-* .NET 8/9 MAUI targeting Android API 21+.
+* .NET 8/9 MAUI targeting Android API 21+ and iOS 12+.
 * Packages:
   * `com.AppAmbit.SdkMaui` (core)
-  * `AppAmbit.PushNotifications` (Android)
+  * `AppAmbit.PushNotifications`
 * Firebase project + `google-services.json` matching your `ApplicationId` (package name).
+* CocoaPods installed to restore the local `AppAmbitPushNotifications` pod when building for iOS.
 * For background delivery, send FCM with high priority (`priority: "high"` in legacy or `android.priority: "HIGH"` in HTTP v1). Do **not** put `priority` inside `data`.
 
 ## Install
@@ -141,3 +142,21 @@ PushNotifications.SetNotificationCustomizer(new Customizer());
 ```
 
 Send any custom keys you need in `data`; `AppAmbitNotification.Data` exposes the full map.
+
+## iOS (CocoaPods) integration (local → remote workflow)
+
+The MAUI push package now builds for both Android and iOS. The iOS target consumes the `AppAmbitPushNotifications` CocoaPod.
+
+1. **Local development:** the project looks for the locally cloned iOS workspace and automatically restores the pod when `../appambit-sdk-ios/Push/AppAmbitPushNotifications` exists. From the MAUI repo root run:
+   ```bash
+   dotnet build push/AppAmbit.PushNotifications/AppAmbit.PushNotifications.csproj
+   ```
+   CocoaPods uses the spec at `appambit-sdk-ios/Push/AppAmbitPushNotifications/AppAmbitPushNotifications.podspec` and compiles the Swift sources directly.
+
+2. **Publishing to CocoaPods:** once `AppAmbitPushNotifications` lives on `https://cocoapods.org`, build the MAUI library with:
+   ```bash
+   dotnet build push/AppAmbit.PushNotifications/AppAmbit.PushNotifications.csproj /p:AppAmbitPushNotificationsPodSource=
+   ```
+   Clearing `AppAmbitPushNotificationsPodSource` forces the `PodReference` to fetch the pod from the public spec repo (you can still pin a version via your consuming app’s Podfile).
+
+The iOS `PushNotifications` wrapper forwards the native facade (`start()`, `setNotificationsEnabled(_:)`, `isNotificationsEnabled()` and `requestNotificationPermission()`) so the public C# API matches Android while CocoaPods handles the Swift dependency.

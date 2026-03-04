@@ -1,5 +1,6 @@
 using System.Diagnostics;
-using AppAmbitMaui;
+using AppAmbit;
+using AppAmbit.PushNotifications;
 
 namespace AppAmbitTestingiOS;
 
@@ -8,6 +9,12 @@ public class CrashesViewController : UIViewController
     string userId = Guid.NewGuid().ToString();
     string email = "test@gmail.com";
     string messgeCutsom = "Test Log Message";
+
+    private bool _hasNotificationPermission;
+    private bool _notificationsEnabled;
+    private bool _initializedState;
+    private bool _isUpdatingPushButton;
+    private UIButton? _pushButton;
 
     UITextField userIdField;
     UITextField emailField;
@@ -108,6 +115,9 @@ UIButton MakeButton(string title)
         base.ViewDidLoad();
         View.BackgroundColor = BackgroundCompat();
 
+        // Configure notification customizer
+        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+
         var scroll = new UIScrollView { TranslatesAutoresizingMaskIntoConstraints = false };
         var container = new UIView { TranslatesAutoresizingMaskIntoConstraints = false };
         var stack = new UIStackView
@@ -198,8 +208,12 @@ UIButton MakeButton(string title)
             _ = Crashes.GenerateTestCrash();
         };
 
+        _pushButton = MakeButton("Allow Notifications");
+        _pushButton.TouchUpInside += OnPushButtonClicked;
+
         var items = new UIView[]
         {
+            _pushButton,
             btnDidCrash,
             userIdView,
             btnChangeUserId,
@@ -238,5 +252,155 @@ UIButton MakeButton(string title)
             stack.TrailingAnchor.ConstraintEqualTo(container.TrailingAnchor, -16),
             stack.BottomAnchor.ConstraintEqualTo(container.BottomAnchor, -16),
         });
+    }
+
+    public override void ViewWillAppear(bool animated)
+    {
+        base.ViewWillAppear(animated);
+        UpdateNotificationButtonState(forceFromSdk: !_initializedState);
+        _initializedState = true;
+    }
+
+    private async void OnPushButtonClicked(object? sender, EventArgs e)
+    {
+        await HandlePushNotificationsAsync();
+    }
+
+    private void SetButtonTitle(string title)
+    {
+        _pushButton!.SetTitle(title, UIControlState.Normal);
+        _pushButton!.SetTitle(title, UIControlState.Highlighted);
+        _pushButton!.SetTitle(title, UIControlState.Selected);
+    }
+
+    private async Task HandlePushNotificationsAsync()
+    {
+        if (_isUpdatingPushButton)
+            return;
+
+        _isUpdatingPushButton = true;
+        try
+        {
+            if (!_hasNotificationPermission)
+            {
+                bool nativePerm = PushNotifications.HasSystemPermission();
+                if (nativePerm) _hasNotificationPermission = true;
+            }
+
+            if (!_hasNotificationPermission)
+            {
+                // Request permission
+                PushNotifications.RequestNotificationPermission(new PermissionListener(granted =>
+                {
+                    InvokeOnMainThread(async () =>
+                    {
+                        if (granted)
+                        {
+                            _hasNotificationPermission = true;
+                            _notificationsEnabled = true;
+
+                             PushNotifications.SetNotificationsEnabled(true);
+                             InvokeOnMainThread(() => SetButtonTitle("Disable Notifications"));
+
+                             Debug.WriteLine("AppAmbitPushSDK: Notification Permission Granted. Requesting Token...");
+                             await ShowAlertAsync("Notification Status", "Notifications have been enabled.");
+                        }
+                        else
+                        {
+                            UpdateNotificationButtonState();
+                            await ShowAlertAsync("Permission Denied", "Notifications cannot be enabled without permission.");
+                        }
+
+                        _isUpdatingPushButton = false;
+                    });
+                }));
+
+                return;
+            }
+
+            // Toggle notifications enabled state
+            _notificationsEnabled = !_notificationsEnabled;
+            PushNotifications.SetNotificationsEnabled(_notificationsEnabled);
+
+            InvokeOnMainThread(() => SetButtonTitle(_notificationsEnabled ? "Disable Notifications" : "Enable Notifications"));
+
+            Debug.WriteLine($"AppAmbitPushSDK: Push state toggled to: {_notificationsEnabled}");
+            var message = $"Notifications have been {(_notificationsEnabled ? "enabled" : "disabled")}.";
+            await ShowAlertAsync("Notification Status", message);
+        }
+        catch (Exception ex)
+        {
+            await ShowAlertAsync("Error", ex.Message);
+        }
+        finally
+        {
+            _isUpdatingPushButton = false;
+        }
+    }
+
+    private void UpdateNotificationButtonState(bool forceFromSdk = true)
+    {
+        if (!_hasNotificationPermission)
+        {
+            bool nativePerm = PushNotifications.HasSystemPermission();
+            if (nativePerm) _hasNotificationPermission = true;
+        }
+
+        if (!_hasNotificationPermission)
+        {
+            SetButtonTitle("Allow Notifications");
+            return;
+        }
+
+        if (forceFromSdk)
+        {
+            _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
+        }
+
+        SetButtonTitle(_notificationsEnabled ? "Disable Notifications" : "Enable Notifications");
+    }
+
+    private Task ShowAlertAsync(string title, string message)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+
+        var alert = UIAlertController.Create(title, message, UIAlertControllerStyle.Alert);
+        alert.AddAction(UIAlertAction.Create("OK", UIAlertActionStyle.Default, _ => tcs.SetResult(true)));
+
+        PresentViewController(alert, true, null);
+
+        return tcs.Task;
+    }
+
+    private sealed class PermissionListener : PushNotifications.IPermissionListener
+    {
+        private readonly Action<bool> _onResult;
+
+        public PermissionListener(Action<bool> onResult)
+        {
+            _onResult = onResult;
+        }
+
+        public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
+    }
+
+    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, PushNotificationData notification)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
+
+            if (notification.Data is System.Collections.IDictionary dict)
+            {
+                foreach (var key in dict.Keys)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
+                }
+            }
+            else if (notification.Data != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
+            }
+        }
     }
 }
