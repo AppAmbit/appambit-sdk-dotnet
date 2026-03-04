@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AppAmbitTestingApp.RemoteConfigPage"
+             Title="RemoteConfigPage">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="30">
+            <Border x:Name="BannerView"
+                    BackgroundColor="#512BD4"
+                    Padding="20"
+                    StrokeShape="RoundRectangle 10"
+                    IsVisible="False">
+                <Label Text="SPECIAL BANNER ENABLED!" 
+                       TextColor="White"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center" />
+            </Border>
+
+            <Border Stroke="Gray" Padding="20" StrokeShape="RoundRectangle 10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Remote Data:" FontAttributes="Bold" />
+                    <Label x:Name="DataLabel" 
+                           Text="Loading..." 
+                           FontSize="16" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Stroke="Gray" Padding="20" StrokeShape="RoundRectangle 10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Current Discount:" FontAttributes="Bold" />
+                    <Label x:Name="DiscountLabel" 
+                           Text="0%" 
+                           FontSize="30"
+                           TextColor="#512BD4"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+            
+
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

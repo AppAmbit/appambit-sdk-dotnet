@@ -1,11 +1,10 @@
 using System.Diagnostics;
 using AppAmbit.Enums;
-using AppAmbit.Models;
 using AppAmbit.Models.Analytics;
 using AppAmbit.Models.App;
 using AppAmbit.Models.Breadcrumbs;
 using AppAmbit.Models.Logs;
-using AppAmbit.Services.Endpoints;
+using AppAmbit.Models.RemoteConfigs;
 using AppAmbit.Services.Interfaces;
 using SQLite;
 
@@ -29,6 +28,7 @@ public class StorageService : IStorageService
         await _database.CreateTableAsync<EventEntity>();
         await _database.CreateTableAsync<SessionBatch>();
         await _database.CreateTableAsync<BreadcrumbsEntity>();
+        await _database.CreateTableAsync<RemoteConfigEntity>();
         await EnsureAppSecretsColumns();
     }
 
@@ -476,5 +476,49 @@ public class StorageService : IStorageService
                 tran.Execute("DELETE FROM BreadcrumbsEntity WHERE Id = ?", id);
             }
         });
+    }
+
+    public async Task AddConfigsAsync(List<RemoteConfigEntity> configs)
+    {
+        if (configs == null || configs.Count == 0) return;
+
+        await _database.RunInTransactionAsync(tran =>
+        {
+            var existingEntities = tran.Table<RemoteConfigEntity>().ToList();
+            var incomingKeys = new HashSet<string>(configs.Select(c => c.Key));
+
+            foreach (var entity in existingEntities)
+            {
+                if (!incomingKeys.Contains(entity.Key))
+                {
+                    tran.Delete(entity);
+                }
+            }
+
+            foreach (var config in configs)
+            {
+                var match = existingEntities.FirstOrDefault(e => e.Key == config.Key);
+                if (match != null)
+                {
+                    if (match.Value != config.Value)
+                    {
+                        match.Value = config.Value;
+                        tran.Update(match);
+                    }
+                }
+                else
+                {
+                    tran.Insert(config);
+                }
+            }
+        });
+    }
+
+    public async Task<String?> GetConfig(String key)
+    {
+        var config = await _database.Table<RemoteConfigEntity>()
+            .Where(c => c.Key == key)
+            .FirstOrDefaultAsync();
+        return config?.Value;
     }
 }

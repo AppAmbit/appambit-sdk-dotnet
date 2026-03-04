@@ -34,6 +34,13 @@ public class MainTabBarController : UITabBarController
             ? new UITabBarItem("Analytics", imgAnalytics, 1)
             : new UITabBarItem("Analytics", null, 1);
 
-        ViewControllers = new UIViewController[] { crashesNav, analyticsNav };
+        var config = new RemoteConfigViewController();
+        var configNav = new UINavigationController(config);
+        var imgConfig = SysImg("slider.horizontal.3");
+        configNav.TabBarItem = imgConfig != null
+             ? new UITabBarItem("Config", imgConfig, 2)
+             : new UITabBarItem("Config", null, 2);
+
+        ViewControllers = new UIViewController[] { crashesNav, analyticsNav, configNav };
     }
 }
