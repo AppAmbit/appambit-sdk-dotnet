@@ -41,8 +41,8 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      # - name: Workload restore
-      #   run: dotnet workload restore --project ${{ env.SDK_PATH }}
+      - name: Workload restore
+        run: dotnet workload restore ${{ env.SDK_PUSH_NOTIFICATIONS_PATH }}
 
       # - name: Restore & Run unit tests
       #   run: |
