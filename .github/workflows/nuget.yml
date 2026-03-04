@@ -15,11 +15,11 @@ on:
 env:
   FOLDER_OUTPUT: artifacts
   RELEASE_TYPE: Release
-  # SDK_PATH: sdk/AppAmbit/AppAmbit.csproj
-  # SDK_MAUI_PATH: sdk/AppAmbit.Maui/AppAmbit.Maui.csproj
-  # SDK_AVALONIA_PATH: sdk/AppAmbit.Avalonia/AppAmbit.Avalonia.csproj
+  SDK_PATH: sdk/AppAmbit/AppAmbit.csproj
+  SDK_MAUI_PATH: sdk/AppAmbit.Maui/AppAmbit.Maui.csproj
+  SDK_AVALONIA_PATH: sdk/AppAmbit.Avalonia/AppAmbit.Avalonia.csproj
   SDK_PUSH_NOTIFICATIONS_PATH: push/AppAmbit.PushNotifications/AppAmbit.PushNotifications.csproj
-  # TEST_PROJECT_PATH: tests/AppAmbitTest.csproj
+  TEST_PROJECT_PATH: tests/AppAmbitTest.csproj
 
 permissions:
   contents: write
@@ -42,19 +42,19 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Workload restore
-        run: dotnet workload restore ${{ env.SDK_PUSH_NOTIFICATIONS_PATH }}
+        run: dotnet workload restore --project ${{ env.SDK_PATH }}
 
-      # - name: Restore & Run unit tests
-      #   run: |
-      #     dotnet restore ${{ env.TEST_PROJECT_PATH }}
-      #     dotnet test ${{ env.TEST_PROJECT_PATH }} --configuration ${{ env.RELEASE_TYPE }} --no-restore --results-directory ./tests/TestResults --logger "trx;LogFileName=net-unit-tests.trx"
+      - name: Restore & Run unit tests
+        run: |
+          dotnet restore ${{ env.TEST_PROJECT_PATH }}
+          dotnet test ${{ env.TEST_PROJECT_PATH }} --configuration ${{ env.RELEASE_TYPE }} --no-restore --results-directory ./tests/TestResults --logger "trx;LogFileName=net-unit-tests.trx"
 
-      # - name: Upload test report
-      #   if: ${{ always() }}
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: net-unit-tests-results
-      #     path: tests/TestResults/net-unit-tests.trx
+      - name: Upload test report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: net-unit-tests-results
+          path: tests/TestResults/net-unit-tests.trx
 
       - name: Read version from Directory.Build.props
         id: version
@@ -67,90 +67,90 @@ jobs:
           echo "new_tag=v$version" >> $env:GITHUB_OUTPUT
           if ($version -match '-') { echo "is_prerelease=true" >> $env:GITHUB_OUTPUT } else { echo "is_prerelease=false" >> $env:GITHUB_OUTPUT }
 
-      # - name: Check if tag already exists
-      #   id: check_tag
-      #   run: |
-      #     TAG=${{ steps.version.outputs.new_tag }}
-      #     if git rev-parse "$TAG" >/dev/null 2>&1; then
-      #       echo "Tag $TAG already exists. Skipping build and pack."
-      #       echo "skip_build=true" >> $GITHUB_OUTPUT
-      #     else
-      #       echo "skip_build=false" >> $GITHUB_OUTPUT
-      #     fi
-      #   shell: bash
+      - name: Check if tag already exists
+        id: check_tag
+        run: |
+          TAG=${{ steps.version.outputs.new_tag }}
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists. Skipping build and pack."
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
 
-      # - name: Stop if tag exists
-      #   if: steps.check_tag.outputs.skip_build == 'true'
-      #   run: |
-      #     echo "Build/Pack skipped because version tag already exists."
-      #     exit 0
+      - name: Stop if tag exists
+        if: steps.check_tag.outputs.skip_build == 'true'
+        run: |
+          echo "Build/Pack skipped because version tag already exists."
+          exit 0
 
-      # - name: Extract latest changelog entry
-      #   id: changelog
-      #   shell: bash
-      #   run: |
-      #     LATEST_CHANGELOG=$(awk '/^## Version /{if (p) exit; p=1} p' CHANGELOG.md | sed '1d')
-      #     echo "changelog<<EOF" >> $GITHUB_OUTPUT
-      #     echo "$LATEST_CHANGELOG" >> $GITHUB_OUTPUT
-      #     echo "EOF" >> $GITHUB_OUTPUT
+      - name: Extract latest changelog entry
+        id: changelog
+        shell: bash
+        run: |
+          LATEST_CHANGELOG=$(awk '/^## Version /{if (p) exit; p=1} p' CHANGELOG.md | sed '1d')
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$LATEST_CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create artifacts directory
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "${{ env.FOLDER_OUTPUT }}" | Out-Null
 
-      # - name: Restore & Build AppAmbit (base)
-      #   run: |
-      #     dotnet restore ${{ env.SDK_PATH }}
-      #     dotnet build ${{ env.SDK_PATH }} --configuration ${{ env.RELEASE_TYPE }}
+      - name: Restore & Build AppAmbit (base)
+        run: |
+          dotnet restore ${{ env.SDK_PATH }}
+          dotnet build ${{ env.SDK_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
-      # - name: Restore & Build AppAmbit.Maui
-      #   run: |
-      #     dotnet workload restore ${{ env.SDK_MAUI_PATH }}
-      #     dotnet restore ${{ env.SDK_MAUI_PATH }}
-      #     dotnet build ${{ env.SDK_MAUI_PATH }} --configuration ${{ env.RELEASE_TYPE }}
+      - name: Restore & Build AppAmbit.Maui
+        run: |
+          dotnet workload restore ${{ env.SDK_MAUI_PATH }}
+          dotnet restore ${{ env.SDK_MAUI_PATH }}
+          dotnet build ${{ env.SDK_MAUI_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
-      # - name: Restore & Build AppAmbit.Avalonia
-      #   run: |
-      #     dotnet restore ${{ env.SDK_AVALONIA_PATH }}
-      #     dotnet build ${{ env.SDK_AVALONIA_PATH }} --configuration ${{ env.RELEASE_TYPE }}
+      - name: Restore & Build AppAmbit.Avalonia
+        run: |
+          dotnet restore ${{ env.SDK_AVALONIA_PATH }}
+          dotnet build ${{ env.SDK_AVALONIA_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
       - name: Restore & Build AppAmbit.PushNotifications
         run: |
           dotnet restore ${{ env.SDK_PUSH_NOTIFICATIONS_PATH }}
           dotnet build ${{ env.SDK_PUSH_NOTIFICATIONS_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
-      # - name: Pack AppAmbit (base)
-      #   run: |
-      #     dotnet pack ${{ env.SDK_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
+      - name: Pack AppAmbit (base)
+        run: |
+          dotnet pack ${{ env.SDK_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
 
-      # - name: Pack AppAmbit.Maui
-      #   run: |
-      #     dotnet pack ${{ env.SDK_MAUI_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
+      - name: Pack AppAmbit.Maui
+        run: |
+          dotnet pack ${{ env.SDK_MAUI_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
 
-      # - name: Pack AppAmbit.Avalonia
-      #   run: |
-      #     dotnet pack ${{ env.SDK_AVALONIA_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
-
+      - name: Pack AppAmbit.Avalonia
+        run: |
+          dotnet pack ${{ env.SDK_AVALONIA_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
+      
       - name: Pack AppAmbit.PushNotifications
         run: |
           dotnet pack ${{ env.SDK_PUSH_NOTIFICATIONS_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
-
+      
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: AppAmbit-Packages-${{ steps.version.outputs.version_name }}
           path: ./${{ env.FOLDER_OUTPUT }}/*.nupkg
 
-      # - name: Create Release and Upload Assets
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: ${{ steps.version.outputs.new_tag }}
-      #     name: "${{ steps.version.outputs.new_tag }}"
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #     files: ./${{ env.FOLDER_OUTPUT }}/*.nupkg
-      #     body: ${{ steps.changelog.outputs.changelog }}
-      #     prerelease: ${{ steps.version.outputs.is_prerelease }}
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.new_tag }}
+          name: "${{ steps.version.outputs.new_tag }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: ./${{ env.FOLDER_OUTPUT }}/*.nupkg
+          body: ${{ steps.changelog.outputs.changelog }}
+          prerelease: ${{ steps.version.outputs.is_prerelease }}
 
       - name: Skip publishing prerelease versions to NuGet
         if: ${{ github.event.inputs.publish == 'true' && steps.version.outputs.is_prerelease == 'true' }}
@@ -167,7 +167,7 @@ jobs:
           foreach ($pkg in $pkgs) {
             Write-Host "Pushing $($pkg.FullName)"
             dotnet nuget push "$($pkg.FullName)" `
-              --api-key "${{ secrets.NUGET_APPKEY_SECRET }}` " `
+              --api-key "${{ secrets.NUGET_APPKEY_SECRET }}" `
               --source https://api.nuget.org/v3/index.json `
               --skip-duplicate
           }
