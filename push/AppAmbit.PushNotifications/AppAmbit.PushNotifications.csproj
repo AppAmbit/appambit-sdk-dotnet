@@ -16,7 +16,7 @@
     <PackageId>com.AppAmbit.PushNotifications</PackageId>
     <PackageIcon>icon.png</PackageIcon>
     <ReadmeFile>README.md</ReadmeFile>
-    <PackageReadmeFile Condition="Exists('$(ReadmeFile)')">$(ReadmeFile)</PackageReadmeFile>
+    <PackageReadmeFile>$(ReadmeFile)</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)libs/appambit-push-notifications.aar')">
