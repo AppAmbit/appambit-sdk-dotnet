@@ -1,8 +1,25 @@
-obj/
-bin/
+**/bin/
+**/obj/
 .idea/
 .vs/
 *.user
 launch.json
 Shared/
 **/.DS_Store
+
+# iOS Build artifacts - Keep Podfile, ignore everything else
+# Important: Don't use **/iOS_Build/ as it blocks all exceptions
+push/AppAmbit.PushNotifications/Platforms/iOS_Build/Pods/
+push/AppAmbit.PushNotifications/Platforms/iOS_Build/build/
+push/AppAmbit.PushNotifications/Platforms/iOS_Build/*.xcworkspace
+push/AppAmbit.PushNotifications/Platforms/iOS_Build/*.xcodeproj/
+push/AppAmbit.PushNotifications/Platforms/iOS_Build/Podfile.lock
+push/AppAmbit.PushNotifications/Platforms/iOS_Build/DerivedData/
+push/AppAmbit.PushNotifications/Platforms/iOS_Build/.build/
+
+# Keep Podfile
+!push/AppAmbit.PushNotifications/Platforms/iOS_Build/Podfile
+
+# General patterns
+**/Pods/
+**/build/pods/

@@ -1,8 +1,10 @@
 ﻿using Android.App;
 using Android.Content.PM;
+using Android.OS;
 using Avalonia;
 using Avalonia.Android;
 using AppAmbitAvalonia;
+using AppAmbit.PushNotifications;
 
 namespace AppAmbitTestingAppAvalonia.Android;
 
@@ -17,7 +19,8 @@ public class MainActivity : AvaloniaMainActivity<App>
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
         AppAmbitSdk.Start("<YOUR_APPKEY>");
-        return base.CustomizeAppBuilder(builder)
-            .WithInterFont();
+        PushNotifications.Start(this);
+        
+        return base.CustomizeAppBuilder(builder);
     }
 }

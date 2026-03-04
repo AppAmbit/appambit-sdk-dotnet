@@ -2,7 +2,6 @@
 using Android.Content.PM;
 using Android.OS;
 using AppAmbit.PushNotifications;
-using ActivityBase = AndroidX.Activity.ComponentActivity;
 
 namespace AppAmbitTestingApp;
 
@@ -15,7 +14,8 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
 
-        // Start push and wire token updates to AppAmbit.
-        PushNotifications.Start(ApplicationContext);
+        // Start push SDK but don't enable notifications automatically
+        // User will enable them manually through the UI
+        PushNotifications.Start(this);
     }
 }

@@ -29,7 +29,7 @@ public partial class AlertWindow : Window
     {
         try
         {
-            var app = Application.Current;
+            var app = Avalonia.Application.Current;
             if (app?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 var win = new AlertWindow();
