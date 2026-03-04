@@ -4,9 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: 'If true, will push packages to NuGet (manual). Default: false'
+        description: 'Publish packages to NuGet?'
         required: false
+        type: choice
         default: 'false'
+        options:
+          - 'false'
+          - 'true'
 
 env:
   FOLDER_OUTPUT: artifacts
@@ -14,6 +18,7 @@ env:
   SDK_PATH: sdk/AppAmbit/AppAmbit.csproj
   SDK_MAUI_PATH: sdk/AppAmbit.Maui/AppAmbit.Maui.csproj
   SDK_AVALONIA_PATH: sdk/AppAmbit.Avalonia/AppAmbit.Avalonia.csproj
+  SDK_PUSH_NOTIFICATIONS_PATH: push/AppAmbit.PushNotifications/AppAmbit.PushNotifications.csproj
   TEST_PROJECT_PATH: tests/AppAmbitTest.csproj
 
 permissions:
@@ -110,6 +115,11 @@ jobs:
           dotnet restore ${{ env.SDK_AVALONIA_PATH }}
           dotnet build ${{ env.SDK_AVALONIA_PATH }} --configuration ${{ env.RELEASE_TYPE }}
 
+      - name: Restore & Build AppAmbit.PushNotifications
+        run: |
+          dotnet restore ${{ env.SDK_PUSH_NOTIFICATIONS_PATH }}
+          dotnet build ${{ env.SDK_PUSH_NOTIFICATIONS_PATH }} --configuration ${{ env.RELEASE_TYPE }}
+
       - name: Pack AppAmbit (base)
         run: |
           dotnet pack ${{ env.SDK_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
@@ -121,7 +131,11 @@ jobs:
       - name: Pack AppAmbit.Avalonia
         run: |
           dotnet pack ${{ env.SDK_AVALONIA_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
-
+      
+      - name: Pack AppAmbit.PushNotifications
+        run: |
+          dotnet pack ${{ env.SDK_PUSH_NOTIFICATIONS_PATH }} --configuration "${{ env.RELEASE_TYPE }}" --output "${{ env.FOLDER_OUTPUT }}" -p:PackageVersion=${{ steps.version.outputs.version_name }}
+      
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
