@@ -1,3 +1,4 @@
+using AppAmbit;
 using AppAmbitMaui;
 namespace AppAmbitTestingMacOs;
 
@@ -6,7 +7,9 @@ public class AppDelegate : UIApplicationDelegate
 {
 	public override bool FinishedLaunching(UIApplication application, NSDictionary? launchOptions)
 	{
-		AppAmbitSdk.Start("<YOUR-APPKEY>");
+		AppAmbit.RemoteConfig.Enable();
+		AppAmbitMaui.AppAmbitSdk.Start("<YOUR-APPKEY>");
+
 		return true;
 	}
 

@@ -19,5 +19,9 @@
         <ShellContent Title="Load"
               ContentTemplate="{DataTemplate local:LoadPage}"
               Route="LoadPage" />
+
+        <ShellContent Title="RemoteConfig"
+              ContentTemplate="{DataTemplate local:RemoteConfigPage}"
+              Route="RemoteConfigPage" />
     </TabBar>
 </Shell>

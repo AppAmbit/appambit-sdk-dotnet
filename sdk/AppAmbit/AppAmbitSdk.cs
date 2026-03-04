@@ -152,7 +152,8 @@ public static class AppAmbitSdk
             Crashes.Initialize(apiService, storageService, deviceId ?? "");
             Analytics.Initialize(apiService, storageService);
             ConsumerService.Initialize(storageService, appInfoService, apiService);
-
+            RemoteConfig.Initialize(storageService, appInfoService, apiService);
+            _ = RemoteConfig.FetchAndStoreConfig();
             BreadcrumbManager.Initialize(apiService!, storageService!);
 
             _servicesReady = true;

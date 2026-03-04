@@ -33,7 +33,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AppAmbit\AppAmbit.csproj" PrivateAssets="All" />
+    <ProjectReference Include="..\AppAmbit\AppAmbit.csproj" />
   </ItemGroup>
 
   <ItemGroup>
