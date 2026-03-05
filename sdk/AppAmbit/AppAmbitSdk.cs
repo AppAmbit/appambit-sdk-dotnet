@@ -27,6 +27,8 @@ public static class AppAmbitSdk
             InitializeServices();
             InitializeConsumer(appKey);
 
+            AsyncHelpers.RunSync(() => RemoteConfig.FetchAndStoreConfig());
+
             // Check if there was a crash BEFORE processing/deleting crash files
             var hadCrash = Crashes.ExistCrashFlag();
 
@@ -69,6 +71,8 @@ public static class AppAmbitSdk
         {
             await SessionManager.RemoveSavedEndSession();
         }
+
+        await RemoteConfig.FetchAndStoreConfig();
 
         if (!BreadcrumbManager.IsCrashOnlyMode)
         {
@@ -167,7 +171,6 @@ public static class AppAmbitSdk
             Analytics.Initialize(apiService, storageService);
             ConsumerService.Initialize(storageService, appInfoService, apiService);
             RemoteConfig.Initialize(storageService, appInfoService, apiService);
-            _ = RemoteConfig.FetchAndStoreConfig();
             BreadcrumbManager.Initialize(apiService!, storageService!);
 
             _servicesReady = true;

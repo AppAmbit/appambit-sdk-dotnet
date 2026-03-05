@@ -56,6 +56,22 @@ public static class RemoteConfig
                     }).ToList();
 
                     await _storageService.AddConfigsAsync(configsToSave);
+                    
+                    if (remoteConfigResponse.Data.Configs.ContainsKey(AppConstants.LiveSessionStreaming))
+                    {
+                        BreadcrumbManager.IsCrashOnlyMode = !GetBoolean(AppConstants.LiveSessionStreaming);
+                        Debug.WriteLine($"[RemoteConfig] live_session_streaming = {!BreadcrumbManager.IsCrashOnlyMode}, IsCrashOnlyMode = {BreadcrumbManager.IsCrashOnlyMode}");
+                    }
+                    else
+                    {
+                        BreadcrumbManager.IsCrashOnlyMode = false;
+                        Debug.WriteLine("[RemoteConfig] live_session_streaming key not found. IsCrashOnlyMode = false");
+                    }
+                }
+                else
+                {
+                    BreadcrumbManager.IsCrashOnlyMode = false;
+                    Debug.WriteLine("[RemoteConfig] configs is null/empty. IsCrashOnlyMode = false");
                 }
                 _isFetchCompleted = true;
             }
@@ -153,5 +169,4 @@ public static class RemoteConfig
             return null;
         }
     }
-
 }
