@@ -3,6 +3,9 @@
 ### AppAmbit Push Notifications
 
 * **[Feature]** Added iOS Push Notifications for MAUI and Avalonia SDKs, allowing apps to receive push notifications on iOS devices.
+
+### AppAmbit
+
 * **[Breaking changes]** Added support for new version NET 10 for all SDKs
 
 ## Version 2.1.0
