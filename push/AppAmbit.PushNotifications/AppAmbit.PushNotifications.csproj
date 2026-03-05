@@ -8,17 +8,21 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/AppAmbit/appambit-sdk-dotnet</RepositoryUrl>
     <PackageTags>appambit; sdk; push; notifications; push-notifications; mobile; apps;</PackageTags>
-    <Version>2.1.0</Version>
+    <Version>2.1.1</Version>
     <Authors>AppAmbit</Authors>
     <Company>AppAmbit</Company>
     <RootNamespace>AppAmbit.PushNotifications</RootNamespace>
     <AssemblyName>com.AppAmbit.PushNotifications</AssemblyName>
     <PackageId>com.AppAmbit.PushNotifications</PackageId>
     <PackageIcon>icon.png</PackageIcon>
-    <ReadmeFile>README.md</ReadmeFile>
-    <PackageReadmeFile Condition="Exists('$(ReadmeFile)')">$(ReadmeFile)</PackageReadmeFile>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="readme.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <Using Include="AppAmbit" />
@@ -41,7 +45,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
-    <AndroidMavenLibrary Include="com.appambit:appambit.push.notifications" Version="0.3.0" />
+    <AndroidMavenLibrary Include="com.appambit:appambit.push.notifications" Version="0.3.1" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
