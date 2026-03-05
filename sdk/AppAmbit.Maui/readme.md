@@ -61,7 +61,7 @@ Add the package to your MAUI project:
 ```bash
 dotnet add package com.AppAmbit.Maui
 # or specify version
-dotnet add package com.AppAmbit.Maui --version 2.1.1
+dotnet add package com.AppAmbit.Maui --version 3.0.0
 ```
 
 Or, using Visual Studio:
