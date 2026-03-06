@@ -42,6 +42,16 @@ public static class RemoteConfig
 
         try
         {
+            var dbValue = AsyncHelpers.RunSync(() => _storageService.GetConfig(AppConstants.LiveSessionStreaming));
+            if (dbValue != null)
+            {
+                if (bool.TryParse(dbValue.ToString(), out bool parsedValue))
+                {
+                    BreadcrumbManager.IsCrashOnlyMode = !parsedValue;
+                    Debug.WriteLine($"[RemoteConfig] Offline DB lookup: live_session_streaming = {parsedValue}, IsCrashOnlyMode = {BreadcrumbManager.IsCrashOnlyMode}");
+                }
+            }
+            
             var remoteConfigResponse = await _apiService.ExecuteRequest<RemoteConfigResponse>(new RemoteConfigEndpoint(_appInfoService.AppVersion));
 
             if (remoteConfigResponse?.ErrorType == ApiErrorType.None)
@@ -55,23 +65,35 @@ public static class RemoteConfig
                         Value = kvp.Value?.ToString()
                     }).ToList();
 
+                    if (!remoteConfigResponse.Data.Configs.ContainsKey(AppConstants.LiveSessionStreaming))
+                    {
+                        configsToSave.Add(new RemoteConfigEntity
+                        {
+                            Id = Guid.NewGuid(),
+                            Key = AppConstants.LiveSessionStreaming,
+                            Value = "True"
+                        });
+                        Debug.WriteLine("[RemoteConfig] live_session_streaming key not found in payload. Defaulting to true.");
+                    }
+
                     await _storageService.AddConfigsAsync(configsToSave);
-                    
-                    if (remoteConfigResponse.Data.Configs.ContainsKey(AppConstants.LiveSessionStreaming))
-                    {
-                        BreadcrumbManager.IsCrashOnlyMode = !GetBoolean(AppConstants.LiveSessionStreaming);
-                        Debug.WriteLine($"[RemoteConfig] live_session_streaming = {!BreadcrumbManager.IsCrashOnlyMode}, IsCrashOnlyMode = {BreadcrumbManager.IsCrashOnlyMode}");
-                    }
-                    else
-                    {
-                        BreadcrumbManager.IsCrashOnlyMode = false;
-                        Debug.WriteLine("[RemoteConfig] live_session_streaming key not found. IsCrashOnlyMode = false");
-                    }
+                    BreadcrumbManager.IsCrashOnlyMode = !GetBoolean(AppConstants.LiveSessionStreaming);
+                    Debug.WriteLine($"[RemoteConfig] live_session_streaming = {!BreadcrumbManager.IsCrashOnlyMode}, IsCrashOnlyMode = {BreadcrumbManager.IsCrashOnlyMode}");
                 }
                 else
                 {
-                    BreadcrumbManager.IsCrashOnlyMode = false;
-                    Debug.WriteLine("[RemoteConfig] configs is null/empty. IsCrashOnlyMode = false");
+                    var configsToSave = new List<RemoteConfigEntity>
+                    {
+                        new RemoteConfigEntity
+                        {
+                            Id = Guid.NewGuid(),
+                            Key = AppConstants.LiveSessionStreaming,
+                            Value = "True"
+                        }
+                    };
+                    await _storageService.AddConfigsAsync(configsToSave);
+                    BreadcrumbManager.IsCrashOnlyMode = !GetBoolean(AppConstants.LiveSessionStreaming);
+                    Debug.WriteLine("[RemoteConfig] configs is null/empty. Defaulting live_session_streaming to true. IsCrashOnlyMode = false");
                 }
                 _isFetchCompleted = true;
             }
