@@ -39,7 +39,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
+
 
       - name: Workload restore
         run: dotnet workload restore --project ${{ env.SDK_PATH }}
