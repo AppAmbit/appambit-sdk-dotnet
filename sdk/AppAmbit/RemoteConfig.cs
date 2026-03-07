@@ -47,8 +47,8 @@ public static class RemoteConfig
             {
                 if (bool.TryParse(dbValue.ToString(), out bool parsedValue))
                 {
-                    BreadcrumbManager.IsCrashOnlyMode = !parsedValue;
-                    Debug.WriteLine($"[RemoteConfig] Offline DB lookup: live_session_streaming = {parsedValue}, IsCrashOnlyMode = {BreadcrumbManager.IsCrashOnlyMode}");
+                    BreadcrumbManager.StreamCrashSessionsOnly = !parsedValue;
+                    Debug.WriteLine($"[RemoteConfig] Offline DB lookup: live_session_streaming = {parsedValue}, StreamCrashSessionsOnly = {BreadcrumbManager.StreamCrashSessionsOnly}");
                 }
             }
             
@@ -77,8 +77,8 @@ public static class RemoteConfig
                     }
 
                     await _storageService.AddConfigsAsync(configsToSave);
-                    BreadcrumbManager.IsCrashOnlyMode = !GetBoolean(AppConstants.LiveSessionStreaming);
-                    Debug.WriteLine($"[RemoteConfig] live_session_streaming = {!BreadcrumbManager.IsCrashOnlyMode}, IsCrashOnlyMode = {BreadcrumbManager.IsCrashOnlyMode}");
+                    BreadcrumbManager.StreamCrashSessionsOnly = !GetBoolean(AppConstants.LiveSessionStreaming);
+                    Debug.WriteLine($"[RemoteConfig] live_session_streaming = {!BreadcrumbManager.StreamCrashSessionsOnly}, StreamCrashSessionsOnly = {BreadcrumbManager.StreamCrashSessionsOnly}");
                 }
                 else
                 {
@@ -92,8 +92,8 @@ public static class RemoteConfig
                         }
                     };
                     await _storageService.AddConfigsAsync(configsToSave);
-                    BreadcrumbManager.IsCrashOnlyMode = !GetBoolean(AppConstants.LiveSessionStreaming);
-                    Debug.WriteLine("[RemoteConfig] configs is null/empty. Defaulting live_session_streaming to true. IsCrashOnlyMode = false");
+                    BreadcrumbManager.StreamCrashSessionsOnly = !GetBoolean(AppConstants.LiveSessionStreaming);
+                    Debug.WriteLine("[RemoteConfig] configs is null/empty. Defaulting live_session_streaming to true. StreamCrashSessionsOnly = false");
                 }
                 _isFetchCompleted = true;
             }

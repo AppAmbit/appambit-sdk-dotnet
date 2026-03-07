@@ -42,7 +42,7 @@ internal static partial class NativePlatforms
         {
             await AppAmbitSdk.InternalEnsureToken(null);
 
-            if (!BreadcrumbManager.IsCrashOnlyMode)
+            if (!BreadcrumbManager.StreamCrashSessionsOnly)
             {
                 BreadcrumbManager.LoadBreadcrumbsFromFile();
             }

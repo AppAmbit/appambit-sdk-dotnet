@@ -28,7 +28,7 @@ public static class Analytics
 
     public static void EnableAlwaysSendBreadcrumbs()
     {
-        BreadcrumbManager.IsCrashOnlyMode = false;
+        BreadcrumbManager.StreamCrashSessionsOnly = false;
         Debug.WriteLine("Always Send Breadcrumbs enabled");
     }
 

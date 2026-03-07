@@ -10,7 +10,7 @@ namespace AppAmbit;
 
 public static class BreadcrumbManager
 {
-    internal static bool IsCrashOnlyMode = true;
+    internal static bool StreamCrashSessionsOnly = true;
     private static IAPIService? _api;
     private static IStorageService? _storage;
     private static readonly object _lastLock = new();
@@ -139,7 +139,7 @@ public static class BreadcrumbManager
     {
         try
         {
-            if (IsCrashOnlyMode)
+            if (StreamCrashSessionsOnly)
             {
                 var data = entity.ToData(sessionId: SessionManager.SessionId);
                 GetSaveJsonArray(BreadcrumbsConstants.nameFile, data);

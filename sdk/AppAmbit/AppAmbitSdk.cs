@@ -38,7 +38,7 @@ public static class AppAmbitSdk
             AsyncHelpers.RunSync(() => Crashes.LoadCrashFileIfExists());
 
             // Handle breadcrumbs based on crash-only mode and previous crash
-            if (hadCrash || !BreadcrumbManager.IsCrashOnlyMode)
+            if (hadCrash || !BreadcrumbManager.StreamCrashSessionsOnly)
                 BreadcrumbManager.LoadBreadcrumbsFromFile();
             else
                 BreadcrumbManager.ClearDiskCache();
@@ -74,7 +74,7 @@ public static class AppAmbitSdk
 
         await RemoteConfig.FetchAndStoreConfig();
 
-        if (!BreadcrumbManager.IsCrashOnlyMode)
+        if (!BreadcrumbManager.StreamCrashSessionsOnly)
         {
             BreadcrumbManager.LoadBreadcrumbsFromFile();
         }
