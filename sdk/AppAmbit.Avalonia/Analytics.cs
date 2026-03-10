@@ -9,11 +9,6 @@ public static class Analytics
         AppAmbit.Analytics.EnableManualSession();
     }
 
-    public static void EnableAlwaysSendBreadcrumbs()
-    {
-        AppAmbit.Analytics.EnableAlwaysSendBreadcrumbs();
-    }
-
     public static async Task StartSession()
     {
         await AppAmbit.Analytics.StartSession();

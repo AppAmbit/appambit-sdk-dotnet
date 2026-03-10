@@ -1,4 +1,4 @@
-﻿using Android.App;
+using Android.App;
 using Android.Content.PM;
 using Android.OS;
 using Avalonia;
@@ -18,6 +18,7 @@ public class MainActivity : AvaloniaMainActivity<App>
 {
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
+        RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR_APPKEY>");
         PushNotifications.Start(this);
         
