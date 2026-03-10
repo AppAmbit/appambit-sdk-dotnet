@@ -29,15 +29,12 @@ public static class AppAmbitSdk
 
             AsyncHelpers.RunSync(() => RemoteConfig.FetchAndStoreConfig());
 
-            // Check if there was a crash BEFORE processing/deleting crash files
             var hadCrash = Crashes.ExistCrashFlag();
 
             _hasStartedSession = true;
 
-            // Process crash files
             AsyncHelpers.RunSync(() => Crashes.LoadCrashFileIfExists());
 
-            // Handle breadcrumbs based on crash-only mode and previous crash
             if (hadCrash || !BreadcrumbManager.StreamCrashSessionsOnly)
                 BreadcrumbManager.LoadBreadcrumbsFromFile();
             else
