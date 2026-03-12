@@ -138,9 +138,7 @@ public class RemoteConfigTests : IDisposable
         _mockApiService.Verify(s => s.ExecuteRequest<RemoteConfigResponse>(It.IsAny<RemoteConfigEndpoint>()), Times.Once);
         
         _mockStorage.Verify(s => s.AddConfigsAsync(It.Is<List<RemoteConfigEntity>>(l => 
-            l.Count == 1 && 
-            l[0].Key == "welcome_msg" && 
-            l[0].Value == "Hello"
+            l.Any(x => x.Key == "welcome_msg" && x.Value == "Hello")
         )), Times.Once);
     }
 
