@@ -17,7 +17,6 @@ public partial class AppDelegate : AvaloniaAppDelegate<App>
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
         // Init SDK
-        RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR_APPKEY>");
         
         // Init Push

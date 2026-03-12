@@ -18,7 +18,6 @@ public class MainActivity : AvaloniaMainActivity<App>
 {
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
-        RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR_APPKEY>");
         PushNotifications.Start(this);
         
