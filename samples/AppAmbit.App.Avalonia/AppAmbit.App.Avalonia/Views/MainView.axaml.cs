@@ -48,6 +48,7 @@ public partial class MainView : UserControl
     {
         CrashesPanel.IsVisible = true;
         AnalyticsPanel.IsVisible = false;
+        RemoteConfigPanel.IsVisible = false;
         UpdateNotificationButtonState();
     }
 
@@ -55,6 +56,27 @@ public partial class MainView : UserControl
     {
         CrashesPanel.IsVisible = false;
         AnalyticsPanel.IsVisible = true;
+        RemoteConfigPanel.IsVisible = false;
+    }
+
+    private void OnNavRemoteConfigClicked(object? sender, RoutedEventArgs e)
+    {
+        CrashesPanel.IsVisible = false;
+        AnalyticsPanel.IsVisible = false;
+        RemoteConfigPanel.IsVisible = true;
+        
+        UpdateRemoteConfigUI();
+    }
+
+    private void UpdateRemoteConfigUI()
+    {
+        bool showBanner = RemoteConfig.GetBoolean("banner");
+        string dataText = RemoteConfig.GetString("data");
+        long discount = RemoteConfig.GetLong("discount");
+
+        BannerView.IsVisible = showBanner;
+        DataLabel.Text = dataText;
+        DiscountLabel.Text = $"{discount}% OFF";
     }
 
     private async void OnDidCrashClicked(object? sender, RoutedEventArgs e)

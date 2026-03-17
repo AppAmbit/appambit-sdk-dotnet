@@ -27,11 +27,21 @@ public static class AppAmbitSdk
             InitializeServices();
             InitializeConsumer(appKey);
 
-            AsyncHelpers.RunSync(() => BreadcrumbManager.AddAsync(BreadcrumbsConstants.onStart));
+            AsyncHelpers.RunSync(() => RemoteConfig.FetchAndStoreConfig());
+
+            var hadCrash = Crashes.ExistCrashFlag();
 
             _hasStartedSession = true;
-            BreadcrumbManager.LoadBreadcrumbsFromFile();
+
             AsyncHelpers.RunSync(() => Crashes.LoadCrashFileIfExists());
+
+            if (hadCrash || !BreadcrumbManager.StreamCrashSessionsOnly)
+                BreadcrumbManager.LoadBreadcrumbsFromFile();
+            else
+                BreadcrumbManager.ClearDiskCache();
+
+            AsyncHelpers.RunSync(() => BreadcrumbManager.AddAsync(BreadcrumbsConstants.onStart));
+
             AsyncHelpers.RunSync(SendDataPending);
         }
         catch (Exception ex)
@@ -59,7 +69,12 @@ public static class AppAmbitSdk
             await SessionManager.RemoveSavedEndSession();
         }
 
-        BreadcrumbManager.LoadBreadcrumbsFromFile();
+        await RemoteConfig.FetchAndStoreConfig();
+
+        if (!BreadcrumbManager.StreamCrashSessionsOnly)
+        {
+            BreadcrumbManager.LoadBreadcrumbsFromFile();
+        }
 
         if (_skippedFirstResume)
         {
@@ -153,7 +168,6 @@ public static class AppAmbitSdk
             Analytics.Initialize(apiService, storageService);
             ConsumerService.Initialize(storageService, appInfoService, apiService);
             RemoteConfig.Initialize(storageService, appInfoService, apiService);
-            _ = RemoteConfig.FetchAndStoreConfig();
             BreadcrumbManager.Initialize(apiService!, storageService!);
 
             _servicesReady = true;

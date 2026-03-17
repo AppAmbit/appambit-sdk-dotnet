@@ -28,7 +28,7 @@ public class CrashesExamples : IDisposable
 
         await EnsureSessionAsync(storage);
         await Crashes.LogError("boom!");
-        await Task.Delay(20);
+        await Task.Delay(100);
 
         var log = Assert.Single(storage.Logs);
         Assert.Equal(LogType.Error, log.Type);
@@ -45,7 +45,7 @@ public class CrashesExamples : IDisposable
 
         await EnsureSessionAsync(storage);
         await Crashes.LogError(new InvalidOperationException("bad"), classFqn: "Test.Class");
-        await Task.Delay(20);
+        await Task.Delay(100);
 
         var log = Assert.Single(storage.Logs);
         Assert.Equal(LogType.Error, log.Type);

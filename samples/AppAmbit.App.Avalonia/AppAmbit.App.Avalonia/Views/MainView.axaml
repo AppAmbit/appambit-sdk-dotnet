@@ -68,6 +68,31 @@
         </StackPanel>
       </ScrollViewer>
 
+      <!-- Remote Config view -->
+      <ScrollViewer Name="RemoteConfigPanel" IsVisible="False">
+        <StackPanel Margin="12" Spacing="20">
+          <TextBlock Text="Remote Config" FontSize="18" FontWeight="Bold" Margin="0,0,0,12" />
+          
+          <Border Name="BannerView" Background="#512BD4" Padding="20" CornerRadius="10" IsVisible="False">
+            <TextBlock Text="SPECIAL BANNER ENABLED!" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" />
+          </Border>
+
+          <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="10" Padding="20">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Remote Data:" FontWeight="Bold" />
+              <TextBlock Name="DataLabel" Text="Loading..." FontSize="16" />
+            </StackPanel>
+          </Border>
+
+          <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="10" Padding="20">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Current Discount:" FontWeight="Bold" />
+              <TextBlock Name="DiscountLabel" Text="0%" FontSize="30" Foreground="#512BD4" FontWeight="Bold" HorizontalAlignment="Center" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+
 
     </Grid>
     <Border Grid.Row="1" Background="Transparent" Padding="16">
@@ -79,6 +104,10 @@
 
           <Button Classes="bottom-nav-item" Name="NavAnalytics" Click="OnNavAnalyticsClicked">
             <TextBlock Text="Analytics" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Button>
+
+          <Button Classes="bottom-nav-item" Name="NavRemoteConfig" Click="OnNavRemoteConfigClicked">
+            <TextBlock Text="Remote Config" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
           </Button>
         </StackPanel>
       </Border>

@@ -21,4 +21,5 @@ internal class AppConstants
     internal const int TrackEventNameMaxLimit = 80;
     internal const int TrackEventMaxPropertyLimit = 20;
     internal const int TrackEventPropertyMaxCharacters = 80;
+    internal const string LiveSessionStreaming = "live_session_streaming";
 }

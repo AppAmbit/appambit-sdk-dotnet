@@ -42,7 +42,11 @@ internal static partial class NativePlatforms
         {
             await AppAmbitSdk.InternalEnsureToken(null);
 
-            BreadcrumbManager.LoadBreadcrumbsFromFile();
+            if (!BreadcrumbManager.StreamCrashSessionsOnly)
+            {
+                BreadcrumbManager.LoadBreadcrumbsFromFile();
+            }
+
             await SessionManager.SendEndSessionFromDatabase();
             await SessionManager.SendStartSessionIfExist();
             await Crashes.LoadCrashFileIfExists();            
