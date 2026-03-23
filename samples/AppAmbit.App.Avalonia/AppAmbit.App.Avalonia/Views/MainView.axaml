@@ -18,6 +18,8 @@
         <StackPanel Margin="12">
           <TextBlock Text="Crashes" FontSize="18" FontWeight="Bold" Margin="0,0,0,12" />
         
+          <Button Name="btnPushNotifications" Content="Allow Notifications" HorizontalAlignment="Stretch" Margin="0,0,0,8" Click="OnPushNotificationsClicked" />
+
           <Button Name="btnDidCrashInLastSession" Content="Did Crash In Last Session?" HorizontalAlignment="Stretch" Margin="0,0,0,8" Click="OnDidCrashClicked" />
 
           <TextBox Name="txtChangeUserId" Watermark="Change User ID" Margin="0,0,0,6" />
@@ -36,7 +38,6 @@
           <Button Name="btnThrowNewCrash" Content="Throw new Crash" HorizontalAlignment="Stretch" Margin="0,0,0,8" Click="OnThrowNewCrashClicked" />
           
           <Button Name="btnGenerateCrash" Content="Generate Test Crash" HorizontalAlignment="Stretch" Margin="0,0,0,8" Click="OnGenerateCrashClicked" />
-
         </StackPanel>
       </ScrollViewer>
 
@@ -66,6 +67,33 @@
           <Button Name="btnChangeSecondActivity" Content="Change to Second Activity" HorizontalAlignment="Stretch" Margin="0,0,0,8" Click="OnChangeSecondActivityClicked" />
         </StackPanel>
       </ScrollViewer>
+
+      <!-- Remote Config view -->
+      <ScrollViewer Name="RemoteConfigPanel" IsVisible="False">
+        <StackPanel Margin="12" Spacing="20">
+          <TextBlock Text="Remote Config" FontSize="18" FontWeight="Bold" Margin="0,0,0,12" />
+          
+          <Border Name="BannerView" Background="#512BD4" Padding="20" CornerRadius="10" IsVisible="False">
+            <TextBlock Text="SPECIAL BANNER ENABLED!" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" />
+          </Border>
+
+          <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="10" Padding="20">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Remote Data:" FontWeight="Bold" />
+              <TextBlock Name="DataLabel" Text="Loading..." FontSize="16" />
+            </StackPanel>
+          </Border>
+
+          <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="10" Padding="20">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Current Discount:" FontWeight="Bold" />
+              <TextBlock Name="DiscountLabel" Text="0%" FontSize="30" Foreground="#512BD4" FontWeight="Bold" HorizontalAlignment="Center" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+
+
     </Grid>
     <Border Grid.Row="1" Background="Transparent" Padding="16">
       <Border Name="BottomNav" Background="{StaticResource NavBackgroundBrush}" CornerRadius="28" Padding="8" HorizontalAlignment="Center" Width="420">
@@ -76,6 +104,10 @@
 
           <Button Classes="bottom-nav-item" Name="NavAnalytics" Click="OnNavAnalyticsClicked">
             <TextBlock Text="Analytics" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Button>
+
+          <Button Classes="bottom-nav-item" Name="NavRemoteConfig" Click="OnNavRemoteConfigClicked">
+            <TextBlock Text="Remote Config" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
           </Button>
         </StackPanel>
       </Border>

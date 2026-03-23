@@ -14,29 +14,69 @@ namespace AppAmbitTestingAppAvalonia.Views;
 
 public partial class MainView : UserControl
 {
+    private bool _hasNotificationPermission;
+    private bool _notificationsEnabled;
+    private bool _isUpdatingPushButton;
+
     public MainView()
     {
         InitializeComponent();
 
         try
         {
-            txtChangeUserId.Text = Guid.NewGuid().ToString();
-            txtChangeUserEmail.Text = "test@gmail.com";
-            txtCustomLogError.Text = "Test Log Message";
+            
+        txtChangeUserId.Text = Guid.NewGuid().ToString();
+        txtChangeUserEmail.Text = "test@gmail.com";
+        txtCustomLogError.Text = "Test Log Message";
+
+        // Configure notification customizer
+        AppAmbit.PushNotifications.PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+
+        // Initial state update
+        UpdateNotificationButtonState();
+
+        // Refresh state when view appears (important for Resume)
+        AttachedToVisualTree += (s, e) => UpdateNotificationButtonState();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AppAmbit] Exception in MainView constructor: {ex}");
+        }
     }
 
     private void OnNavCrashesClicked(object? sender, RoutedEventArgs e)
     {
         CrashesPanel.IsVisible = true;
         AnalyticsPanel.IsVisible = false;
+        RemoteConfigPanel.IsVisible = false;
+        UpdateNotificationButtonState();
     }
 
     private void OnNavAnalyticsClicked(object? sender, RoutedEventArgs e)
     {
         CrashesPanel.IsVisible = false;
         AnalyticsPanel.IsVisible = true;
+        RemoteConfigPanel.IsVisible = false;
+    }
+
+    private void OnNavRemoteConfigClicked(object? sender, RoutedEventArgs e)
+    {
+        CrashesPanel.IsVisible = false;
+        AnalyticsPanel.IsVisible = false;
+        RemoteConfigPanel.IsVisible = true;
+        
+        UpdateRemoteConfigUI();
+    }
+
+    private void UpdateRemoteConfigUI()
+    {
+        bool showBanner = RemoteConfig.GetBoolean("banner");
+        string dataText = RemoteConfig.GetString("data");
+        long discount = RemoteConfig.GetLong("discount");
+
+        BannerView.IsVisible = showBanner;
+        DataLabel.Text = dataText;
+        DiscountLabel.Text = $"{discount}% OFF";
     }
 
     private async void OnDidCrashClicked(object? sender, RoutedEventArgs e)
@@ -48,7 +88,7 @@ public partial class MainView : UserControl
 
             await AlertWindow.ShowAlert(message);
         }
-        catch (Exception) {}
+        catch (Exception) { }
     }
 
     private async void OnChangeUserIdClicked(object? sender, RoutedEventArgs e)
@@ -116,6 +156,123 @@ public partial class MainView : UserControl
     private async void OnGenerateCrashClicked(object? sender, RoutedEventArgs e)
     {
         await Crashes.GenerateTestCrash();
+    }
+
+    private async void OnPushNotificationsClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_isUpdatingPushButton)
+            return;
+
+        _isUpdatingPushButton = true;
+        Console.WriteLine($"[AppAmbit][Debug] OnPushNotificationsClicked start _isUpdatingPushButton={_isUpdatingPushButton} _notificationsEnabled={_notificationsEnabled}");
+        try
+        {
+            _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasSystemPermission();
+            Console.WriteLine($"[AppAmbit][Debug] HasSystemPermission={_hasNotificationPermission}");
+
+            if (!_hasNotificationPermission)
+            {
+                // Request permission
+                AppAmbit.PushNotifications.PushNotifications.RequestNotificationPermission(new PermissionListener(granted =>
+                {
+                    // Ensure we run on UI Thread
+                    Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+                    {
+                        Console.WriteLine($"[AppAmbit][Debug] Permission Callback: granted={granted}");
+
+                        if (granted)
+                        {
+                            // SUCCESS: Force UI update immediately
+                            _hasNotificationPermission = true;
+                            _notificationsEnabled = true;
+                            btnPushNotifications.Content = "Disable Notifications";
+
+                            // Tell SDK
+                            AppAmbit.PushNotifications.PushNotifications.SetNotificationsEnabled(true);
+
+                            await AlertWindow.ShowAlert("Notifications have been enabled.");
+                        }
+                        else
+                        {
+                            // FAILURE: Check state
+                            UpdateNotificationButtonState();
+                            await AlertWindow.ShowAlert("Permission Denied or Dialog Cancelled.");
+                        }
+
+                        _isUpdatingPushButton = false;
+                    });
+                }));
+
+                return;
+            }
+
+            // Toggle notifications enabled state using local cached value (keep in sync with MAUI behavior)
+            _notificationsEnabled = !_notificationsEnabled;
+            Console.WriteLine($"[AppAmbit][Debug] Toggling notifications -> new value = {_notificationsEnabled}");
+            AppAmbit.PushNotifications.PushNotifications.SetNotificationsEnabled(_notificationsEnabled);
+
+            btnPushNotifications.Content = _notificationsEnabled ? "Disable Notifications" : "Enable Notifications";
+
+            var message = $"Notifications have been {(_notificationsEnabled ? "enabled" : "disabled")}.";
+            await AlertWindow.ShowAlert(message);
+        }
+        catch (Exception ex)
+        {
+            await AlertWindow.ShowAlert($"Error: {ex.Message}");
+        }
+        finally
+        {
+            _isUpdatingPushButton = false;
+            Console.WriteLine($"[AppAmbit][Debug] OnPushNotificationsClicked end _isUpdatingPushButton={_isUpdatingPushButton} _notificationsEnabled={_notificationsEnabled}");
+        }
+    }
+
+    private void UpdateNotificationButtonState()
+    {
+        _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasSystemPermission();
+        Console.WriteLine($"[AppAmbit][Debug] UpdateNotificationButtonState hasPermission={_hasNotificationPermission}");
+
+        if (!_hasNotificationPermission)
+        {
+            btnPushNotifications.Content = "Allow Notifications";
+            return;
+        }
+
+        _notificationsEnabled = AppAmbit.PushNotifications.PushNotifications.IsNotificationsEnabled();
+        Console.WriteLine($"[AppAmbit][Debug] UpdateNotificationButtonState native IsNotificationsEnabled={_notificationsEnabled}");
+        btnPushNotifications.Content = _notificationsEnabled ? "Disable Notifications" : "Enable Notifications";
+    }
+
+    private sealed class PermissionListener : AppAmbit.PushNotifications.PushNotifications.IPermissionListener
+    {
+        private readonly Action<bool> _onResult;
+
+        public PermissionListener(Action<bool> onResult)
+        {
+            _onResult = onResult;
+        }
+
+        public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
+    }
+
+    private sealed class SimpleNotificationCustomizer : AppAmbit.PushNotifications.PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, AppAmbit.PushNotifications.PushNotificationData notification)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
+
+            if (notification.Data is System.Collections.IDictionary dict)
+            {
+                foreach (var key in dict.Keys)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
+                }
+            }
+            else if (notification.Data != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
+            }
+        }
     }
 
     private async void OnSessionStartClicked(object? sender, RoutedEventArgs e)
@@ -238,7 +395,7 @@ public partial class MainView : UserControl
                 singleView.MainView = second;
             }
         }
-        catch {}
+        catch { }
     }
 
 }

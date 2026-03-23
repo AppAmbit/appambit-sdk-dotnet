@@ -61,7 +61,7 @@ Add the package to your MAUI project:
 ```bash
 dotnet add package com.AppAmbit.Sdk
 # or specify version
-dotnet add package com.AppAmbit.Sdk --version 2.0.2
+dotnet add package com.AppAmbit.Sdk --version 3.0.0
 ```
 
 Or, using Visual Studio:
@@ -111,7 +111,21 @@ public static class MauiProgram
   ```csharp
     Crashes.LogError("This code should not be reached");
   ```
+
 * **Crash Reporting**: uncaught crashes are automatically captured and uploaded on next launch
+
+  ```csharp
+  // Enable remote config (MainActivity.cs or AppDelegate.cs)
+  RemoteConfig.Enable()
+  ```
+  ```csharp
+  // Get remote config values with type-safe methods
+  string message = RemoteConfig.GetString("data");
+  bool isFeatureEnabled = RemoteConfig.GetBoolean("banner");
+  long discount = RemoteConfig.GetLong("discount");
+  double maxUpload = RemoteConfig.GetDouble("max_upload");
+  ```
+* **Remote Config**: dynamic configuration values fetched and applied at runtime
 
 ---
 

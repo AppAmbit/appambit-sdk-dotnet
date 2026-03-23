@@ -4,24 +4,21 @@ using System.Linq;
 using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
-using Android.Content.PM;
 using Android.Views;
 using Android.OS;
-using AndroidX.AppCompat.App;
-using AndroidX.Core.Content;
 using Android.Widget;
 using AppAmbit.PushNotifications;
 using AppAmbitMaui;
-using AlertDialog = AndroidX.AppCompat.App.AlertDialog;
 
 namespace AppAmbitTestingAppAndroid;
 
-[Activity(Label = "@string/app_name", MainLauncher = true, Theme = "@style/Theme.AppCompat.Light.NoActionBar")]
-public class MainActivity : AppCompatActivity
+[Activity(Label = "@string/app_name", MainLauncher = true, Theme = "@android:style/Theme.Material.Light.NoActionBar")]
+public class MainActivity : Activity
 {
     FrameLayout? _container;
     View? _viewCrashes;
     View? _viewAnalytics;
+    View? _viewRemoteConfig;
     Button? _btnPushNotifications;
     bool _hasNotificationPermission;
     bool _notificationsEnabled;
@@ -33,29 +30,34 @@ public class MainActivity : AppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        
+
         //Uncomment the line for automatic session management
         //Analytics.EnableManualSession();
+        AppAmbit.RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
-        
-        PushNotifications.Start(ApplicationContext);
+
+        PushNotifications.Start(this);
+        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
 
         SetContentView(L("activity_main"));
 
         _container = FindViewById<FrameLayout>(I("content_container"));
 
         var inflater = LayoutInflater.From(this);
-        _viewCrashes   = inflater?.Inflate(L("fragment_crashes"), _container, false);
+        _viewCrashes = inflater?.Inflate(L("fragment_crashes"), _container, false);
         _viewAnalytics = inflater?.Inflate(L("fragment_analytics"), _container, false);
+        _viewRemoteConfig = inflater?.Inflate(L("fragment_remote_config"), _container, false);
 
         WireCrashesView(_viewCrashes!);
         WireAnalyticsView(_viewAnalytics!);
-
-        var btnCrashes   = FindViewById<Button>(I("btn_nav_crashes"))!;
+        
+        var btnCrashes = FindViewById<Button>(I("btn_nav_crashes"))!;
         var btnAnalytics = FindViewById<Button>(I("btn_nav_analytics"))!;
+        var btnRemoteConfig = FindViewById<Button>(I("btn_nav_remote_config"))!;
 
-        btnCrashes.Click   += (s, e) => ShowView(_viewCrashes!);
+        btnCrashes.Click += (s, e) => ShowView(_viewCrashes!);
         btnAnalytics.Click += (s, e) => ShowView(_viewAnalytics!);
+        btnRemoteConfig.Click += (s, e) => ShowRemoteConfigView(_viewRemoteConfig!);
 
         ShowView(_viewCrashes!);
     }
@@ -75,20 +77,20 @@ public class MainActivity : AppCompatActivity
     void WireAnalyticsView(View root)
     {
         Button B(string id) => root.FindViewById<Button>(I(id))!;
-        var btnStartSession                 = B("btnStartSession");
-        var btnEndSession                   = B("btnEndSession");
-        var btnGenerate30DaysTestSessions   = B("btnGenerate30DaysTestSessions");
-        var btnClearToken                   = B("btnClearToken");
-        var btnTokenRenew                   = B("btnTokenRenew");
-        var btnEventWProperty               = B("btnEventWProperty");
+        var btnStartSession = B("btnStartSession");
+        var btnEndSession = B("btnEndSession");
+        var btnGenerate30DaysTestSessions = B("btnGenerate30DaysTestSessions");
+        var btnClearToken = B("btnClearToken");
+        var btnTokenRenew = B("btnTokenRenew");
+        var btnEventWProperty = B("btnEventWProperty");
         var btnDefaultClickedEventWProperty = B("btnDefaultClickedEventWProperty");
-        var btnMax300LengthEvent            = B("btnMax300LengthEvent");
-        var btnMax20PropertiesEvent         = B("btnMax20PropertiesEvent");
-        var btn220BatchEvents               = B("btn220BatchEvents");
-        var btnSecondActivity               = B("btnSecondActivity");
+        var btnMax300LengthEvent = B("btnMax300LengthEvent");
+        var btnMax20PropertiesEvent = B("btnMax20PropertiesEvent");
+        var btn220BatchEvents = B("btn220BatchEvents");
+        var btnSecondActivity = B("btnSecondActivity");
 
         btnStartSession.Click += (s, e) => { try { Analytics.StartSession(); } catch { } };
-        btnEndSession.Click   += (s, e) => { try { Analytics.EndSession(); } catch { } };
+        btnEndSession.Click += (s, e) => { try { Analytics.EndSession(); } catch { } };
 
         btnEventWProperty.Click += (s, e) =>
         {
@@ -155,19 +157,19 @@ public class MainActivity : AppCompatActivity
     void WireCrashesView(View root)
     {
         T Find<T>(string id) where T : View => (T)root.FindViewById(I(id))!;
-        var btnDidCrash                   = Find<Button>("btnDidCrash");
-        var btnSendCustomLogError         = Find<Button>("btnSendCustomLogError");
-        var btnSendDefaultLogError        = Find<Button>("btnSendDefaultLogError");
-        var btnSendExceptionLogError      = Find<Button>("btnSendExceptionLogError");
-        var btnSetUserId                  = Find<Button>("btnSetUserId");
-        var btnSetUserEmail               = Find<Button>("btnSetUserEmail");
-        var btnThrowNewCrash              = Find<Button>("btnThrowNewCrash");
-        var btnGenerateTestCrash          = Find<Button>("btnGenerateTestCrash");
-        _btnPushNotifications             = Find<Button>("btnPushNotifications");
+        var btnDidCrash = Find<Button>("btnDidCrash");
+        var btnSendCustomLogError = Find<Button>("btnSendCustomLogError");
+        var btnSendDefaultLogError = Find<Button>("btnSendDefaultLogError");
+        var btnSendExceptionLogError = Find<Button>("btnSendExceptionLogError");
+        var btnSetUserId = Find<Button>("btnSetUserId");
+        var btnSetUserEmail = Find<Button>("btnSetUserEmail");
+        var btnThrowNewCrash = Find<Button>("btnThrowNewCrash");
+        var btnGenerateTestCrash = Find<Button>("btnGenerateTestCrash");
+        _btnPushNotifications = Find<Button>("btnPushNotifications");
 
-        var etUserId           = Find<EditText>("etUserId");
-        var etUserEmail        = Find<EditText>("etUserEmail");
-        var etCustomLogErrorText= Find<EditText>("etCustomLogErrorText");
+        var etUserId = Find<EditText>("etUserId");
+        var etUserEmail = Find<EditText>("etUserEmail");
+        var etCustomLogErrorText = Find<EditText>("etCustomLogErrorText");
 
         etUserId.Text = Guid.NewGuid().ToString();
         etUserEmail.Text = "test@gmail.com";
@@ -208,11 +210,11 @@ public class MainActivity : AppCompatActivity
             }
         };
 
-        btnSetUserId.Click                  += (s, e) => { Analytics.SetUserId(etUserId.Text); ShowAlert("Info", "User ID changed"); };
-        btnSetUserEmail.Click               += (s, e) => { Analytics.SetUserEmail(etUserEmail.Text); ShowAlert("Info", "User email changed"); };
-        btnThrowNewCrash.Click              += (s, e) => { throw new NullReferenceException(); };
-        btnGenerateTestCrash.Click          += (s, e) => Crashes.GenerateTestCrash();
-        _btnPushNotifications!.Click        += async (s, e) => await HandlePushToggleAsync();
+        btnSetUserId.Click += (s, e) => { Analytics.SetUserId(etUserId.Text); ShowAlert("Info", "User ID changed"); };
+        btnSetUserEmail.Click += (s, e) => { Analytics.SetUserEmail(etUserEmail.Text); ShowAlert("Info", "User email changed"); };
+        btnThrowNewCrash.Click += (s, e) => { throw new NullReferenceException(); };
+        btnGenerateTestCrash.Click += (s, e) => Crashes.GenerateTestCrash();
+        _btnPushNotifications!.Click += async (s, e) => await HandlePushToggleAsync();
 
         RefreshPushToggle();
     }
@@ -221,10 +223,10 @@ public class MainActivity : AppCompatActivity
     {
         RunOnUiThread(() =>
         {
-            new AlertDialog.Builder(this)
-                .SetTitle(title)
-                .SetMessage(message)
-                .SetPositiveButton("OK", (s, e) => { })
+            new AlertDialog.Builder(this)!
+                .SetTitle(title)!
+                .SetMessage(message)!
+                .SetPositiveButton("OK", (s, e) => { })!
                 .Show();
         });
     }
@@ -241,19 +243,20 @@ public class MainActivity : AppCompatActivity
             if (!_hasNotificationPermission)
             {
                 var tcs = new TaskCompletionSource<bool>();
-                PushNotifications.RequestNotificationPermission(this, new PermissionListener(granted => tcs.TrySetResult(granted)));
+                PushNotifications.RequestNotificationPermission(new PermissionListener(granted => tcs.TrySetResult(granted)));
                 var granted = await tcs.Task;
 
                 if (granted)
                 {
-                    PushNotifications.SetNotificationsEnabled(ApplicationContext, true);
                     _hasNotificationPermission = true;
                     _notificationsEnabled = true;
+                    PushNotifications.SetNotificationsEnabled(true);
                     UpdatePushButtonText();
                     ShowAlert("Done", "Notifications enabled");
                 }
                 else
                 {
+                    RefreshPushToggle();
                     ShowAlert("Permission denied", "Notification permission denied by the user.");
                 }
 
@@ -261,7 +264,7 @@ public class MainActivity : AppCompatActivity
             }
 
             var targetEnabled = !_notificationsEnabled;
-            PushNotifications.SetNotificationsEnabled(ApplicationContext, targetEnabled);
+            PushNotifications.SetNotificationsEnabled(targetEnabled);
             _notificationsEnabled = targetEnabled;
             UpdatePushButtonText();
             ShowAlert("Done", targetEnabled ? "Notifications enabled" : "Notifications disabled");
@@ -281,17 +284,9 @@ public class MainActivity : AppCompatActivity
         if (_btnPushNotifications == null)
             return;
 
-        _hasNotificationPermission = HasSystemPermission();
-        _notificationsEnabled = PushNotifications.IsNotificationsEnabled(ApplicationContext);
+        _hasNotificationPermission = PushNotifications.HasSystemPermission();
+        _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
         UpdatePushButtonText();
-    }
-
-    bool HasSystemPermission()
-    {
-        if ((int)Build.VERSION.SdkInt < 33)
-            return true;
-
-        return ContextCompat.CheckSelfPermission(this, Android.Manifest.Permission.PostNotifications) == Permission.Granted;
     }
 
     void UpdatePushButtonText()
@@ -306,7 +301,27 @@ public class MainActivity : AppCompatActivity
                 : "Enable Notifications";
     }
 
-    private sealed class PermissionListener : Java.Lang.Object, PushNotifications.IPermissionListener
+    void UpdateRemoteConfigUI(View v)
+    {
+        var banner = v.FindViewById<FrameLayout>(I("banner_view"));
+        var dataLabel = v.FindViewById<TextView>(I("data_label"));
+        var discountLabel = v.FindViewById<TextView>(I("discount_label"));
+
+        if (banner != null) 
+            banner.Visibility = AppAmbit.RemoteConfig.GetBoolean("banner") ? ViewStates.Visible : ViewStates.Gone;
+        
+        if (dataLabel != null)
+            dataLabel.Text = AppAmbit.RemoteConfig.GetString("data");
+
+        if (discountLabel != null)
+        {
+            long discount = AppAmbit.RemoteConfig.GetLong("discount");
+            discountLabel.Text = $"{discount}% OFF";
+        }
+    }
+    
+
+    private sealed class PermissionListener : PushNotifications.IPermissionListener
     {
         private readonly Action<bool> _onResult;
 
@@ -316,5 +331,31 @@ public class MainActivity : AppCompatActivity
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
+    }
+
+    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, PushNotificationData notification)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
+
+            if (notification.Data is System.Collections.IDictionary dict)
+            {
+                foreach (var key in dict.Keys)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
+                }
+            }
+            else if (notification.Data != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
+            }
+        }
+    }
+
+    void ShowRemoteConfigView(View v)
+    {
+        ShowView(v);
+        UpdateRemoteConfigUI(v);
     }
 }

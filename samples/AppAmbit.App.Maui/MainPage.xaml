@@ -14,9 +14,11 @@
                 SemanticProperties.Description="dot net bot in a race car number eight" />
 
             <Button x:Name="ButtonPushNotifications"
-                Text="Allow Notifications"
-                Clicked="OnPushNotificationsClicked" />
-                
+                Text="Enable Push Notifications"
+                SemanticProperties.Hint="Enable Push Notifications"
+                Clicked="OnPushNotificationsClicked"
+                HorizontalOptions="Center" />
+
             <Button
                 Text="Did the app crash during your last session?" 
                 Clicked="OnHasCrashedTheLastSession" />

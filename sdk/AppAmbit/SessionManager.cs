@@ -56,7 +56,7 @@ public static class SessionManager
     {
         if (!_isSessionActive)
         {
-            Console.WriteLine("There is no active session to end");
+            Debug.WriteLine("There is no active session to end");
             return;
         }
 

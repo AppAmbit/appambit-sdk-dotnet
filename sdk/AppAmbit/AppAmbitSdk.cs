@@ -14,6 +14,7 @@ public static class AppAmbitSdk
     private static readonly SemaphoreSlim _ensureBatchLocked = new(1, 1);
     private static bool _configuredByBuilder = false;
     private static bool _servicesReady = false;
+    public static bool IsInitialized => _servicesReady;
     private static bool _skippedFirstResume = false;
     public static void MarkConfiguredByBuilder() => _configuredByBuilder = true;
 
@@ -26,11 +27,21 @@ public static class AppAmbitSdk
             InitializeServices();
             InitializeConsumer(appKey);
 
-            AsyncHelpers.RunSync(() => BreadcrumbManager.AddAsync(BreadcrumbsConstants.onStart));
+            AsyncHelpers.RunSync(() => RemoteConfig.FetchAndStoreConfig());
+
+            var hadCrash = Crashes.ExistCrashFlag();
 
             _hasStartedSession = true;
-            BreadcrumbManager.LoadBreadcrumbsFromFile();
+
             AsyncHelpers.RunSync(() => Crashes.LoadCrashFileIfExists());
+
+            if (hadCrash || !BreadcrumbManager.StreamCrashSessionsOnly)
+                BreadcrumbManager.LoadBreadcrumbsFromFile();
+            else
+                BreadcrumbManager.ClearDiskCache();
+
+            AsyncHelpers.RunSync(() => BreadcrumbManager.AddAsync(BreadcrumbsConstants.onStart));
+
             AsyncHelpers.RunSync(SendDataPending);
         }
         catch (Exception ex)
@@ -58,7 +69,12 @@ public static class AppAmbitSdk
             await SessionManager.RemoveSavedEndSession();
         }
 
-        BreadcrumbManager.LoadBreadcrumbsFromFile();
+        await RemoteConfig.FetchAndStoreConfig();
+
+        if (!BreadcrumbManager.StreamCrashSessionsOnly)
+        {
+            BreadcrumbManager.LoadBreadcrumbsFromFile();
+        }
 
         if (_skippedFirstResume)
         {
@@ -151,10 +167,11 @@ public static class AppAmbitSdk
             Crashes.Initialize(apiService, storageService, deviceId ?? "");
             Analytics.Initialize(apiService, storageService);
             ConsumerService.Initialize(storageService, appInfoService, apiService);
-
+            RemoteConfig.Initialize(storageService, appInfoService, apiService);
             BreadcrumbManager.Initialize(apiService!, storageService!);
 
             _servicesReady = true;
+            Debug.WriteLine("[AppAmbitSdk] Services initialized successfully.");
         }
         catch (Exception ex)
         {

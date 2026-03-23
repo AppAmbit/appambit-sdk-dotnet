@@ -1,9 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0-ios</TargetFramework>
+    <TargetFramework>net10.0-ios</TargetFramework>
     <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
+    <!-- Enable interpreter to avoid AOT issues on simulator -->
+    <UseInterpreter>true</UseInterpreter>
+    <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
+    <ApplicationId>com.AppAmbit.TestAppSwift</ApplicationId>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(TargetFramework.Contains('-ios')) and '$(Configuration)' == 'Debug'">
+    <CodesignKey>Apple Development</CodesignKey>
+    <CodesignProvision>Automatic</CodesignProvision>
+    <DevelopmentTeam>U7UX6J27XV</DevelopmentTeam>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,5 +22,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AppAmbit.App.Avalonia\AppAmbit.App.Avalonia.csproj" />
+  <!-- Use the Base SDK directly -->
+  <ProjectReference Include="..\..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
   </ItemGroup>
+
+  <!-- LOCAL USAGE ONLY: Manual linking of native targets. Remove this when using NuGet/CocoaPods. -->
+  <Import Project="..\..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.targets" Condition="Exists('..\..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.targets')" />
+  
 </Project>

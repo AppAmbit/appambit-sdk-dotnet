@@ -7,10 +7,11 @@ using Avalonia.Markup.Xaml;
 using AppAmbitTestingAppAvalonia.ViewModels;
 using AppAmbitTestingAppAvalonia.Views;
 using AppAmbitAvalonia;
+using AppAmbit.PushNotifications;
 
 namespace AppAmbitTestingAppAvalonia;
 
-public partial class App : Application
+public partial class App : Avalonia.Application
 {
     public override void Initialize()
     {
@@ -19,7 +20,13 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        Console.WriteLine("[AppAmbit] OnFrameworkInitializationCompleted called.");
+
+        RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
+
+        PushNotifications.Start();
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 

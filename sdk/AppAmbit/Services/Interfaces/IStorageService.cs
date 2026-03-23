@@ -1,6 +1,7 @@
 using AppAmbit.Models.Analytics;
 using AppAmbit.Models.Breadcrumbs;
 using AppAmbit.Models.Logs;
+using AppAmbit.Models.RemoteConfigs;
 
 namespace AppAmbit.Services.Interfaces;
 
@@ -75,5 +76,10 @@ public interface IStorageService
     Task<List<BreadcrumbsEntity>> GetOldest100BreadcrumbsAsync();
     Task AddBreadcrumbAsync(BreadcrumbsEntity breadcrumb);
     Task DeleteBreadcrumbs(List<BreadcrumbsEntity> breadcrumbs);
+    #endregion
+
+    #region RemoteConfig
+    Task AddConfigsAsync(List<RemoteConfigEntity> configs);
+    Task<String?> GetConfig(String key);
     #endregion
 }

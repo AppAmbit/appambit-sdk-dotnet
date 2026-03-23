@@ -71,7 +71,7 @@ public static class AppAmbitMauiExtensions
             AppAmbit.AppAmbitSdk.InitializeServices();
 
             await AppAmbit.AppAmbitSdk.EnsureTokenAsync(null);
-
+            await RemoteConfig.FetchAndStoreConfig();
             BreadcrumbManager.LoadBreadcrumbsFromFile();
             await SessionManager.SendEndSessionFromDatabase();
             await SessionManager.SendStartSessionIfExist();

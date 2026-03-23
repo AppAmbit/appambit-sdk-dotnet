@@ -125,12 +125,19 @@ namespace AppAmbit
             }
         }
 
+        private static bool _lastSessionCrashEvaluated = false;
+        private static bool _lastSessionCrashed = false;
+
         public static Task<bool> DidCrashInLastSession()
         {
             try
             {
-                var exists = File.Exists(Path.Combine(AppPaths.AppDataDir, AppConstants.DidCrashFileName));
-                return Task.FromResult(exists);
+                if (!_lastSessionCrashEvaluated)
+                {
+                    _lastSessionCrashed = File.Exists(Path.Combine(AppPaths.AppDataDir, AppConstants.DidCrashFileName));
+                    _lastSessionCrashEvaluated = true;
+                }
+                return Task.FromResult(_lastSessionCrashed);
             }
             catch
             {
@@ -222,6 +229,7 @@ namespace AppAmbit
                 string crashFile = Path.Combine(AppPaths.AppDataDir, fileName);
 
                 File.WriteAllText(crashFile, json);
+                SetCrashFlag(true);
                 Debug.WriteLine($"Crash file saved to: {crashFile}");
             }
             catch (Exception e)
@@ -312,6 +320,7 @@ namespace AppAmbit
             foreach (var crashFile in Directory.EnumerateFiles(AppPaths.AppDataDir, "crash_*.json", System.IO.SearchOption.TopDirectoryOnly))
                 File.Delete(crashFile);
             Debug.WriteLine("Debug all crashes deleted");
+            SetCrashFlag(false);
         }
 
         private static LogEntity MapExceptionInfoToLogEntity(ExceptionInfo exception, LogType logType = LogType.Crash)
@@ -360,6 +369,11 @@ namespace AppAmbit
             {
                 return;
             }
+        }
+
+        internal static bool ExistCrashFlag()
+        {
+            return DidCrashInLastSession().Result;
         }
 
         private static async Task<ExceptionInfo?> ReadAndDeleteCrashFileAsync(string path)

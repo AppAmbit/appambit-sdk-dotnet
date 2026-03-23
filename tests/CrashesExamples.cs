@@ -7,6 +7,7 @@ using AppAmbit.Models.Logs;
 using AppAmbit.Models.Responses;
 using AppAmbit.Services;
 using AppAmbit.Services.Interfaces;
+using AppAmbit.Models.RemoteConfigs;
 
 namespace AppAmbitTest;
 
@@ -27,7 +28,7 @@ public class CrashesExamples : IDisposable
 
         await EnsureSessionAsync(storage);
         await Crashes.LogError("boom!");
-        await Task.Delay(20);
+        await Task.Delay(100);
 
         var log = Assert.Single(storage.Logs);
         Assert.Equal(LogType.Error, log.Type);
@@ -44,7 +45,7 @@ public class CrashesExamples : IDisposable
 
         await EnsureSessionAsync(storage);
         await Crashes.LogError(new InvalidOperationException("bad"), classFqn: "Test.Class");
-        await Task.Delay(20);
+        await Task.Delay(100);
 
         var log = Assert.Single(storage.Logs);
         Assert.Equal(LogType.Error, log.Type);
@@ -294,6 +295,9 @@ public class CrashesExamples : IDisposable
             return Task.CompletedTask;
         }
         public Task DeleteBreadcrumbs(List<BreadcrumbsEntity> breadcrumbs) => Task.CompletedTask;
+
+        public Task AddConfigsAsync(List<RemoteConfigEntity> configs) => Task.CompletedTask;
+        public Task<string?> GetConfig(string key) => Task.FromResult<string?>(null);
     }
 
     private sealed class FakeAppInfoService : IAppInfoService
