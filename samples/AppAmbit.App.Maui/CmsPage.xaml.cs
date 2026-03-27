@@ -22,6 +22,10 @@ public partial class CmsPage : ContentPage
                 () => Cms.For<CmsExampleModel>(Collection).Equals("item_sku", "TEC-02")),
             ("Not Equals: item_sku ≠ TEC-02",
                 () => Cms.For<CmsExampleModel>(Collection).NotEquals("item_sku", "TEC-02")),
+            ("Equals: category = Electronics",
+                () => Cms.For<CmsExampleModel>(Collection).Equals("category", "Electronics")),
+            ("Boolean: in_stock = true",
+                () => Cms.For<CmsExampleModel>(Collection).Equals("in_stock", "true")),
 
             // Text matching
             ("Contains: product_name contains 'Pro'",
@@ -61,11 +65,8 @@ public partial class CmsPage : ContentPage
         FilterPicker.ItemsSource = _filters.Select(f => f.Label).ToList();
     }
 
-    // Get all without filters
     private async void OnFetchListClicked(object sender, EventArgs e)
     {
-        //await LoadResults(Cms.For<CmsExampleModel>("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico"));
-        Cms.Clear("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
         await LoadResults(Cms.For<CmsExampleModel>(Collection));
     }
 
