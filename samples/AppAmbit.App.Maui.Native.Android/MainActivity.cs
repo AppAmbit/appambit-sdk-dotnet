@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
 using Android.Views;
-using Android.OS;
 using Android.Widget;
 using AppAmbit.PushNotifications;
 using AppAmbitMaui;
+using AppAmbitTestingAppAndroid.Models;
+using AppAmbitTestingAppAndroid.Adapters;
 
 namespace AppAmbitTestingAppAndroid;
 
@@ -19,10 +20,14 @@ public class MainActivity : Activity
     View? _viewCrashes;
     View? _viewAnalytics;
     View? _viewRemoteConfig;
+    View? _viewCms;
     Button? _btnPushNotifications;
     bool _hasNotificationPermission;
     bool _notificationsEnabled;
     bool _isUpdatingPushButton;
+
+    // Filters for CMS
+    private List<(string Label, Func<AppAmbit.CmsQueryBuilder<CmsExampleModel>> Build)>? _cmsFilters;
 
     int L(string name) => Resources.GetIdentifier(name, "layout", PackageName);
     int I(string name) => Resources.GetIdentifier(name, "id", PackageName);
@@ -47,17 +52,21 @@ public class MainActivity : Activity
         _viewCrashes = inflater?.Inflate(L("fragment_crashes"), _container, false);
         _viewAnalytics = inflater?.Inflate(L("fragment_analytics"), _container, false);
         _viewRemoteConfig = inflater?.Inflate(L("fragment_remote_config"), _container, false);
+        _viewCms = inflater?.Inflate(L("fragment_cms"), _container, false);
 
         WireCrashesView(_viewCrashes!);
         WireAnalyticsView(_viewAnalytics!);
+        WireCmsView(_viewCms!);
         
         var btnCrashes = FindViewById<Button>(I("btn_nav_crashes"))!;
         var btnAnalytics = FindViewById<Button>(I("btn_nav_analytics"))!;
         var btnRemoteConfig = FindViewById<Button>(I("btn_nav_remote_config"))!;
+        var btnCms = FindViewById<Button>(I("btn_nav_cms"))!;
 
         btnCrashes.Click += (s, e) => ShowView(_viewCrashes!);
         btnAnalytics.Click += (s, e) => ShowView(_viewAnalytics!);
         btnRemoteConfig.Click += (s, e) => ShowRemoteConfigView(_viewRemoteConfig!);
+        btnCms.Click += (s, e) => ShowView(_viewCms!);
 
         ShowView(_viewCrashes!);
     }
@@ -357,5 +366,80 @@ public class MainActivity : Activity
     {
         ShowView(v);
         UpdateRemoteConfigUI(v);
+    }
+
+    void WireCmsView(View root)
+    {
+        T Find<T>(string id) where T : View => (T)root.FindViewById(I(id))!;
+        
+        var spinner = Find<Spinner>("spin_cms_filters");
+        var btnApply = Find<Button>("btn_cms_apply_filter");
+        var etSearch = Find<EditText>("et_cms_search");
+        var btnSearch = Find<Button>("btn_cms_search");
+        var btnGetAll = Find<Button>("btn_cms_get_all");
+        var recycler = Find<AndroidX.RecyclerView.Widget.RecyclerView>("recycler_cms");
+
+        var adapter = new CmsAdapter();
+        recycler.SetLayoutManager(new AndroidX.RecyclerView.Widget.LinearLayoutManager(this));
+        recycler.SetAdapter(adapter);
+
+        const string collection = "tech_inventory";
+
+        _cmsFilters = new()
+        {
+            ("Equals: item_sku = TEC-02", () => AppAmbit.Cms.For<CmsExampleModel>(collection).Equals("item_sku", "TEC-02")),
+            ("Not Equals: item_sku ≠ TEC-02", () => AppAmbit.Cms.For<CmsExampleModel>(collection).NotEquals("item_sku", "TEC-02")),
+            ("Contains: product_name contains 'Pro'", () => AppAmbit.Cms.For<CmsExampleModel>(collection).Contains("product_name", "Pro")),
+            ("Starts With: item_sku starts with 'TEC'", () => AppAmbit.Cms.For<CmsExampleModel>(collection).StartsWith("item_sku", "TEC")),
+            ("In List: [TEC-01, TEC-02]", () => AppAmbit.Cms.For<CmsExampleModel>(collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
+            ("Greater Than: price > 500", () => AppAmbit.Cms.For<CmsExampleModel>(collection).GreaterThan("price", 500)),
+            ("Order By price DESC", () => AppAmbit.Cms.For<CmsExampleModel>(collection).OrderByDescending("price")),
+            ("Pagination: Page 1, 2 items", () => AppAmbit.Cms.For<CmsExampleModel>(collection).SetPage(1).SetPerPage(2)),
+            ("Pagination: Page 2, 2 items", () => AppAmbit.Cms.For<CmsExampleModel>(collection).SetPage(2).SetPerPage(2)),
+        };
+
+        var filterNames = _cmsFilters.Select(f => f.Label).ToList();
+        var arrayAdapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerItem, filterNames);
+        arrayAdapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
+        spinner.Adapter = arrayAdapter;
+
+        async Task LoadResults(AppAmbit.CmsQueryBuilder<CmsExampleModel> query)
+        {
+            try
+            {
+                var items = await query.GetListAsync();
+                RunOnUiThread(() => adapter.UpdateData(items));
+
+                if (items.Count == 0)
+                    ShowAlert("Info", "No entries found. Cache may be empty.");
+            }
+            catch (Exception ex)
+            {
+                ShowAlert("Error", ex.Message);
+            }
+        }
+
+        btnGetAll.Click += async (s, e) => 
+        {
+            await AppAmbit.Cms.Clear("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
+            await LoadResults(AppAmbit.Cms.For<CmsExampleModel>(collection));
+        };
+
+        btnApply.Click += async (s, e) =>
+        {
+            int selected = spinner.SelectedItemPosition;
+            if (selected >= 0 && selected < _cmsFilters.Count)
+            {
+                var query = _cmsFilters[selected].Build();
+                await LoadResults(query);
+            }
+        };
+
+        btnSearch.Click += async (s, e) =>
+        {
+            var term = etSearch.Text?.Trim();
+            if (!string.IsNullOrEmpty(term))
+                await LoadResults(AppAmbit.Cms.For<CmsExampleModel>(collection).Search(term));
+        };
     }
 }

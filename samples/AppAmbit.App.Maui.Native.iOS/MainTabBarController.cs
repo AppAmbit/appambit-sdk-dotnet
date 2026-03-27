@@ -41,6 +41,13 @@ public class MainTabBarController : UITabBarController
              ? new UITabBarItem("Config", imgConfig, 2)
              : new UITabBarItem("Config", null, 2);
 
-        ViewControllers = new UIViewController[] { crashesNav, analyticsNav, configNav };
+        var cms = new CmsViewController();
+        var cmsNav = new UINavigationController(cms);
+        var imgCms = SysImg("doc.text.magnifyingglass");
+        cmsNav.TabBarItem = imgCms != null
+             ? new UITabBarItem("CMS", imgCms, 3)
+             : new UITabBarItem("CMS", null, 3);
+
+        ViewControllers = new UIViewController[] { crashesNav, analyticsNav, configNav, cmsNav };
     }
 }
