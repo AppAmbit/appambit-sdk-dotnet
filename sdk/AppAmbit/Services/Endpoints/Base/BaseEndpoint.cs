@@ -6,7 +6,7 @@ internal class BaseEndpoint : IEndpoint
 {
     public string Url { get; set; }
     
-    public string BaseUrl { get; set; } = "https://appambit.com/api";
+    public virtual string BaseUrl { get; set; } = AppConstants.BaseUrlSdk;
      
     public bool SkipAuthorization { get; set;  } = false;
     

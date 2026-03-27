@@ -29,6 +29,12 @@ public class APIService : IAPIService
         try
         {
             var httpResponse = await RequestHttp(endpoint);
+
+            if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return ApiResult<T>.Fail(ApiErrorType.NotFound, "Resource not found");
+            }
+
             CheckStatusCodeFrom(httpResponse.StatusCode);
 
             var json = await httpResponse.Content.ReadAsStringAsync();
@@ -162,6 +168,11 @@ public class APIService : IAPIService
         httpClient.DefaultRequestHeaders
             .Accept
             .Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            
+        // httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue 
+        // { 
+        //     NoCache = true 
+        // };
 
         var responseMessage = await HttpResponseMessage(endpoint, httpClient);
         return responseMessage;
@@ -199,11 +210,15 @@ public class APIService : IAPIService
         _token = token;
     }
 
-    private T TryDeserializeJson<T>(string response)
+    private T? TryDeserializeJson<T>(string json)
     {
         try
         {
-            return JsonConvert.DeserializeObject<T>(response);
+            var settings = new JsonSerializerSettings
+            {
+                DateParseHandling = DateParseHandling.None
+            };
+            return JsonConvert.DeserializeObject<T>(json, settings);
         }
         catch (JsonException)
         {
@@ -215,14 +230,22 @@ public class APIService : IAPIService
     private async Task<HttpResponseMessage> HttpResponseMessage(IEndpoint endpoint, HttpClient client)
     {
         client.Timeout = TimeSpan.FromSeconds(10);
-        await AddAuthorizationHeaderIfNeeded(client);
+        AddAuthorizationHeaderIfNeeded(client, endpoint);
 
         var fullUrl = endpoint.BaseUrl + endpoint.Url;
         return await GetHttpResponseMessage(endpoint, client, fullUrl, endpoint.Payload);
     }
 
-    private async Task AddAuthorizationHeaderIfNeeded(HttpClient client)
+    private void AddAuthorizationHeaderIfNeeded(HttpClient client, IEndpoint endpoint)
     {
+        if (endpoint is CmsEndpoint)
+        {
+            var appKey = AppAmbitSdk.AppKey;
+            if (!string.IsNullOrEmpty(appKey))
+                client.DefaultRequestHeaders.TryAddWithoutValidation("X-App-Key", appKey);
+            return;
+        }
+
         var token = GetToken();
         if (!string.IsNullOrEmpty(token))
         {
@@ -312,7 +335,7 @@ private string SerializeStringPayload(object payload)
     private string SerializedGetURL(string url, object payload)
     {
         var serializedParameters = SerializeStringPayload(payload);
-        if (serializedParameters == null)
+        if (string.IsNullOrEmpty(serializedParameters))
         {
             return url;
         }

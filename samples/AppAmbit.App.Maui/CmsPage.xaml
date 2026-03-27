@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:AppAmbitTestingApp"
+             xmlns:models="clr-namespace:AppAmbitTestingApp.Models"
+             x:Class="AppAmbitTestingApp.CmsPage"
+             Title="CMS Showcase">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Controls -->
+        <VerticalStackLayout Grid.Row="0" Padding="16" Spacing="10">
+
+            <Label Text="CMS Query Builder"
+                   FontSize="20" FontAttributes="Bold"
+                   HorizontalOptions="Center" />
+
+            <!-- Filter Picker + Apply button -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Picker x:Name="FilterPicker"
+                        Title="Select a filter..."
+                        HorizontalOptions="FillAndExpand" />
+                <Button Text="Apply"
+                        Clicked="OnApplyFilterClicked"
+                        HorizontalOptions="End" />
+            </Grid>
+
+            <!-- Search -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Entry x:Name="SearchEntry"
+                       Placeholder="Search term..."
+                       HorizontalOptions="FillAndExpand" />
+                <Button Text="Search"
+                        Clicked="OnSearchClicked"
+                        HorizontalOptions="End" />
+            </Grid>
+
+            <!-- Get All / Reset -->
+            <Button Text="Get All List"
+                    Clicked="OnFetchListClicked" />
+
+        </VerticalStackLayout>
+
+        <!-- Results -->
+        <CollectionView Grid.Row="1" x:Name="ResultsList" Margin="16,0,16,16">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:CmsExampleModel">
+                    <Frame Margin="0,4" Padding="12" HasShadow="True"
+                           BackgroundColor="{AppThemeBinding Light=White, Dark=Black}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding ProductName}"
+                                   FontAttributes="Bold" FontSize="14"
+                                   TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                            <Label Text="{Binding Description}"
+                                   FontSize="12" TextColor="Gray"
+                                   MaxLines="2" LineBreakMode="TailTruncation" />
+                            <HorizontalStackLayout Spacing="12">
+                                <Label Text="{Binding ItemSku}"
+                                       FontSize="11"
+                                       TextColor="{AppThemeBinding Light=DimGray, Dark=LightGray}" />
+                                <Label Text="{Binding Price, StringFormat='${0:F2}'}"
+                                       FontSize="11" TextColor="ForestGreen" FontAttributes="Bold" />
+                                <Label Text="{Binding PublishedAt, StringFormat='Published: {0:d}'}"
+                                       FontSize="11" TextColor="DimGray" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+</ContentPage>

@@ -3,6 +3,7 @@ using AppAmbit.Enums;
 using AppAmbit.Models.Analytics;
 using AppAmbit.Models.App;
 using AppAmbit.Models.Breadcrumbs;
+using AppAmbit.Models.Cms;
 using AppAmbit.Models.Logs;
 using AppAmbit.Models.RemoteConfigs;
 using AppAmbit.Services.Interfaces;
@@ -29,6 +30,7 @@ public class StorageService : IStorageService
         await _database.CreateTableAsync<SessionBatch>();
         await _database.CreateTableAsync<BreadcrumbsEntity>();
         await _database.CreateTableAsync<RemoteConfigEntity>();
+        await _database.CreateTableAsync<CmsCacheEntity>();
         await EnsureAppSecretsColumns();
     }
 
@@ -540,4 +542,63 @@ public class StorageService : IStorageService
             .FirstOrDefaultAsync();
         return config?.Value;
     }
+
+    #region CMS
+
+    public async Task<CmsCacheEntity?> GetCmsEntryAsync(string contentType)
+    {
+        return await _database.Table<CmsCacheEntity>()
+            .Where(c => c.ContentType == contentType)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+    }
+
+    public async Task UpsertCmsEntryAsync(CmsCacheEntity entry)
+    {
+        if (entry == null) return;
+        await _database.InsertOrReplaceAsync(entry).ConfigureAwait(false);
+    }
+
+    public async Task DeleteCmsEntryAsync(string contentType)
+    {
+        await _database.Table<CmsCacheEntity>()
+            .Where(x => x.ContentType == contentType)
+            .DeleteAsync()
+            .ConfigureAwait(false);
+    }
+
+    public async Task DeleteAllCmsEntriesAsync()
+    {
+        await _database.DeleteAllAsync<CmsCacheEntity>().ConfigureAwait(false);
+    }
+
+    public async Task<List<string>> QueryCmsDataAsync(string contentType, string? filterClause, string[]? selectionArgs, string? orderBy, int limit, int offset)
+    {
+        var results = new List<string>();
+        var query = "SELECT json_extract(value, '$') FROM CmsEntries, json_each(JsonData, '$.data') WHERE ContentType = ?";
+
+        if (!string.IsNullOrEmpty(filterClause))
+            query += " AND (" + filterClause + ")";
+
+        if (!string.IsNullOrEmpty(orderBy))
+            query += " ORDER BY " + orderBy;
+
+        if (limit > 0)
+        {
+            query += " LIMIT " + limit;
+            if (offset > 0)
+                query += " OFFSET " + offset;
+        }
+
+        var extraArgs = selectionArgs ?? Array.Empty<string>();
+        var args = new object[extraArgs.Length + 1];
+        args[0] = contentType;
+        for (int i = 0; i < extraArgs.Length; i++)
+            args[i + 1] = extraArgs[i];
+
+        var rows = await _database.QueryScalarsAsync<string>(query, args).ConfigureAwait(false);
+        return rows ?? results;
+    }
+
+    #endregion
 }
