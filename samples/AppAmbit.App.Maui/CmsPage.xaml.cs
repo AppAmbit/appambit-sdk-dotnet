@@ -9,7 +9,7 @@ public partial class CmsPage : ContentPage
     private const string Collection = "tech_inventory";
 
     // Filter definitions: label shown in Picker → factory that builds the query
-    private readonly List<(string Label, Func<CmsQueryBuilder<CmsExampleModel>> Build)> _filters;
+    private readonly List<(string Label, Func<ICmsQueryBuilder<CmsExampleModel>> Build)> _filters;
 
     public CmsPage()
     {
@@ -57,9 +57,9 @@ public partial class CmsPage : ContentPage
 
             // Pagination
             ("Pagination: Page 1, 2 per page",
-                () => Cms.For<CmsExampleModel>(Collection).SetPage(1).SetPerPage(2)),
+                () => Cms.For<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
             ("Pagination: Page 2, 2 per page",
-                () => Cms.For<CmsExampleModel>(Collection).SetPage(2).SetPerPage(2)),
+                () => Cms.For<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
         };
 
         FilterPicker.ItemsSource = _filters.Select(f => f.Label).ToList();
@@ -90,7 +90,7 @@ public partial class CmsPage : ContentPage
             await LoadResults(Cms.For<CmsExampleModel>(Collection).Search(term));
     }
 
-    private async Task LoadResults(CmsQueryBuilder<CmsExampleModel> query)
+    private async Task LoadResults(ICmsQueryBuilder<CmsExampleModel> query)
     {
         try
         {

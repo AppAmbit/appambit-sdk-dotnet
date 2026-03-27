@@ -27,7 +27,7 @@ public class MainActivity : Activity
     bool _isUpdatingPushButton;
 
     // Filters for CMS
-    private List<(string Label, Func<AppAmbit.CmsQueryBuilder<CmsExampleModel>> Build)>? _cmsFilters;
+    private List<(string Label, Func<AppAmbit.ICmsQueryBuilder<CmsExampleModel>> Build)>? _cmsFilters;
 
     int L(string name) => Resources.GetIdentifier(name, "layout", PackageName);
     int I(string name) => Resources.GetIdentifier(name, "id", PackageName);
@@ -394,8 +394,8 @@ public class MainActivity : Activity
             ("In List: [TEC-01, TEC-02]", () => AppAmbit.Cms.For<CmsExampleModel>(collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
             ("Greater Than: price > 500", () => AppAmbit.Cms.For<CmsExampleModel>(collection).GreaterThan("price", 500)),
             ("Order By price DESC", () => AppAmbit.Cms.For<CmsExampleModel>(collection).OrderByDescending("price")),
-            ("Pagination: Page 1, 2 items", () => AppAmbit.Cms.For<CmsExampleModel>(collection).SetPage(1).SetPerPage(2)),
-            ("Pagination: Page 2, 2 items", () => AppAmbit.Cms.For<CmsExampleModel>(collection).SetPage(2).SetPerPage(2)),
+            ("Pagination: Page 1, 2 items", () => AppAmbit.Cms.For<CmsExampleModel>(collection).GetPage(1).GetPerPage(2)),
+            ("Pagination: Page 2, 2 items", () => AppAmbit.Cms.For<CmsExampleModel>(collection).GetPage(2).GetPerPage(2)),
         };
 
         var filterNames = _cmsFilters.Select(f => f.Label).ToList();
@@ -403,7 +403,7 @@ public class MainActivity : Activity
         arrayAdapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
         spinner.Adapter = arrayAdapter;
 
-        async Task LoadResults(AppAmbit.CmsQueryBuilder<CmsExampleModel> query)
+        async Task LoadResults(AppAmbit.ICmsQueryBuilder<CmsExampleModel> query)
         {
             try
             {
@@ -421,7 +421,7 @@ public class MainActivity : Activity
 
         btnGetAll.Click += async (s, e) => 
         {
-            await AppAmbit.Cms.Clear("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
+            await AppAmbit.Cms.ClearCache("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
             await LoadResults(AppAmbit.Cms.For<CmsExampleModel>(collection));
         };
 

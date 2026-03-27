@@ -19,7 +19,7 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
     private CmsTableViewSource _source = null!;
     private const string CollectionName = "tech_inventory";
 
-    private List<(string Label, Func<CmsQueryBuilder<CmsExampleModel>> Build)> _cmsFilters = new();
+    private List<(string Label, Func<ICmsQueryBuilder<CmsExampleModel>> Build)> _cmsFilters = new();
 
     public override void ViewDidLoad()
     {
@@ -44,8 +44,8 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
             ("In List: [TEC-01, TEC-02]", () => Cms.For<CmsExampleModel>(CollectionName).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
             ("Greater Than: price > 500", () => Cms.For<CmsExampleModel>(CollectionName).GreaterThan("price", 500)),
             ("Order By price DESC", () => Cms.For<CmsExampleModel>(CollectionName).OrderByDescending("price")),
-            ("Pagination: Page 1, 2 items", () => Cms.For<CmsExampleModel>(CollectionName).SetPage(1).SetPerPage(2)),
-            ("Pagination: Page 2, 2 items", () => Cms.For<CmsExampleModel>(CollectionName).SetPage(2).SetPerPage(2)),
+            ("Pagination: Page 1, 2 items", () => Cms.For<CmsExampleModel>(CollectionName).GetPage(1).GetPerPage(2)),
+            ("Pagination: Page 2, 2 items", () => Cms.For<CmsExampleModel>(CollectionName).GetPage(2).GetPerPage(2)),
         };
     }
 
@@ -65,7 +65,7 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
         _btnGetAll.TranslatesAutoresizingMaskIntoConstraints = false;
         _btnGetAll.TouchUpInside += async (s, e) =>
         {
-            await Cms.Clear("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
+            await Cms.ClearCache("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
             await LoadResults(Cms.For<CmsExampleModel>(CollectionName));
         };
 
@@ -127,7 +127,7 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
             _ = LoadResults(Cms.For<CmsExampleModel>(CollectionName).Search(term));
     }
 
-    private async Task LoadResults(CmsQueryBuilder<CmsExampleModel> query)
+    private async Task LoadResults(ICmsQueryBuilder<CmsExampleModel> query)
     {
         try
         {

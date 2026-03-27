@@ -26,13 +26,13 @@ public static class Cms
     internal static IAPIService? ApiService => _apiService;
     internal static IStorageService? StorageService => _storageService;
 
-    public static Task Clear(string contentType)
+    public static Task ClearCache(string contentType)
         => StorageService?.DeleteCmsEntryAsync(contentType) ?? Task.CompletedTask;
 
-    public static Task ClearAll()
+    public static Task ClearAllCache()
         => StorageService?.DeleteAllCmsEntriesAsync() ?? Task.CompletedTask;
 
-    public static CmsQueryBuilder<T> For<T>(string contentType) where T : class
+    public static ICmsQueryBuilder<T> For<T>(string contentType) where T : class
     {
         return new CmsQueryBuilder<T>(contentType);
     }

@@ -8,7 +8,7 @@ using System.Text;
 
 namespace AppAmbit;
 
-public class CmsQueryBuilder<T> where T : class
+public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
 {
     private readonly string _contentType;
     private static IAPIService? ApiService => Cms.ApiService;
@@ -25,7 +25,7 @@ public class CmsQueryBuilder<T> where T : class
         _contentType = contentType;
     }
 
-    public CmsQueryBuilder<T> Search(string query)
+    public ICmsQueryBuilder<T> Search(string query)
     {
         var trimmed = query?.Trim() ?? "";
         if (!string.IsNullOrEmpty(trimmed))
@@ -37,17 +37,17 @@ public class CmsQueryBuilder<T> where T : class
         return this;
     }
 
-    public CmsQueryBuilder<T> Equals(string field, string value) => AddCondition(field, "=", value);
-    public CmsQueryBuilder<T> NotEquals(string field, string value) => AddCondition(field, "!=", value);
-    public CmsQueryBuilder<T> Contains(string field, string value) => AddCondition(field, "LIKE", $"%{value}%");
-    public CmsQueryBuilder<T> StartsWith(string field, string value) => AddCondition(field, "LIKE", $"{value}%");
+    public ICmsQueryBuilder<T> Equals(string field, string value) => AddCondition(field, "=", value);
+    public ICmsQueryBuilder<T> NotEquals(string field, string value) => AddCondition(field, "!=", value);
+    public ICmsQueryBuilder<T> Contains(string field, string value) => AddCondition(field, "LIKE", $"%{value}%");
+    public ICmsQueryBuilder<T> StartsWith(string field, string value) => AddCondition(field, "LIKE", $"{value}%");
 
-    public CmsQueryBuilder<T> GreaterThan(string field, object value) => AddNumericCondition(field, ">", value);
-    public CmsQueryBuilder<T> GreaterThanOrEqual(string field, object value) => AddNumericCondition(field, ">=", value);
-    public CmsQueryBuilder<T> LessThan(string field, object value) => AddNumericCondition(field, "<", value);
-    public CmsQueryBuilder<T> LessThanOrEqual(string field, object value) => AddNumericCondition(field, "<=", value);
+    public ICmsQueryBuilder<T> GreaterThan(string field, object value) => AddNumericCondition(field, ">", value);
+    public ICmsQueryBuilder<T> GreaterThanOrEqual(string field, object value) => AddNumericCondition(field, ">=", value);
+    public ICmsQueryBuilder<T> LessThan(string field, object value) => AddNumericCondition(field, "<", value);
+    public ICmsQueryBuilder<T> LessThanOrEqual(string field, object value) => AddNumericCondition(field, "<=", value);
 
-    public CmsQueryBuilder<T> InList(string field, IEnumerable<string> values)
+    public ICmsQueryBuilder<T> InList(string field, IEnumerable<string> values)
     {
         var list = values.ToList();
         if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
@@ -61,7 +61,7 @@ public class CmsQueryBuilder<T> where T : class
         return this;
     }
 
-    public CmsQueryBuilder<T> NotInList(string field, IEnumerable<string> values)
+    public ICmsQueryBuilder<T> NotInList(string field, IEnumerable<string> values)
     {
         var list = values.ToList();
         if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
@@ -75,22 +75,22 @@ public class CmsQueryBuilder<T> where T : class
         return this;
     }
 
-    public CmsQueryBuilder<T> OrderByAscending(string field)
+    public ICmsQueryBuilder<T> OrderByAscending(string field)
     {
         _orderByClause = $"json_extract(value, '$.{field}') ASC";
         return this;
     }
 
-    public CmsQueryBuilder<T> OrderByDescending(string field)
+    public ICmsQueryBuilder<T> OrderByDescending(string field)
     {
         _orderByClause = $"json_extract(value, '$.{field}') DESC";
         return this;
     }
 
-    public CmsQueryBuilder<T> SetPage(int page) { _page = page; return this; }
-    public CmsQueryBuilder<T> SetPerPage(int perPage) { _perPage = perPage; return this; }
+    public ICmsQueryBuilder<T> GetPage(int page) { _page = page; return this; }
+    public ICmsQueryBuilder<T> GetPerPage(int perPage) { _perPage = perPage; return this; }
 
-    private CmsQueryBuilder<T> AddCondition(string field, string op, string value)
+    private ICmsQueryBuilder<T> AddCondition(string field, string op, string value)
     {
         if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
         _sqlClause.Append($"json_extract(value, '$.{field}') {op} ?");
@@ -98,7 +98,7 @@ public class CmsQueryBuilder<T> where T : class
         return this;
     }
 
-    private CmsQueryBuilder<T> AddNumericCondition(string field, string op, object value)
+    private ICmsQueryBuilder<T> AddNumericCondition(string field, string op, object value)
     {
         if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
         _sqlClause.Append($"CAST(json_extract(value, '$.{field}') AS REAL) {op} ?");
