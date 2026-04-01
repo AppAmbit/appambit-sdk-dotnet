@@ -19,47 +19,47 @@ public partial class CmsPage : ContentPage
         {
             // Equality
             ("Equals: item_sku = TEC-02",
-                () => Cms.For<CmsExampleModel>(Collection).Equals("item_sku", "TEC-02")),
+                () => Cms.Content<CmsExampleModel>(Collection).Equals("item_sku", "TEC-02")),
             ("Not Equals: item_sku ≠ TEC-02",
-                () => Cms.For<CmsExampleModel>(Collection).NotEquals("item_sku", "TEC-02")),
+                () => Cms.Content<CmsExampleModel>(Collection).NotEquals("item_sku", "TEC-02")),
             ("Equals: category = Electronics",
-                () => Cms.For<CmsExampleModel>(Collection).Equals("category", "Electronics")),
+                () => Cms.Content<CmsExampleModel>(Collection).Equals("category", "Electronics")),
             ("Boolean: in_stock = true",
-                () => Cms.For<CmsExampleModel>(Collection).Equals("in_stock", "true")),
+                () => Cms.Content<CmsExampleModel>(Collection).Equals("in_stock", "true")),
 
             // Text matching
             ("Contains: product_name contains 'Pro'",
-                () => Cms.For<CmsExampleModel>(Collection).Contains("product_name", "Pro")),
+                () => Cms.Content<CmsExampleModel>(Collection).Contains("product_name", "Pro")),
             ("Starts With: item_sku starts with 'TEC'",
-                () => Cms.For<CmsExampleModel>(Collection).StartsWith("item_sku", "TEC")),
+                () => Cms.Content<CmsExampleModel>(Collection).StartsWith("item_sku", "TEC")),
 
             // List membership
             ("In List: item_sku in [TEC-01, TEC-02]",
-                () => Cms.For<CmsExampleModel>(Collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
+                () => Cms.Content<CmsExampleModel>(Collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
             ("Not In List: item_sku not in [TEC-01, TEC-02]",
-                () => Cms.For<CmsExampleModel>(Collection).NotInList("item_sku", new[] { "TEC-01", "TEC-02" })),
+                () => Cms.Content<CmsExampleModel>(Collection).NotInList("item_sku", new[] { "TEC-01", "TEC-02" })),
 
             // Numeric comparisons
             ("Greater Than: price > 500",
-                () => Cms.For<CmsExampleModel>(Collection).GreaterThan("price", 500)),
+                () => Cms.Content<CmsExampleModel>(Collection).GreaterThan("price", 500)),
             ("Greater Or Equal: price >= 500",
-                () => Cms.For<CmsExampleModel>(Collection).GreaterThanOrEqual("price", 500)),
+                () => Cms.Content<CmsExampleModel>(Collection).GreaterThanOrEqual("price", 500)),
             ("Less Than: price < 500",
-                () => Cms.For<CmsExampleModel>(Collection).LessThan("price", 500)),
+                () => Cms.Content<CmsExampleModel>(Collection).LessThan("price", 500)),
             ("Less Or Equal: price <= 500",
-                () => Cms.For<CmsExampleModel>(Collection).LessThanOrEqual("price", 500)),
+                () => Cms.Content<CmsExampleModel>(Collection).LessThanOrEqual("price", 500)),
 
             // Sorting
             ("Order By price ASC",
-                () => Cms.For<CmsExampleModel>(Collection).OrderByAscending("price")),
+                () => Cms.Content<CmsExampleModel>(Collection).OrderByAscending("price")),
             ("Order By price DESC",
-                () => Cms.For<CmsExampleModel>(Collection).OrderByDescending("price")),
+                () => Cms.Content<CmsExampleModel>(Collection).OrderByDescending("price")),
 
             // Pagination
             ("Pagination: Page 1, 2 per page",
-                () => Cms.For<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
+                () => Cms.Content<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
             ("Pagination: Page 2, 2 per page",
-                () => Cms.For<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
+                () => Cms.Content<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
         };
 
         FilterPicker.ItemsSource = _filters.Select(f => f.Label).ToList();
@@ -67,7 +67,7 @@ public partial class CmsPage : ContentPage
 
     private async void OnFetchListClicked(object sender, EventArgs e)
     {
-        await LoadResults(Cms.For<CmsExampleModel>(Collection));
+        await LoadResults(Cms.Content<CmsExampleModel>(Collection));
     }
 
     // Apply selected filter from Picker
@@ -87,7 +87,7 @@ public partial class CmsPage : ContentPage
     {
         var term = SearchEntry.Text?.Trim();
         if (!string.IsNullOrWhiteSpace(term))
-            await LoadResults(Cms.For<CmsExampleModel>(Collection).Search(term));
+            await LoadResults(Cms.Content<CmsExampleModel>(Collection).Search(term));
     }
 
     private async Task LoadResults(ICmsQueryBuilder<CmsExampleModel> query)

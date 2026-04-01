@@ -30,22 +30,22 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
         SetupFilters();
         SetupUI();
 
-        _ = LoadResults(Cms.For<CmsExampleModel>(CollectionName));
+        _ = LoadResults(Cms.Content<CmsExampleModel>(CollectionName));
     }
 
     private void SetupFilters()
     {
         _cmsFilters = new()
         {
-            ("Equals: item_sku = TEC-02", () => Cms.For<CmsExampleModel>(CollectionName).Equals("item_sku", "TEC-02")),
-            ("Not Equals: item_sku ≠ TEC-02", () => Cms.For<CmsExampleModel>(CollectionName).NotEquals("item_sku", "TEC-02")),
-            ("Contains: product_name contains 'Pro'", () => Cms.For<CmsExampleModel>(CollectionName).Contains("product_name", "Pro")),
-            ("Starts With: item_sku starts with 'TEC'", () => Cms.For<CmsExampleModel>(CollectionName).StartsWith("item_sku", "TEC")),
-            ("In List: [TEC-01, TEC-02]", () => Cms.For<CmsExampleModel>(CollectionName).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
-            ("Greater Than: price > 500", () => Cms.For<CmsExampleModel>(CollectionName).GreaterThan("price", 500)),
-            ("Order By price DESC", () => Cms.For<CmsExampleModel>(CollectionName).OrderByDescending("price")),
-            ("Pagination: Page 1, 2 items", () => Cms.For<CmsExampleModel>(CollectionName).GetPage(1).GetPerPage(2)),
-            ("Pagination: Page 2, 2 items", () => Cms.For<CmsExampleModel>(CollectionName).GetPage(2).GetPerPage(2)),
+            ("Equals: item_sku = TEC-02", () => Cms.Content<CmsExampleModel>(CollectionName).Equals("item_sku", "TEC-02")),
+            ("Not Equals: item_sku ≠ TEC-02", () => Cms.Content<CmsExampleModel>(CollectionName).NotEquals("item_sku", "TEC-02")),
+            ("Contains: product_name contains 'Pro'", () => Cms.Content<CmsExampleModel>(CollectionName).Contains("product_name", "Pro")),
+            ("Starts With: item_sku starts with 'TEC'", () => Cms.Content<CmsExampleModel>(CollectionName).StartsWith("item_sku", "TEC")),
+            ("In List: [TEC-01, TEC-02]", () => Cms.Content<CmsExampleModel>(CollectionName).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
+            ("Greater Than: price > 500", () => Cms.Content<CmsExampleModel>(CollectionName).GreaterThan("price", 500)),
+            ("Order By price DESC", () => Cms.Content<CmsExampleModel>(CollectionName).OrderByDescending("price")),
+            ("Pagination: Page 1, 2 items", () => Cms.Content<CmsExampleModel>(CollectionName).GetPage(1).GetPerPage(2)),
+            ("Pagination: Page 2, 2 items", () => Cms.Content<CmsExampleModel>(CollectionName).GetPage(2).GetPerPage(2)),
         };
     }
 
@@ -66,7 +66,7 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
         _btnGetAll.TouchUpInside += async (s, e) =>
         {
             await Cms.ClearCache("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
-            await LoadResults(Cms.For<CmsExampleModel>(CollectionName));
+            await LoadResults(Cms.Content<CmsExampleModel>(CollectionName));
         };
 
         // Filter Menu Button
@@ -124,7 +124,7 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
         searchBar.ResignFirstResponder();
         var term = searchBar.Text?.Trim();
         if (!string.IsNullOrEmpty(term))
-            _ = LoadResults(Cms.For<CmsExampleModel>(CollectionName).Search(term));
+            _ = LoadResults(Cms.Content<CmsExampleModel>(CollectionName).Search(term));
     }
 
     private async Task LoadResults(ICmsQueryBuilder<CmsExampleModel> query)

@@ -32,7 +32,7 @@ public static class Cms
     public static Task ClearAllCache()
         => StorageService?.DeleteAllCmsEntriesAsync() ?? Task.CompletedTask;
 
-    public static ICmsQueryBuilder<T> For<T>(string contentType) where T : class
+    public static ICmsQueryBuilder<T> Content<T>(string contentType) where T : class
     {
         return new CmsQueryBuilder<T>(contentType);
     }

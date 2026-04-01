@@ -17,6 +17,7 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
     private readonly StringBuilder _sqlClause = new();
     private readonly List<string> _selectionArgs = new();
     private string? _orderByClause;
+    private bool _isPaginated;
     private int _page = 1;
     private int _perPage = 20;
 
@@ -87,8 +88,8 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
         return this;
     }
 
-    public ICmsQueryBuilder<T> GetPage(int page) { _page = page; return this; }
-    public ICmsQueryBuilder<T> GetPerPage(int perPage) { _perPage = perPage; return this; }
+    public ICmsQueryBuilder<T> GetPage(int page) { _isPaginated = true; _page = page; return this; }
+    public ICmsQueryBuilder<T> GetPerPage(int perPage) { _isPaginated = true; _perPage = perPage; return this; }
 
     private ICmsQueryBuilder<T> AddCondition(string field, string op, string value)
     {
@@ -111,8 +112,8 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
         if (ApiService == null || StorageService == null)
             return new List<T>();
 
-        int limit = _perPage;
-        int offset = (_page - 1) * _perPage;
+        int limit = _isPaginated ? _perPage : 0;
+        int offset = _isPaginated ? (_page - 1) * _perPage : 0;
 
         bool isAlreadyFetched;
         lock (Cms.FetchedContentTypes)
@@ -247,7 +248,6 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
 
             if (firstResult == null) return null;
 
-            // PAGE 1 INVALIDATION RULES
             bool isNotFound = firstResult.ErrorType == Enums.ApiErrorType.NotFound;
             bool isEmpty = firstResult.Data != null 
                            && firstResult.Data["data"] is JArray arr 

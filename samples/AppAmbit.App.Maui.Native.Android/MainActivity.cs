@@ -387,15 +387,15 @@ public class MainActivity : Activity
 
         _cmsFilters = new()
         {
-            ("Equals: item_sku = TEC-02", () => AppAmbit.Cms.For<CmsExampleModel>(collection).Equals("item_sku", "TEC-02")),
-            ("Not Equals: item_sku ≠ TEC-02", () => AppAmbit.Cms.For<CmsExampleModel>(collection).NotEquals("item_sku", "TEC-02")),
-            ("Contains: product_name contains 'Pro'", () => AppAmbit.Cms.For<CmsExampleModel>(collection).Contains("product_name", "Pro")),
-            ("Starts With: item_sku starts with 'TEC'", () => AppAmbit.Cms.For<CmsExampleModel>(collection).StartsWith("item_sku", "TEC")),
-            ("In List: [TEC-01, TEC-02]", () => AppAmbit.Cms.For<CmsExampleModel>(collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
-            ("Greater Than: price > 500", () => AppAmbit.Cms.For<CmsExampleModel>(collection).GreaterThan("price", 500)),
-            ("Order By price DESC", () => AppAmbit.Cms.For<CmsExampleModel>(collection).OrderByDescending("price")),
-            ("Pagination: Page 1, 2 items", () => AppAmbit.Cms.For<CmsExampleModel>(collection).GetPage(1).GetPerPage(2)),
-            ("Pagination: Page 2, 2 items", () => AppAmbit.Cms.For<CmsExampleModel>(collection).GetPage(2).GetPerPage(2)),
+            ("Equals: item_sku = TEC-02", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Equals("item_sku", "TEC-02")),
+            ("Not Equals: item_sku ≠ TEC-02", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).NotEquals("item_sku", "TEC-02")),
+            ("Contains: product_name contains 'Pro'", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Contains("product_name", "Pro")),
+            ("Starts With: item_sku starts with 'TEC'", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).StartsWith("item_sku", "TEC")),
+            ("In List: [TEC-01, TEC-02]", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
+            ("Greater Than: price > 500", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GreaterThan("price", 500)),
+            ("Order By price DESC", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByDescending("price")),
+            ("Pagination: Page 1, 2 items", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(1).GetPerPage(2)),
+            ("Pagination: Page 2, 2 items", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(2).GetPerPage(2)),
         };
 
         var filterNames = _cmsFilters.Select(f => f.Label).ToList();
@@ -422,7 +422,7 @@ public class MainActivity : Activity
         btnGetAll.Click += async (s, e) => 
         {
             await AppAmbit.Cms.ClearCache("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
-            await LoadResults(AppAmbit.Cms.For<CmsExampleModel>(collection));
+            await LoadResults(AppAmbit.Cms.Content<CmsExampleModel>(collection));
         };
 
         btnApply.Click += async (s, e) =>
@@ -439,7 +439,7 @@ public class MainActivity : Activity
         {
             var term = etSearch.Text?.Trim();
             if (!string.IsNullOrEmpty(term))
-                await LoadResults(AppAmbit.Cms.For<CmsExampleModel>(collection).Search(term));
+                await LoadResults(AppAmbit.Cms.Content<CmsExampleModel>(collection).Search(term));
         };
     }
 }
