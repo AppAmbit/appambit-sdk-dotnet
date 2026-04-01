@@ -256,7 +256,6 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
 
             if (isNotFound || isEmpty)
             {
-                await StorageService!.DeleteCmsEntryAsync(_contentType).ConfigureAwait(false);
                 return null;
             }
 
