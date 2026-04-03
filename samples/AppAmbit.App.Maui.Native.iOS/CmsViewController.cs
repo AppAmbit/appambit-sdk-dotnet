@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AppAmbit;
 using AppAmbitTestingiOS.Models;
+using AppAmbitTestingiOS.Utils;
 using Foundation;
 using UIKit;
 
@@ -15,6 +16,7 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
     private UISearchBar _searchBar = null!;
     private UIButton _btnFilter = null!;
     private UIButton _btnGetAll = null!;
+    private UILabel _emptyLabel = null!;
 
     private CmsTableViewSource _source = null!;
     private const string CollectionName = "tech_inventory";
@@ -65,7 +67,7 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
         _btnGetAll.TranslatesAutoresizingMaskIntoConstraints = false;
         _btnGetAll.TouchUpInside += async (s, e) =>
         {
-            await Cms.ClearCache("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
+            await Cms.ClearCache(CollectionName);
             await LoadResults(Cms.Content<CmsExampleModel>(CollectionName));
         };
 
@@ -87,13 +89,25 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
         _tableView = new UITableView
         {
             TranslatesAutoresizingMaskIntoConstraints = false,
-            RowHeight = 160
+            RowHeight = UITableView.AutomaticDimension,
+            EstimatedRowHeight = 330f
         };
         _tableView.RegisterClassForCellReuse(typeof(CmsCell), CmsCell.Key);
         _source = new CmsTableViewSource();
         _tableView.Source = _source;
 
-        View!.AddSubviews(_searchBar, _btnFilter, _btnGetAll, _tableView);
+        // Empty label
+        _emptyLabel = new UILabel
+        {
+            Text = "No entries found.",
+            TextColor = UIColor.SecondaryLabel,
+            Font = UIFont.SystemFontOfSize(14),
+            TextAlignment = UITextAlignment.Center,
+            Hidden = true,
+            TranslatesAutoresizingMaskIntoConstraints = false
+        };
+
+        View!.AddSubviews(_searchBar, _btnFilter, _btnGetAll, _tableView, _emptyLabel);
 
         // Constraints
         var g = View.SafeAreaLayoutGuide;
@@ -114,7 +128,10 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
             _tableView.TopAnchor.ConstraintEqualTo(_btnFilter.BottomAnchor, 8),
             _tableView.LeadingAnchor.ConstraintEqualTo(g.LeadingAnchor),
             _tableView.TrailingAnchor.ConstraintEqualTo(g.TrailingAnchor),
-            _tableView.BottomAnchor.ConstraintEqualTo(g.BottomAnchor)
+            _tableView.BottomAnchor.ConstraintEqualTo(g.BottomAnchor),
+
+            _emptyLabel.CenterXAnchor.ConstraintEqualTo(_tableView.CenterXAnchor),
+            _emptyLabel.CenterYAnchor.ConstraintEqualTo(_tableView.CenterYAnchor),
         });
     }
 
@@ -136,13 +153,7 @@ public class CmsViewController : UIViewController, IUISearchBarDelegate
             {
                 _source.UpdateData(items);
                 _tableView.ReloadData();
-                
-                if (items.Count == 0)
-                {
-                    var alert = UIAlertController.Create("Info", "No entries found. Cache may be empty.", UIAlertControllerStyle.Alert);
-                    alert.AddAction(UIAlertAction.Create("OK", UIAlertActionStyle.Default, null));
-                    PresentViewController(alert, true, null);
-                }
+                _emptyLabel.Hidden = items.Count != 0;
             });
         }
         catch (Exception ex)
@@ -180,6 +191,7 @@ public class CmsCell : UITableViewCell
 {
     public static readonly NSString Key = new NSString(nameof(CmsCell));
 
+    private UIImageView _imgProduct = null!;
     private UILabel _lblProduct = null!;
     private UILabel _lblCategory = null!;
     private UILabel _lblDesc = null!;
@@ -192,22 +204,38 @@ public class CmsCell : UITableViewCell
     public CmsCell(UITableViewCellStyle style, NSString reuseIdentifier) : base(style, reuseIdentifier)
     {
         SelectionStyle = UITableViewCellSelectionStyle.None;
-        
+
+        _imgProduct = new UIImageView
+        {
+            ContentMode = UIViewContentMode.ScaleAspectFill,
+            ClipsToBounds = true,
+            BackgroundColor = UIColor.SystemGray5,
+            TranslatesAutoresizingMaskIntoConstraints = false
+        };
+        _imgProduct.Layer.CornerRadius = 0;
+
         _lblProduct = new UILabel { Font = UIFont.BoldSystemFontOfSize(16), TranslatesAutoresizingMaskIntoConstraints = false };
         _lblCategory = new UILabel { Font = UIFont.BoldSystemFontOfSize(11), TextColor = UIColor.SystemBlue, TranslatesAutoresizingMaskIntoConstraints = false, TextAlignment = UITextAlignment.Right };
         _lblDesc = new UILabel { Font = UIFont.SystemFontOfSize(12), TextColor = UIColor.DarkGray, Lines = 2, TranslatesAutoresizingMaskIntoConstraints = false };
-        
+
         _lblPrice = new UILabel { Font = UIFont.BoldSystemFontOfSize(13), TextColor = UIColor.SystemGreen, TranslatesAutoresizingMaskIntoConstraints = false };
         _lblSkuLine = new UILabel { Font = UIFont.SystemFontOfSize(12), TextColor = UIColor.Gray, TranslatesAutoresizingMaskIntoConstraints = false };
-        
+
         _lblSupport = new UILabel { Font = UIFont.SystemFontOfSize(11), TextColor = UIColor.LightGray, TranslatesAutoresizingMaskIntoConstraints = false };
         _lblIdAndDates = new UILabel { Font = UIFont.SystemFontOfSize(10), TextColor = UIColor.LightGray, Lines = 2, TranslatesAutoresizingMaskIntoConstraints = false, LineBreakMode = UILineBreakMode.MiddleTruncation };
 
-        ContentView.AddSubviews(_lblProduct, _lblCategory, _lblDesc, _lblPrice, _lblSkuLine, _lblSupport, _lblIdAndDates);
+        ContentView.AddSubviews(_imgProduct, _lblProduct, _lblCategory, _lblDesc, _lblPrice, _lblSkuLine, _lblSupport, _lblIdAndDates);
 
         NSLayoutConstraint.ActivateConstraints(new[]
         {
-            _lblProduct.TopAnchor.ConstraintEqualTo(ContentView.TopAnchor, 12),
+            // Image — full width banner at top
+            _imgProduct.TopAnchor.ConstraintEqualTo(ContentView.TopAnchor),
+            _imgProduct.LeadingAnchor.ConstraintEqualTo(ContentView.LeadingAnchor),
+            _imgProduct.TrailingAnchor.ConstraintEqualTo(ContentView.TrailingAnchor),
+            _imgProduct.HeightAnchor.ConstraintEqualTo(150f),
+
+            // Product name + category below image
+            _lblProduct.TopAnchor.ConstraintEqualTo(_imgProduct.BottomAnchor, 12),
             _lblProduct.LeadingAnchor.ConstraintEqualTo(ContentView.LeadingAnchor, 16),
             _lblProduct.TrailingAnchor.ConstraintLessThanOrEqualTo(_lblCategory.LeadingAnchor, -8),
 
@@ -231,17 +259,23 @@ public class CmsCell : UITableViewCell
             _lblIdAndDates.TopAnchor.ConstraintEqualTo(_lblSupport.BottomAnchor, 8),
             _lblIdAndDates.LeadingAnchor.ConstraintEqualTo(ContentView.LeadingAnchor, 16),
             _lblIdAndDates.TrailingAnchor.ConstraintEqualTo(ContentView.TrailingAnchor, -16),
+            _lblIdAndDates.BottomAnchor.ConstraintEqualTo(ContentView.BottomAnchor, -12),
         });
     }
 
     public void Bind(CmsExampleModel item)
     {
         _lblProduct.Text = item.ProductName;
-        _lblCategory.Text = string.IsNullOrEmpty(item.Category) ? "" : $"🏷️ {item.Category}";
+        _lblCategory.Text = item.Category?.Count > 0 ? $"🏷️ {string.Join(", ", item.Category)}" : "";
         _lblDesc.Text = item.Description;
         _lblSkuLine.Text = $"{item.ItemSku}  |  Stock: {item.InStock}";
         _lblPrice.Text = $"${item.Price:F2}";
         _lblSupport.Text = $"📧 {item.SupportEmail}";
         _lblIdAndDates.Text = $"ID: {item.Id}\nCr: {item.CreatedAt:dd/MM/yy} | Pub: {item.PublishedAt:dd/MM/yy} | Upd: {item.UpdatedAt:dd/MM/yy}";
+
+        if (!string.IsNullOrWhiteSpace(item.ProductImageUrl))
+            ImageUtils.LoadAsync(item.ProductImageUrl!, _imgProduct, item.Id ?? item.ProductImageUrl!);
+        else
+            _imgProduct.Image = null;
     }
 }

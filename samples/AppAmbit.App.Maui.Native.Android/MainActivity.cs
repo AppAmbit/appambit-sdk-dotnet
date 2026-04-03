@@ -39,7 +39,7 @@ public class MainActivity : Activity
         //Uncomment the line for automatic session management
         //Analytics.EnableManualSession();
         AppAmbit.RemoteConfig.Enable();
-        AppAmbitSdk.Start("<YOUR-APPKEY>");
+        AppAmbitSdk.Start("581a777b-4c6f-4290-93db-834c08c97e37");
 
         PushNotifications.Start(this);
         PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
@@ -377,7 +377,9 @@ public class MainActivity : Activity
         var etSearch = Find<EditText>("et_cms_search");
         var btnSearch = Find<Button>("btn_cms_search");
         var btnGetAll = Find<Button>("btn_cms_get_all");
+        var progress = Find<ProgressBar>("progress_cms_loading");
         var recycler = Find<AndroidX.RecyclerView.Widget.RecyclerView>("recycler_cms");
+        var tvEmpty = Find<TextView>("tv_cms_empty");
 
         var adapter = new CmsAdapter();
         recycler.SetLayoutManager(new AndroidX.RecyclerView.Widget.LinearLayoutManager(this));
@@ -403,25 +405,42 @@ public class MainActivity : Activity
         arrayAdapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
         spinner.Adapter = arrayAdapter;
 
+        void SetLoading(bool isLoading)
+        {
+            RunOnUiThread(() =>
+            {
+                progress.Visibility = isLoading ? Android.Views.ViewStates.Visible : Android.Views.ViewStates.Gone;
+                btnApply.Enabled = !isLoading;
+                btnSearch.Enabled = !isLoading;
+                btnGetAll.Enabled = !isLoading;
+            });
+        }
+
         async Task LoadResults(AppAmbit.ICmsQueryBuilder<CmsExampleModel> query)
         {
+            SetLoading(true);
             try
             {
                 var items = await query.GetListAsync();
-                RunOnUiThread(() => adapter.UpdateData(items));
-
-                if (items.Count == 0)
-                    ShowAlert("Info", "No entries found. Cache may be empty.");
+                RunOnUiThread(() =>
+                {
+                    adapter.UpdateData(items);
+                    tvEmpty.Visibility = items.Count == 0 ? Android.Views.ViewStates.Visible : Android.Views.ViewStates.Gone;
+                });
             }
             catch (Exception ex)
             {
                 ShowAlert("Error", ex.Message);
             }
+            finally
+            {
+                SetLoading(false);
+            }
         }
 
         btnGetAll.Click += async (s, e) => 
         {
-            await AppAmbit.Cms.ClearCache("sistema_de_gestion_de_propiedades_de_una_marinaclub_nautico");
+            await AppAmbit.Cms.ClearCache(collection);
             await LoadResults(AppAmbit.Cms.Content<CmsExampleModel>(collection));
         };
 

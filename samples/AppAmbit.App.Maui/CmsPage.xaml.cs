@@ -92,6 +92,7 @@ public partial class CmsPage : ContentPage
 
     private async Task LoadResults(ICmsQueryBuilder<CmsExampleModel> query)
     {
+        SetLoading(true);
         try
         {
             var items = await query.GetListAsync();
@@ -101,13 +102,22 @@ public partial class CmsPage : ContentPage
                 ResultsList.ItemsSource = null;
                 ResultsList.ItemsSource = items;
             });
-
-            if (items.Count == 0)
-                await DisplayAlert("Info", "No entries found. Cache may be empty — try again in a few seconds.", "OK");
         }
         catch (Exception ex)
         {
             await DisplayAlert("Error", ex.Message, "OK");
         }
+        finally
+        {
+            SetLoading(false);
+        }
+    }
+
+    private void SetLoading(bool isLoading)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            LoadingBar.IsVisible = isLoading;
+        });
     }
 }

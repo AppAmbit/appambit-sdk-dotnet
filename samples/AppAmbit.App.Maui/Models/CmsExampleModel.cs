@@ -9,7 +9,7 @@ namespace AppAmbitTestingApp.Models
         public decimal Price { get; set; }
 
         [JsonProperty("category")]
-        public string Category { get; set; }
+        public List<string>? Category { get; set; }
 
         [JsonProperty("in_stock")]
         public bool InStock { get; set; }
@@ -27,7 +27,10 @@ namespace AppAmbitTestingApp.Models
         public string ProductName { get; set; }
 
         [JsonProperty("product_image")]
-        public string ProductImage { get; set; }
+        public string? ProductImage { get; set; }
+
+        [JsonProperty("product_image_url")]
+        public string? ProductImageUrl { get; set; }
 
         [JsonProperty("support_email")]
         public string SupportEmail { get; set; }

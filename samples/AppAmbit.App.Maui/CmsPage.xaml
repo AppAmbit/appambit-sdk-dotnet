@@ -3,10 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:AppAmbitTestingApp"
              xmlns:models="clr-namespace:AppAmbitTestingApp.Models"
+             xmlns:utils="clr-namespace:AppAmbitTestingApp.Utils"
              x:Class="AppAmbitTestingApp.CmsPage"
              Title="CMS Showcase">
 
-    <Grid RowDefinitions="Auto,*">
+    <ContentPage.Resources>
+        <utils:ListToStringConverter x:Key="ListToStringConverter" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Controls -->
         <VerticalStackLayout Grid.Row="0" Padding="16" Spacing="10">
@@ -41,8 +46,15 @@
 
         </VerticalStackLayout>
 
+        <ProgressBar Grid.Row="1"
+                     x:Name="LoadingBar"
+                     IsVisible="False"
+                     IsIndeterminate="True"
+                     HeightRequest="3"
+                     Margin="16,0,16,8" />
+
         <!-- Results -->
-        <CollectionView Grid.Row="1" x:Name="ResultsList" Margin="16,0,16,16">
+        <CollectionView Grid.Row="2" x:Name="ResultsList" Margin="16,0,16,16">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:CmsExampleModel">
                     <Frame Margin="0,6" Padding="12" HasShadow="True" BorderColor="Transparent" CornerRadius="12"
@@ -51,7 +63,7 @@
                             
                             <!-- Image -->
                             <Frame Grid.Column="0" HeightRequest="80" WidthRequest="80" Padding="0" CornerRadius="8" IsClippedToBounds="True" BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}" VerticalOptions="Start" BorderColor="Transparent">
-                                <Image Source="{Binding ProductImage}" Aspect="AspectFill" />
+                                <Image Source="{Binding ProductImageUrl}" Aspect="AspectFill" />
                             </Frame>
 
                             <VerticalStackLayout Grid.Column="1" Spacing="6">
@@ -60,7 +72,7 @@
                                 <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
                                     <Label Grid.Column="0" Text="{Binding ProductName}" FontAttributes="Bold" FontSize="16" TextColor="{AppThemeBinding Light=#212121, Dark=White}" VerticalOptions="Center" LineBreakMode="TailTruncation" />
                                     <!-- Using Label directly to avoid empty frames when Category is null -->
-                                    <Label Grid.Column="1" Text="{Binding Category, StringFormat='🏷️ {0}'}" FontSize="11" TextColor="{AppThemeBinding Light=#1976D2, Dark=#64B5F6}" FontAttributes="Bold" VerticalOptions="Center" />
+                                    <Label Grid.Column="1" Text="{Binding Category, Converter={StaticResource ListToStringConverter}, StringFormat='🏷️ {0}'}" FontSize="11" TextColor="{AppThemeBinding Light=#1976D2, Dark=#64B5F6}" FontAttributes="Bold" VerticalOptions="Center" />
                                 </Grid>
                                 
                                 <!-- Description -->

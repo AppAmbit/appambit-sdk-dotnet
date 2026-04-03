@@ -169,10 +169,10 @@ public class APIService : IAPIService
             .Accept
             .Add(new MediaTypeWithQualityHeaderValue("application/json"));
             
-        // httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue 
-        // { 
-        //     NoCache = true 
-        // };
+        httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue 
+        { 
+            NoCache = true 
+        };
 
         var responseMessage = await HttpResponseMessage(endpoint, httpClient);
         return responseMessage;
@@ -263,7 +263,6 @@ public class APIService : IAPIService
         HttpContent content;
         if (payload is Log log)
         {
-            PrintLogWithoutFile(log);
             var multipartFormDataContent = SerializeToMultipartFormDataContent(log);
             content = multipartFormDataContent;
 
@@ -280,13 +279,6 @@ public class APIService : IAPIService
         return content;
     }
 
-    [Conditional("DEBUG")]
-    private static void PrintLogWithoutFile(Log log)
-    {
-        var data = JsonConvert.SerializeObject(log);
-        Debug.WriteLine($"data:{data}");
-    }
-
     private static HttpContent SerializeToJSONStringContent(object payload)
     {
         var settings = new JsonSerializerSettings
@@ -295,14 +287,12 @@ public class APIService : IAPIService
         };
 
         var json = JsonConvert.SerializeObject(payload, settings);
-        Debug.WriteLine($"data:{json}");
 
         return new StringContent(json, Encoding.UTF8, "application/json");
     }
 
     private MultipartFormDataContent SerializeToMultipartFormDataContent(object payload)
     {
-        Debug.WriteLine("SerializeToMultipartFormDataContent");
         var formData = new MultipartFormDataContent();
         formData.AddObjectToMultipartFormDataContent(payload);
         return formData;

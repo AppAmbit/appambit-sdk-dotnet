@@ -91,10 +91,22 @@
                         CornerRadius="10"
                         Padding="14"
                         Margin="0,0,0,4">
-                  <Grid RowDefinitions="Auto,Auto,Auto">
+                  <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+
+                    <!-- Image placeholder (left, spanning all rows) -->
+                    <Border Grid.Column="0" Grid.RowSpan="3"
+                            Width="72" Height="72"
+                            Background="#F3F4F6"
+                            CornerRadius="8"
+                            ClipToBounds="True"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Top">
+                      <Image Source="{Binding ProductBitmap}"
+                             Stretch="UniformToFill" />
+                    </Border>
 
                     <!-- Product name + InStock badge -->
-                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                    <Grid Grid.Column="1" Grid.Row="0" ColumnDefinitions="*,Auto">
                       <TextBlock Grid.Column="0"
                                  Text="{Binding ProductName}"
                                  FontWeight="SemiBold"
@@ -114,7 +126,7 @@
                     </Grid>
 
                     <!-- SKU + Price -->
-                    <StackPanel Grid.Row="1"
+                    <StackPanel Grid.Column="1" Grid.Row="1"
                                 Orientation="Horizontal"
                                 Spacing="12"
                                 Margin="0,6,0,0">
@@ -128,7 +140,7 @@
                     </StackPanel>
 
                     <!-- Description -->
-                    <TextBlock Grid.Row="2"
+                    <TextBlock Grid.Column="1" Grid.Row="2"
                                Text="{Binding Description}"
                                TextWrapping="Wrap"
                                Foreground="#374151"

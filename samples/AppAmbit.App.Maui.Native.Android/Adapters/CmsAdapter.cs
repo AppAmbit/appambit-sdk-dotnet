@@ -4,6 +4,7 @@ using Android.Views;
 using Android.Widget;
 using AndroidX.RecyclerView.Widget;
 using AppAmbitTestingAppAndroid.Models;
+using AppAmbitTestingAppAndroid.Utils;
 
 namespace AppAmbitTestingAppAndroid.Adapters;
 
@@ -39,6 +40,7 @@ public class CmsAdapter : RecyclerView.Adapter
 
     private class CmsViewHolder : RecyclerView.ViewHolder
     {
+        private readonly ImageView _ivProduct;
         private readonly TextView _tvProductName;
         private readonly TextView _tvCategory;
         private readonly TextView _tvDescription;
@@ -56,6 +58,7 @@ public class CmsAdapter : RecyclerView.Adapter
             var ctx = itemView.Context!;
             int GetId(string name) => ctx.Resources!.GetIdentifier(name, "id", ctx.PackageName);
 
+            _ivProduct = itemView.FindViewById<ImageView>(GetId("iv_product"))!;
             _tvProductName = itemView.FindViewById<TextView>(GetId("tv_product_name"))!;
             _tvCategory = itemView.FindViewById<TextView>(GetId("tv_category"))!;
             _tvDescription = itemView.FindViewById<TextView>(GetId("tv_description"))!;
@@ -72,7 +75,7 @@ public class CmsAdapter : RecyclerView.Adapter
         public void Bind(CmsExampleModel item)
         {
             _tvProductName.Text = item.ProductName;
-            _tvCategory.Text = string.IsNullOrEmpty(item.Category) ? "" : $"🏷️ {item.Category}";
+            _tvCategory.Text = item.Category?.Count > 0 ? $"🏷️ {string.Join(", ", item.Category)}" : "";
             _tvDescription.Text = item.Description;
             _tvSku.Text = item.ItemSku;
             _tvPrice.Text = $"${item.Price:F2}";
@@ -82,6 +85,10 @@ public class CmsAdapter : RecyclerView.Adapter
             _tvCreatedAt.Text = $"Cr: {item.CreatedAt:dd/MM/yyyy}";
             _tvPublishedAt.Text = $"Pub: {item.PublishedAt:dd/MM/yyyy}";
             _tvUpdatedAt.Text = $"Upd: {item.UpdatedAt:dd/MM/yyyy}";
+
+            _ivProduct.SetImageDrawable(null);
+            if (!string.IsNullOrWhiteSpace(item.ProductImageUrl))
+                ImageUtils.LoadAsync(item.ProductImageUrl!, _ivProduct, item.Id ?? item.ProductImageUrl!);
         }
     }
 }

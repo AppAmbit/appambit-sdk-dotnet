@@ -1,3 +1,4 @@
+using Avalonia.Media.Imaging;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
@@ -9,7 +10,7 @@ public class CmsExampleModel
     public decimal Price { get; set; }
 
     [JsonProperty("category")]
-    public string? Category { get; set; }
+    public List<string>? Category { get; set; }
 
     [JsonProperty("in_stock")]
     public bool InStock { get; set; }
@@ -28,6 +29,11 @@ public class CmsExampleModel
 
     [JsonProperty("product_image")]
     public string? ProductImage { get; set; }
+
+    [JsonProperty("product_image_url")]
+    public string? ProductImageUrl { get; set; }
+
+    public Bitmap? ProductBitmap { get; set; }
 
     [JsonProperty("support_email")]
     public string? SupportEmail { get; set; }

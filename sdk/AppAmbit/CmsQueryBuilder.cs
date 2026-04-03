@@ -115,35 +115,40 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
         int limit = _isPaginated ? _perPage : 0;
         int offset = _isPaginated ? (_page - 1) * _perPage : 0;
 
-        bool isAlreadyFetched;
+        bool alreadyFetched;
         lock (Cms.FetchedContentTypes)
         {
-            isAlreadyFetched = Cms.FetchedContentTypes.Contains(_contentType);
-            if (!isAlreadyFetched)
+            alreadyFetched = Cms.FetchedContentTypes.Contains(_contentType);
+            if (!alreadyFetched)
             {
                 Cms.FetchedContentTypes.Add(_contentType);
             }
         }
 
-        if (isAlreadyFetched)
+        if (alreadyFetched)
         {
-            _ = Task.Run(RefreshCacheInBackgroundAsync);
-            return await Task.Run(() => QueryLocalCacheAsync(limit, offset)).ConfigureAwait(false);
+            return await QueryLocalCacheAsync(limit, offset).ConfigureAwait(false);
         }
 
-        var cached = await Task.Run(() => QueryLocalCacheAsync(limit, offset)).ConfigureAwait(false);
+        var cached = await QueryLocalCacheAsync(limit, offset).ConfigureAwait(false);
 
         if (cached == null || cached.Count == 0)
         {
             await FetchRemoteDataSyncAsync().ConfigureAwait(false);
-            return await Task.Run(() => QueryLocalCacheAsync(limit, offset)).ConfigureAwait(false);
+            return await QueryLocalCacheAsync(limit, offset).ConfigureAwait(false);
         }
-        else
-        {
-            _ = Task.Run(RefreshCacheInBackgroundAsync);
-            return cached;
-        }
+
+        _ = Task.Run(RefreshCacheInBackgroundAsync);
+        return cached;
     }
+
+    private static readonly JsonSerializerSettings _deserializeSettings = new()
+    {
+        // Swallow per-field type mismatches (e.g. array where string expected) so one
+        // bad field never discards the whole item.
+        Error = (_, args) => args.ErrorContext.Handled = true,
+        NullValueHandling = NullValueHandling.Ignore
+    };
 
     private async Task<List<T>> QueryLocalCacheAsync(int limit, int offset)
     {
@@ -160,8 +165,15 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
             var items = new List<T>();
             foreach (var json in dataJsonList)
             {
-                var item = JsonConvert.DeserializeObject<T>(json);
-                if (item != null) items.Add(item);
+                try
+                {
+                    var item = JsonConvert.DeserializeObject<T>(json, _deserializeSettings);
+                    if (item != null) items.Add(item);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[AppAmbit.Cms] Skipped item — deserialization failed: {ex.Message}");
+                }
             }
             return items;
         }
@@ -246,20 +258,7 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
             var firstEndpoint = new CmsEndpoint(_contentType, page, perPage);
             var firstResult = await ApiService!.ExecuteRequest<JObject>(firstEndpoint).ConfigureAwait(false);
 
-            if (firstResult == null) return null;
-
-            bool isNotFound = firstResult.ErrorType == Enums.ApiErrorType.NotFound;
-            bool isEmpty = firstResult.Data != null 
-                           && firstResult.Data["data"] is JArray arr 
-                           && arr.Count == 0 
-                           && firstResult.Data["meta"]?["total"]?.Value<int>() == 0;
-
-            if (isNotFound || isEmpty)
-            {
-                return null;
-            }
-
-            if (firstResult.Data == null) return null;
+            if (firstResult == null || firstResult.Data == null) return null;
 
             var firstJson = firstResult.Data;
             if (!firstJson.ContainsKey("data")) return firstJson.ToString();

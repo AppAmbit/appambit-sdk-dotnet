@@ -64,6 +64,15 @@
         android:text="Get All List"
         android:layout_marginBottom="8dp" />
 
+    <ProgressBar
+        android:id="@+id/progress_cms_loading"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginBottom="8dp"
+        android:indeterminate="true"
+        android:visibility="gone" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_cms"
         android:layout_width="match_parent"
@@ -71,5 +80,16 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:paddingBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_cms_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No entries found."
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"
+        android:gravity="center"
+        android:visibility="gone"
+        android:layout_marginTop="32dp" />
 
 </LinearLayout>

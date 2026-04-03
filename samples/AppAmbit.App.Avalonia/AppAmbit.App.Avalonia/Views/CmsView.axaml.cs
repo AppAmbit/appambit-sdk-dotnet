@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AppAmbitAvalonia;
 using AppAmbitTestingAppAvalonia.Models;
+using AppAmbitTestingAppAvalonia.Utils;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
@@ -95,6 +96,7 @@ public partial class CmsView : UserControl
         try
         {
             var items = await query.GetListAsync();
+            await ImageUtils.LoadAsync(items);
 
             Dispatcher.UIThread.Post(() =>
             {
