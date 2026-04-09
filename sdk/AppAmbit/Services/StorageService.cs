@@ -559,6 +559,23 @@ public class StorageService : IStorageService
         await _database.InsertOrReplaceAsync(entry).ConfigureAwait(false);
     }
 
+    public async Task UpsertCmsEntryIfChangedAsync(string contentType, string remoteJson)
+    {
+        var local = await GetCmsEntryAsync(contentType).ConfigureAwait(false);
+
+        if (local != null &&
+            local.JsonData?.Length == remoteJson.Length &&
+            string.Equals(local.JsonData, remoteJson, StringComparison.Ordinal))
+            return;
+
+        await UpsertCmsEntryAsync(new CmsCacheEntity
+        {
+            ContentType  = contentType,
+            JsonData     = remoteJson,
+            LastSyncedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+        }).ConfigureAwait(false);
+    }
+
     public async Task DeleteCmsEntryAsync(string contentType)
     {
         await _database.Table<CmsCacheEntity>()
@@ -572,10 +589,21 @@ public class StorageService : IStorageService
         await _database.DeleteAllAsync<CmsCacheEntity>().ConfigureAwait(false);
     }
 
+    public static string BuildListClause(string field, bool exists, int valueCount)
+    {
+        var placeholders = string.Join(",", Enumerable.Repeat("?", valueCount));
+        var prefix = exists ? "EXISTS" : "NOT EXISTS";
+        return $"{prefix} (SELECT 1 FROM json_each(" +
+               $"CASE WHEN json_type(e.value, '$.{field}') = 'array' " +
+               $"THEN json_extract(e.value, '$.{field}') " +
+               $"ELSE json_array(json_extract(e.value, '$.{field}')) END) AS je " +
+               $"WHERE je.value IN ({placeholders}))";
+    }
+
     public async Task<List<string>> QueryCmsDataAsync(string contentType, string? filterClause, string[]? selectionArgs, string? orderBy, int limit, int offset)
     {
         var results = new List<string>();
-        var query = "SELECT json_extract(value, '$') FROM CmsEntries, json_each(JsonData, '$.data') WHERE ContentType = ?";
+        var query = "SELECT json_extract(e.value, '$') FROM CmsEntries, json_each(JsonData, '$.data') AS e WHERE ContentType = ?";
 
         if (!string.IsNullOrEmpty(filterClause))
             query += " AND (" + filterClause + ")";
@@ -596,7 +624,21 @@ public class StorageService : IStorageService
         for (int i = 0; i < extraArgs.Length; i++)
             args[i + 1] = extraArgs[i];
 
+        Debug.WriteLine($"[AppAmbit.Cms] SQL: {query}");
+        Debug.WriteLine($"[AppAmbit.Cms] Args: [{string.Join(", ", args)}]");
+
         var rows = await _database.QueryScalarsAsync<string>(query, args).ConfigureAwait(false);
+
+        Debug.WriteLine($"[AppAmbit.Cms] Results count: {rows?.Count ?? 0}");
+        if (rows != null && rows.Count > 0)
+        {
+            for (int i = 0; i < Math.Min(rows.Count, 5); i++)
+            {
+                var preview = rows[i]?.Length > 80 ? rows[i]![..80] + "..." : rows[i];
+                Debug.WriteLine($"[AppAmbit.Cms] Row[{i}]: {preview}");
+            }
+        }
+
         return rows ?? results;
     }
 

@@ -389,15 +389,35 @@ public class MainActivity : Activity
 
         _cmsFilters = new()
         {
+            // Equality
             ("Equals: item_sku = TEC-02", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Equals("item_sku", "TEC-02")),
             ("Not Equals: item_sku ≠ TEC-02", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).NotEquals("item_sku", "TEC-02")),
+            ("In List: category = Cat 1", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).InList("category", new[] { "Cat 1" })),
+            ("Boolean: in_stock = true", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Equals("in_stock", "true")),
+
+            // Text matching
             ("Contains: product_name contains 'Pro'", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Contains("product_name", "Pro")),
             ("Starts With: item_sku starts with 'TEC'", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).StartsWith("item_sku", "TEC")),
-            ("In List: [TEC-01, TEC-02]", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
+
+            // List membership
+            ("In List: item_sku in [TEC-01, TEC-02]", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
+            ("Not In List: item_sku not in [TEC-01, TEC-02]", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).NotInList("item_sku", new[] { "TEC-01", "TEC-02" })),
+
+            // Numeric comparisons
             ("Greater Than: price > 500", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GreaterThan("price", 500)),
+            ("Greater Or Equal: price >= 500", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GreaterThanOrEqual("price", 500)),
+            ("Less Than: price < 500", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).LessThan("price", 500)),
+            ("Less Or Equal: price <= 500", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).LessThanOrEqual("price", 500)),
+
+            // Sorting
+            ("Order By product_name ASC", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByAscending("product_name")),
+            ("Order By product_name DESC", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByDescending("product_name")),
+            ("Order By price ASC", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByAscending("price")),
             ("Order By price DESC", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByDescending("price")),
-            ("Pagination: Page 1, 2 items", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(1).GetPerPage(2)),
-            ("Pagination: Page 2, 2 items", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(2).GetPerPage(2)),
+
+            // Pagination
+            ("Pagination: Page 1, 2 per page", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(1).GetPerPage(2)),
+            ("Pagination: Page 2, 2 per page", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(2).GetPerPage(2)),
         };
 
         var filterNames = _cmsFilters.Select(f => f.Label).ToList();
@@ -440,7 +460,6 @@ public class MainActivity : Activity
 
         btnGetAll.Click += async (s, e) => 
         {
-            await AppAmbit.Cms.ClearCache(collection);
             await LoadResults(AppAmbit.Cms.Content<CmsExampleModel>(collection));
         };
 

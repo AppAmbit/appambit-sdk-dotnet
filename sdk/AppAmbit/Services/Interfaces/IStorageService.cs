@@ -87,6 +87,7 @@ public interface IStorageService
     #region CMS
     Task<CmsCacheEntity?> GetCmsEntryAsync(string contentType);
     Task UpsertCmsEntryAsync(CmsCacheEntity entry);
+    Task UpsertCmsEntryIfChangedAsync(string contentType, string remoteJson);
     Task DeleteCmsEntryAsync(string contentType);
     Task DeleteAllCmsEntriesAsync();
     Task<List<string>> QueryCmsDataAsync(string contentType, string? filterClause, string[]? selectionArgs, string? orderBy, int limit, int offset);

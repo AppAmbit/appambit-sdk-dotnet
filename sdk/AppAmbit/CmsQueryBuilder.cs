@@ -1,4 +1,5 @@
 using AppAmbit.Models.Cms;
+using AppAmbit.Services;
 using AppAmbit.Services.Endpoints;
 using AppAmbit.Services.Interfaces;
 using Newtonsoft.Json;
@@ -11,8 +12,8 @@ namespace AppAmbit;
 public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
 {
     private readonly string _contentType;
-    private static IAPIService? ApiService => Cms.ApiService;
-    private static IStorageService? StorageService => Cms.StorageService;
+    private static IAPIService? _apiService => Cms.ApiService;
+    private static IStorageService? _storageService => Cms.StorageService;
 
     private readonly StringBuilder _sqlClause = new();
     private readonly List<string> _selectionArgs = new();
@@ -21,140 +22,156 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
     private int _page = 1;
     private int _perPage = 20;
 
+    private int PaginationLimit  => _isPaginated ? _perPage : 0;
+    private int PaginationOffset => _isPaginated ? (_page - 1) * _perPage : 0;
+
+    private static readonly JsonSerializerSettings _deserializeSettings = new()
+    {
+        Error = (_, args) => args.ErrorContext.Handled = true,
+        NullValueHandling = NullValueHandling.Ignore
+    };
+
     internal CmsQueryBuilder(string contentType)
     {
         _contentType = contentType;
     }
 
+
     public ICmsQueryBuilder<T> Search(string query)
     {
         var trimmed = query?.Trim() ?? "";
         if (!string.IsNullOrEmpty(trimmed))
-        {
-            if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
-            _sqlClause.Append("value LIKE ?");
-            _selectionArgs.Add($"%{trimmed}%");
-        }
+            AppendClause("e.value LIKE ?", $"%{trimmed}%");
         return this;
     }
 
-    public ICmsQueryBuilder<T> Equals(string field, string value) => AddCondition(field, "=", value);
-    public ICmsQueryBuilder<T> NotEquals(string field, string value) => AddCondition(field, "!=", value);
-    public ICmsQueryBuilder<T> Contains(string field, string value) => AddCondition(field, "LIKE", $"%{value}%");
-    public ICmsQueryBuilder<T> StartsWith(string field, string value) => AddCondition(field, "LIKE", $"{value}%");
+    public ICmsQueryBuilder<T> Equals(string field, string value)          => AddCondition(field, "=",    value);
+    public ICmsQueryBuilder<T> NotEquals(string field, string value)       => AddCondition(field, "!=",   value);
+    public ICmsQueryBuilder<T> Contains(string field, string value)        => AddCondition(field, "LIKE", $"%{value}%");
+    public ICmsQueryBuilder<T> StartsWith(string field, string value)      => AddCondition(field, "LIKE", $"{value}%");
 
-    public ICmsQueryBuilder<T> GreaterThan(string field, object value) => AddNumericCondition(field, ">", value);
+    public ICmsQueryBuilder<T> GreaterThan(string field, object value)        => AddNumericCondition(field, ">",  value);
     public ICmsQueryBuilder<T> GreaterThanOrEqual(string field, object value) => AddNumericCondition(field, ">=", value);
-    public ICmsQueryBuilder<T> LessThan(string field, object value) => AddNumericCondition(field, "<", value);
-    public ICmsQueryBuilder<T> LessThanOrEqual(string field, object value) => AddNumericCondition(field, "<=", value);
+    public ICmsQueryBuilder<T> LessThan(string field, object value)           => AddNumericCondition(field, "<",  value);
+    public ICmsQueryBuilder<T> LessThanOrEqual(string field, object value)    => AddNumericCondition(field, "<=", value);
 
-    public ICmsQueryBuilder<T> InList(string field, IEnumerable<string> values)
-    {
-        var list = values.ToList();
-        if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
-        _sqlClause.Append($"json_extract(value, '$.{field}') IN (");
-        for (int i = 0; i < list.Count; i++)
-        {
-            _sqlClause.Append(i < list.Count - 1 ? "?," : "?");
-            _selectionArgs.Add(list[i]);
-        }
-        _sqlClause.Append(")");
-        return this;
-    }
+    public ICmsQueryBuilder<T> InList(string field, IEnumerable<string> values)    => AddListCondition(field, exists: true,  values);
+    public ICmsQueryBuilder<T> NotInList(string field, IEnumerable<string> values) => AddListCondition(field, exists: false, values);
 
-    public ICmsQueryBuilder<T> NotInList(string field, IEnumerable<string> values)
-    {
-        var list = values.ToList();
-        if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
-        _sqlClause.Append($"json_extract(value, '$.{field}') NOT IN (");
-        for (int i = 0; i < list.Count; i++)
-        {
-            _sqlClause.Append(i < list.Count - 1 ? "?," : "?");
-            _selectionArgs.Add(list[i]);
-        }
-        _sqlClause.Append(")");
-        return this;
-    }
+    public ICmsQueryBuilder<T> OrderByAscending(string field)  => SetOrderBy(field, "ASC");
+    public ICmsQueryBuilder<T> OrderByDescending(string field) => SetOrderBy(field, "DESC");
 
-    public ICmsQueryBuilder<T> OrderByAscending(string field)
-    {
-        _orderByClause = $"json_extract(value, '$.{field}') ASC";
-        return this;
-    }
-
-    public ICmsQueryBuilder<T> OrderByDescending(string field)
-    {
-        _orderByClause = $"json_extract(value, '$.{field}') DESC";
-        return this;
-    }
-
-    public ICmsQueryBuilder<T> GetPage(int page) { _isPaginated = true; _page = page; return this; }
+    public ICmsQueryBuilder<T> GetPage(int page)       { _isPaginated = true; _page    = page;    return this; }
     public ICmsQueryBuilder<T> GetPerPage(int perPage) { _isPaginated = true; _perPage = perPage; return this; }
+
+
+    public async Task<List<T>> GetListAsync()
+    {
+        if (_apiService == null || _storageService == null)
+            return [];
+
+        if (_isPaginated && (_page < 1 || _perPage < 1))
+            return [];
+
+        var cacheKey = BuildCacheKey();
+        if (Cms.QueryCache.TryGetValue(cacheKey, out var cachedResult))
+        {
+            Debug.WriteLine($"[AppAmbit.Cms] Query cache hit: {cacheKey}");
+            return (List<T>)cachedResult;
+        }
+
+        bool alreadyFetched;
+        lock (Cms.FetchedContentTypes)
+        {
+            alreadyFetched = Cms.FetchedContentTypes.Contains(_contentType);
+            if (!alreadyFetched) Cms.FetchedContentTypes.Add(_contentType);
+        }
+
+        List<T> result;
+
+        if (alreadyFetched)
+        {
+            result = await QueryLocalAsync().ConfigureAwait(false);
+        }
+        else
+        {
+            var cached = await QueryLocalAsync().ConfigureAwait(false);
+
+            if (cached == null || cached.Count == 0)
+            {
+                await SyncRemoteAsync().ConfigureAwait(false);
+                result = await QueryLocalAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                _ = Task.Run(RefreshCacheInBackgroundAsync);
+                result = cached;
+            }
+        }
+
+        Cms.QueryCache.TryAdd(cacheKey, result);
+        Debug.WriteLine($"[AppAmbit.Cms] Query cached: {cacheKey} ({result.Count} items)");
+
+        return result;
+    }
+
+    private string BuildCacheKey()
+    {
+        return $"{_contentType}|{_sqlClause}|{string.Join(",", _selectionArgs)}|{_orderByClause ?? ""}|{PaginationLimit},{PaginationOffset}";
+    }
+
+    private void AppendClause(string fragment, string arg)
+    {
+        if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
+        _sqlClause.Append(fragment);
+        _selectionArgs.Add(arg);
+    }
+
+    private static string NormalizeBool(string value) =>
+        value.Equals("true",  StringComparison.OrdinalIgnoreCase) ? "1" :
+        value.Equals("false", StringComparison.OrdinalIgnoreCase) ? "0" : value;
 
     private ICmsQueryBuilder<T> AddCondition(string field, string op, string value)
     {
         if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
-        _sqlClause.Append($"json_extract(value, '$.{field}') {op} ?");
-        _selectionArgs.Add(value);
+        _sqlClause.Append($"CAST(json_extract(e.value, '$.{field}') AS TEXT) {op} ?");
+        _selectionArgs.Add(NormalizeBool(value));
         return this;
     }
 
     private ICmsQueryBuilder<T> AddNumericCondition(string field, string op, object value)
     {
         if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
-        _sqlClause.Append($"CAST(json_extract(value, '$.{field}') AS REAL) {op} ?");
+        _sqlClause.Append($"CAST(json_extract(e.value, '$.{field}') AS REAL) {op} ?");
         _selectionArgs.Add(value?.ToString() ?? "0");
         return this;
     }
 
-    public async Task<List<T>> GetListAsync()
+    private ICmsQueryBuilder<T> AddListCondition(string field, bool exists, IEnumerable<string> values)
     {
-        if (ApiService == null || StorageService == null)
-            return new List<T>();
-
-        int limit = _isPaginated ? _perPage : 0;
-        int offset = _isPaginated ? (_page - 1) * _perPage : 0;
-
-        bool alreadyFetched;
-        lock (Cms.FetchedContentTypes)
-        {
-            alreadyFetched = Cms.FetchedContentTypes.Contains(_contentType);
-            if (!alreadyFetched)
-            {
-                Cms.FetchedContentTypes.Add(_contentType);
-            }
-        }
-
-        if (alreadyFetched)
-        {
-            return await QueryLocalCacheAsync(limit, offset).ConfigureAwait(false);
-        }
-
-        var cached = await QueryLocalCacheAsync(limit, offset).ConfigureAwait(false);
-
-        if (cached == null || cached.Count == 0)
-        {
-            await FetchRemoteDataSyncAsync().ConfigureAwait(false);
-            return await QueryLocalCacheAsync(limit, offset).ConfigureAwait(false);
-        }
-
-        _ = Task.Run(RefreshCacheInBackgroundAsync);
-        return cached;
+        var list = values.Select(NormalizeBool).ToList();
+        if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
+        _sqlClause.Append(StorageService.BuildListClause(field, exists, list.Count));
+        _selectionArgs.AddRange(list);
+        return this;
     }
 
-    private static readonly JsonSerializerSettings _deserializeSettings = new()
+    private ICmsQueryBuilder<T> SetOrderBy(string field, string direction)
     {
-        // Swallow per-field type mismatches (e.g. array where string expected) so one
-        // bad field never discards the whole item.
-        Error = (_, args) => args.ErrorContext.Handled = true,
-        NullValueHandling = NullValueHandling.Ignore
-    };
+        _orderByClause =
+            $"CAST(json_extract(e.value, '$.{field}') AS REAL) {direction}, " +
+            $"CAST(json_extract(e.value, '$.{field}') AS TEXT) COLLATE NOCASE {direction}";
+        return this;
+    }
 
-    private async Task<List<T>> QueryLocalCacheAsync(int limit, int offset)
+    private Task<List<T>> QueryLocalAsync() =>
+        QueryLocalAsync(PaginationLimit, PaginationOffset);
+
+    private async Task<List<T>> QueryLocalAsync(int limit, int offset)
     {
         try
         {
-            var dataJsonList = await StorageService!.QueryCmsDataAsync(
+            var dataJsonList = await _storageService!.QueryCmsDataAsync(
                 _contentType,
                 _sqlClause.Length > 0 ? _sqlClause.ToString() : null,
                 _selectionArgs.Count > 0 ? _selectionArgs.ToArray() : null,
@@ -180,28 +197,17 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
         catch (Exception ex)
         {
             Debug.WriteLine($"[AppAmbit.Cms] QueryLocalCache failed: {ex.Message}");
-            return new List<T>();
+            return [];
         }
     }
 
-    private async Task FetchRemoteDataSyncAsync()
+    private async Task SyncRemoteAsync()
     {
         try
         {
             var remoteJson = await FetchAllRemoteDataAsync().ConfigureAwait(false);
             if (remoteJson != null)
-            {
-                var localEntity = await StorageService!.GetCmsEntryAsync(_contentType).ConfigureAwait(false);
-                if (CheckIfDataChanged(localEntity?.JsonData, remoteJson))
-                {
-                    await StorageService!.UpsertCmsEntryAsync(new CmsCacheEntity
-                    {
-                        ContentType = _contentType,
-                        JsonData = remoteJson,
-                        LastSyncedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-                    }).ConfigureAwait(false);
-                }
-            }
+                await _storageService!.UpsertCmsEntryIfChangedAsync(_contentType, remoteJson).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -218,18 +224,7 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
         {
             var remoteJson = await FetchAllRemoteDataAsync().ConfigureAwait(false);
             if (remoteJson != null)
-            {
-                var localEntity = await StorageService!.GetCmsEntryAsync(_contentType).ConfigureAwait(false);
-                if (CheckIfDataChanged(localEntity?.JsonData, remoteJson))
-                {
-                    await StorageService!.UpsertCmsEntryAsync(new CmsCacheEntity
-                    {
-                        ContentType = _contentType,
-                        JsonData = remoteJson,
-                        LastSyncedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-                    }).ConfigureAwait(false);
-                }
-            }
+                await _storageService!.UpsertCmsEntryIfChangedAsync(_contentType, remoteJson).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -241,45 +236,37 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
         }
     }
 
-    private bool CheckIfDataChanged(string? localJson, string remoteJson)
-    {
-        if (localJson == null) return true;
-        if (localJson.Length != remoteJson.Length) return true;
-        return !string.Equals(localJson, remoteJson, StringComparison.Ordinal);
-    }
 
     private async Task<string?> FetchAllRemoteDataAsync()
     {
         try
         {
-            int page = 1;
-            const int perPage = 20;
+            const int fetchPageSize = 20;
 
-            var firstEndpoint = new CmsEndpoint(_contentType, page, perPage);
-            var firstResult = await ApiService!.ExecuteRequest<JObject>(firstEndpoint).ConfigureAwait(false);
+            var firstResult = await _apiService!
+                .ExecuteRequest<JObject>(new CmsEndpoint(_contentType, 1, fetchPageSize))
+                .ConfigureAwait(false);
 
-            if (firstResult == null || firstResult.Data == null) return null;
+            if (firstResult?.Data == null) return null;
 
             var firstJson = firstResult.Data;
             if (!firstJson.ContainsKey("data")) return firstJson.ToString();
 
-            var allData = firstJson["data"] as JArray ?? new JArray();
+            var allData = firstJson["data"] as JArray ?? [];
 
-            if (firstJson.ContainsKey("meta"))
+            if (firstJson.TryGetValue("meta", out var meta))
             {
-                var meta = firstJson["meta"]!;
-                int total = meta["total"]?.Value<int>() ?? 0;
-                int totalPages = (int)Math.Ceiling((double)total / perPage);
+                int total      = meta["total"]?.Value<int>() ?? 0;
+                int totalPages = (int)Math.Ceiling((double)total / fetchPageSize);
 
                 for (int p = 2; p <= totalPages; p++)
                 {
-                    var nextEndpoint = new CmsEndpoint(_contentType, p, perPage);
-                    var nextResult = await ApiService!.ExecuteRequest<JObject>(nextEndpoint).ConfigureAwait(false);
-                    if (nextResult?.Data?["data"] is JArray nextData)
-                    {
-                        foreach (var item in nextData)
-                            allData.Add(item);
-                    }
+                    var next = await _apiService!
+                        .ExecuteRequest<JObject>(new CmsEndpoint(_contentType, p, fetchPageSize))
+                        .ConfigureAwait(false);
+
+                    if (next?.Data?["data"] is JArray nextData)
+                        foreach (var item in nextData) allData.Add(item);
                 }
             }
 

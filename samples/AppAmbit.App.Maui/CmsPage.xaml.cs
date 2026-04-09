@@ -22,8 +22,8 @@ public partial class CmsPage : ContentPage
                 () => Cms.Content<CmsExampleModel>(Collection).Equals("item_sku", "TEC-02")),
             ("Not Equals: item_sku ≠ TEC-02",
                 () => Cms.Content<CmsExampleModel>(Collection).NotEquals("item_sku", "TEC-02")),
-            ("Equals: category = Electronics",
-                () => Cms.Content<CmsExampleModel>(Collection).Equals("category", "Electronics")),
+            ("In List: category = Cat 1",
+                () => Cms.Content<CmsExampleModel>(Collection).InList("category", new[] { "Cat 1" })),
             ("Boolean: in_stock = true",
                 () => Cms.Content<CmsExampleModel>(Collection).Equals("in_stock", "true")),
 
@@ -50,6 +50,10 @@ public partial class CmsPage : ContentPage
                 () => Cms.Content<CmsExampleModel>(Collection).LessThanOrEqual("price", 500)),
 
             // Sorting
+            ("Order By product_name ASC",
+                () => Cms.Content<CmsExampleModel>(Collection).OrderByAscending("product_name")),
+            ("Order By product_name DESC",
+                () => Cms.Content<CmsExampleModel>(Collection).OrderByDescending("product_name")),
             ("Order By price ASC",
                 () => Cms.Content<CmsExampleModel>(Collection).OrderByAscending("price")),
             ("Order By price DESC",

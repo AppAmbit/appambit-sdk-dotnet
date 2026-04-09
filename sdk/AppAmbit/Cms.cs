@@ -11,6 +11,9 @@ public static class Cms
 
     private static readonly HashSet<string> _fetchedContentTypes = new();
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _refreshLocks = new();
+    private static readonly ConcurrentDictionary<string, object> _queryCache = new();
+
+    internal static ConcurrentDictionary<string, object> QueryCache => _queryCache;
 
     internal static HashSet<string> FetchedContentTypes => _fetchedContentTypes;
 
@@ -27,6 +30,7 @@ public static class Cms
             }
 
             _refreshLocks.Clear();
+            _queryCache.Clear();
             return;
         }
 
@@ -36,6 +40,12 @@ public static class Cms
         }
 
         _refreshLocks.TryRemove(contentType, out _);
+
+        foreach (var key in _queryCache.Keys)
+        {
+            if (key.StartsWith(contentType + "|", StringComparison.Ordinal))
+                _queryCache.TryRemove(key, out _);
+        }
     }
 
     internal static void Initialize(IAPIService? apiService, IStorageService? storageService)

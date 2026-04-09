@@ -24,34 +24,53 @@ public partial class CmsView : UserControl
 
         _filters = new()
         {
+            // Equality
             ("Equals: item_sku = TEC-02",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("item_sku", "TEC-02")),
             ("Not Equals: item_sku ≠ TEC-02",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).NotEquals("item_sku", "TEC-02")),
+            ("In List: category = Cat 1",
+                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).InList("category", new[] { "Cat 1" })),
             ("Boolean: in_stock = true",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("in_stock", "true")),
+
+            // Text matching
             ("Contains: product_name contains 'Pro'",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Contains("product_name", "Pro")),
             ("Starts With: item_sku starts with 'TEC'",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).StartsWith("item_sku", "TEC")),
-            ("In List: [TEC-01, TEC-02]",
+
+            // List membership
+            ("In List: item_sku in [TEC-01, TEC-02]",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
-            ("Not In List: [TEC-01, TEC-02]",
+            ("Not In List: item_sku not in [TEC-01, TEC-02]",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).NotInList("item_sku", new[] { "TEC-01", "TEC-02" })),
+
+            // Numeric comparisons
             ("Greater Than: price > 500",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GreaterThan("price", 500)),
-            ("Greater Or Equal: price >= 222",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GreaterThanOrEqual("price", 222)),
+            ("Greater Or Equal: price >= 500",
+                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GreaterThanOrEqual("price", 500)),
             ("Less Than: price < 500",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).LessThan("price", 500)),
+            ("Less Or Equal: price <= 500",
+                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).LessThanOrEqual("price", 500)),
+
+            // Sorting
+            ("Order By product_name ASC",
+                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByAscending("product_name")),
+            ("Order By product_name DESC",
+                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByDescending("product_name")),
             ("Order By price ASC",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByAscending("price")),
             ("Order By price DESC",
                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByDescending("price")),
-            ("Pagination: Page 1 — 1 per page",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(1).GetPerPage(1)),
-            ("Pagination: Page 2 — 1 per page",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(2).GetPerPage(1)),
+
+            // Pagination
+            ("Pagination: Page 1, 2 per page",
+                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
+            ("Pagination: Page 2, 2 per page",
+                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
         };
 
         FilterPicker.ItemsSource = _filters.Select(f => f.Label).ToList();
@@ -149,6 +168,18 @@ public sealed class BooleanToStockLabelConverter : Avalonia.Data.Converters.IVal
 
     public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
         => value is true ? "In Stock" : "Out of Stock";
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+/// <summary>Converts List&lt;string&gt; → comma-separated string.</summary>
+public sealed class ListToStringConverter : Avalonia.Data.Converters.IValueConverter
+{
+    public static readonly ListToStringConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+        => value is IEnumerable<string> list ? string.Join(", ", list) : string.Empty;
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
         => throw new NotSupportedException();
