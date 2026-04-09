@@ -254,20 +254,16 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
 
             var allData = firstJson["data"] as JArray ?? [];
 
-            if (firstJson.TryGetValue("meta", out var meta))
+            var lastPage = firstJson.SelectToken("meta.last_page")?.Value<int>() ?? 1;
+
+            for (int p = 2; p <= lastPage; p++)
             {
-                int total      = meta["total"]?.Value<int>() ?? 0;
-                int totalPages = (int)Math.Ceiling((double)total / fetchPageSize);
+                var next = await _apiService!
+                    .ExecuteRequest<JObject>(new CmsEndpoint(_contentType, p, fetchPageSize))
+                    .ConfigureAwait(false);
 
-                for (int p = 2; p <= totalPages; p++)
-                {
-                    var next = await _apiService!
-                        .ExecuteRequest<JObject>(new CmsEndpoint(_contentType, p, fetchPageSize))
-                        .ConfigureAwait(false);
-
-                    if (next?.Data?["data"] is JArray nextData)
-                        foreach (var item in nextData) allData.Add(item);
-                }
+                if (next?.Data?["data"] is JArray nextData)
+                    foreach (var item in nextData) allData.Add(item);
             }
 
             firstJson["data"] = allData;
