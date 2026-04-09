@@ -61,6 +61,7 @@ internal abstract class BaseFakeStorageService : IStorageService
     // CMS
     public virtual Task<CmsCacheEntity?> GetCmsEntryAsync(string contentType) => Task.FromResult<CmsCacheEntity?>(null);
     public virtual Task UpsertCmsEntryAsync(CmsCacheEntity entry) => Task.CompletedTask;
+    public virtual Task UpsertCmsEntryIfChangedAsync(string contentType, string remoteJson) => Task.CompletedTask;
     public virtual Task DeleteCmsEntryAsync(string contentType) => Task.CompletedTask;
     public virtual Task DeleteAllCmsEntriesAsync() => Task.CompletedTask;
     public virtual Task<List<string>> QueryCmsDataAsync(string contentType, string? filterClause, string[]? selectionArgs, string? orderBy, int limit, int offset) 
