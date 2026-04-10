@@ -15,7 +15,7 @@ public class AppDelegate : UIApplicationDelegate
     public override bool FinishedLaunching(UIApplication application, NSDictionary launchOptions)
     {
         AppAmbit.RemoteConfig.Enable();
-        AppAmbitSdk.Start("581a777b-4c6f-4290-93db-834c08c97e37");
+        AppAmbitSdk.Start("<YOUR-APPKEY>");
         PushNotifications.Start();
 
         Window = new UIWindow(UIScreen.MainScreen.Bounds);

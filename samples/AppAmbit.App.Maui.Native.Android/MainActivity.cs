@@ -39,7 +39,7 @@ public class MainActivity : Activity
         //Uncomment the line for automatic session management
         //Analytics.EnableManualSession();
         AppAmbit.RemoteConfig.Enable();
-        AppAmbitSdk.Start("581a777b-4c6f-4290-93db-834c08c97e37");
+        AppAmbitSdk.Start("<YOUR-APPKEY>");
 
         PushNotifications.Start(this);
         PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
