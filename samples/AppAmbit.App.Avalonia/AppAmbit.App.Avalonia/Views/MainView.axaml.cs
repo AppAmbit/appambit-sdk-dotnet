@@ -64,8 +64,17 @@ public partial class MainView : UserControl
         CrashesPanel.IsVisible = false;
         AnalyticsPanel.IsVisible = false;
         RemoteConfigPanel.IsVisible = true;
-        
+        CmsPanel.IsVisible = false;
+
         UpdateRemoteConfigUI();
+    }
+
+    private void OnNavCmsClicked(object? sender, RoutedEventArgs e)
+    {
+        CrashesPanel.IsVisible = false;
+        AnalyticsPanel.IsVisible = false;
+        RemoteConfigPanel.IsVisible = false;
+        CmsPanel.IsVisible = true;
     }
 
     private void UpdateRemoteConfigUI()

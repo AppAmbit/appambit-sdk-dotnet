@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:AppAmbitTestingApp"
+             xmlns:models="clr-namespace:AppAmbitTestingApp.Models"
+             xmlns:utils="clr-namespace:AppAmbitTestingApp.Utils"
+             x:Class="AppAmbitTestingApp.CmsPage"
+             Title="CMS Showcase">
+
+    <ContentPage.Resources>
+        <utils:ListToStringConverter x:Key="ListToStringConverter" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- Controls -->
+        <VerticalStackLayout Grid.Row="0" Padding="16" Spacing="10">
+
+            <Label Text="CMS Query Builder"
+                   FontSize="20" FontAttributes="Bold"
+                   HorizontalOptions="Center" />
+
+            <!-- Filter Picker + Apply button -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Picker x:Name="FilterPicker"
+                        Title="Select a filter..."
+                        HorizontalOptions="FillAndExpand" />
+                <Button Text="Apply"
+                        Clicked="OnApplyFilterClicked"
+                        HorizontalOptions="End" />
+            </Grid>
+
+            <!-- Search -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Entry x:Name="SearchEntry"
+                       Placeholder="Search term..."
+                       HorizontalOptions="FillAndExpand" />
+                <Button Text="Search"
+                        Clicked="OnSearchClicked"
+                        HorizontalOptions="End" />
+            </Grid>
+
+            <!-- Get All / Reset -->
+            <Button Text="Get All List"
+                    Clicked="OnFetchListClicked" />
+
+        </VerticalStackLayout>
+
+        <ProgressBar Grid.Row="1"
+                     x:Name="LoadingBar"
+                     IsVisible="False"
+                     IsIndeterminate="True"
+                     HeightRequest="3"
+                     Margin="16,0,16,8" />
+
+        <!-- Results -->
+        <CollectionView Grid.Row="2" x:Name="ResultsList" Margin="16,0,16,16">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:CmsExampleModel">
+                    <Frame Margin="0,6" Padding="12" HasShadow="True" BorderColor="Transparent" CornerRadius="12"
+                           BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E1E}">
+                        <Grid ColumnDefinitions="80,*" ColumnSpacing="16">
+                            
+                            <!-- Image -->
+                            <Frame Grid.Column="0" HeightRequest="80" WidthRequest="80" Padding="0" CornerRadius="8" IsClippedToBounds="True" BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}" VerticalOptions="Start" BorderColor="Transparent">
+                                <Image Source="{Binding ProductImageUrl}" Aspect="AspectFill" />
+                            </Frame>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                
+                                <!-- Header: Name & Category -->
+                                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                                    <Label Grid.Column="0" Text="{Binding ProductName}" FontAttributes="Bold" FontSize="16" TextColor="{AppThemeBinding Light=#212121, Dark=White}" VerticalOptions="Center" LineBreakMode="TailTruncation" />
+                                    <!-- Using Label directly to avoid empty frames when Category is null -->
+                                    <Label Grid.Column="1" Text="{Binding Category, Converter={StaticResource ListToStringConverter}, StringFormat='🏷️ {0}'}" FontSize="11" TextColor="{AppThemeBinding Light=#1976D2, Dark=#64B5F6}" FontAttributes="Bold" VerticalOptions="Center" />
+                                </Grid>
+                                
+                                <!-- Description -->
+                                <Label Text="{Binding Description}" FontSize="13" TextColor="{AppThemeBinding Light=#757575, Dark=#BDBDBD}" MaxLines="2" LineBreakMode="TailTruncation" />
+                                
+                                <!-- Meta Grid (SKU, Price, Stock) -->
+                                <FlexLayout Wrap="Wrap" JustifyContent="SpaceBetween" AlignItems="Center">
+                                    <Label Text="{Binding ItemSku}" FontSize="12" TextColor="{AppThemeBinding Light=#9E9E9E, Dark=#9E9E9E}" />
+                                    <Label Text="{Binding Price, StringFormat='${0:F2}'}" FontSize="13" TextColor="#4CAF50" FontAttributes="Bold" Margin="8,0" />
+                                    <Label Text="{Binding InStock, StringFormat='Stock: {0}'}" FontSize="12" TextColor="{AppThemeBinding Light=#607D8B, Dark=#B0BEC5}" />
+                                </FlexLayout>
+
+                                <!-- Support Email -->
+                                <Label Text="{Binding SupportEmail, StringFormat='📧 {0}'}" FontSize="11" TextColor="{AppThemeBinding Light=#757575, Dark=#9E9E9E}" LineBreakMode="TailTruncation" />
+
+                                <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#EEEEEE, Dark=#333333}" Margin="0,4" />
+                                
+                                <!-- ID -->
+                                <Label Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="10" TextColor="{AppThemeBinding Light=#BDBDBD, Dark=#616161}" LineBreakMode="MiddleTruncation" />
+                                
+                                <!-- Dates in a responsive Grid -->
+                                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto" ColumnSpacing="8" RowSpacing="2">
+                                    <Label Grid.Row="0" Grid.Column="0" Text="{Binding CreatedAt, StringFormat='Cr: {0:dd/MM/yyyy}'}" FontSize="10" TextColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}" />
+                                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding PublishedAt, StringFormat='Pub: {0:dd/MM/yyyy}'}" FontSize="10" TextColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}" />
+                                    <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding UpdatedAt, StringFormat='Upd: {0:dd/MM/yyyy}'}" FontSize="10" TextColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}" />
+                                </Grid>
+                                
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+</ContentPage>

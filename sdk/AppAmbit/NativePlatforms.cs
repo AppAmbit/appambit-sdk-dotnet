@@ -23,6 +23,13 @@ internal static partial class NativePlatforms
         AppAmbitSdk.InternalStart(_appKey ?? string.Empty);
     }
 
+    internal static string? GetAppKey() => _appKey;
+
+    internal static void SetAppKeyIfNeeded(string appKey)
+    {
+        _appKey ??= appKey;
+    }
+
     public static void EnableNativePageBreadcrumbs()
     {
         PlatformEnablePageBreadcrumbs();

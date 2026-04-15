@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using AppAmbit.Services;
 using AppAmbit.Services.Interfaces;
 
@@ -15,6 +15,7 @@ public static class AppAmbitSdk
     private static bool _configuredByBuilder = false;
     private static bool _servicesReady = false;
     public static bool IsInitialized => _servicesReady;
+    internal static string? AppKey { get; private set; }
     private static bool _skippedFirstResume = false;
     public static void MarkConfiguredByBuilder() => _configuredByBuilder = true;
 
@@ -22,6 +23,8 @@ public static class AppAmbitSdk
     {
         try
         {
+            AppKey = appKey;
+            NativePlatforms.SetAppKeyIfNeeded(appKey);
             if (_hasStartedSession) return;
 
             InitializeServices();
@@ -169,6 +172,7 @@ public static class AppAmbitSdk
             ConsumerService.Initialize(storageService, appInfoService, apiService);
             RemoteConfig.Initialize(storageService, appInfoService, apiService);
             BreadcrumbManager.Initialize(apiService!, storageService!);
+            Cms.Initialize(apiService, storageService);
 
             _servicesReady = true;
             Debug.WriteLine("[AppAmbitSdk] Services initialized successfully.");

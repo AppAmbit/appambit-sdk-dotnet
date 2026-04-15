@@ -8,6 +8,7 @@ using AppAmbit.Models.Responses;
 using AppAmbit.Services;
 using AppAmbit.Services.Interfaces;
 using AppAmbit.Models.RemoteConfigs;
+using AppAmbit.Models.Cms;
 
 namespace AppAmbitTest;
 
@@ -277,7 +278,7 @@ public class AnalyticsExamples : IDisposable
         }
     }
 
-    private sealed class FakeStorageService : IStorageService
+    private sealed class FakeStorageService : BaseFakeStorageService
     {
         private string? _pushDeviceToken;
         private bool? _pushEnabled;
@@ -286,20 +287,13 @@ public class AnalyticsExamples : IDisposable
         public List<LogEntity> Logs { get; } = new();
         public List<EventEntity> Events { get; } = new();
 
-        public Task InitializeAsync() => Task.CompletedTask;
-
-        public Task SessionData(SessionData sessionData)
+        public override Task SessionData(SessionData sessionData)
         {
             Sessions.Add(sessionData);
             return Task.CompletedTask;
         }
 
-        public Task<List<SessionBatch>> GetOldest100SessionsAsync() => Task.FromResult(new List<SessionBatch>());
-        public Task DeleteSessionsList(List<SessionBatch> sessions) => Task.CompletedTask;
-        public Task<SessionData?> GetUnpairedSessionStart() => Task.FromResult<SessionData?>(null);
-        public Task<SessionData?> GetUnpairedSessionEnd() => Task.FromResult<SessionData?>(null);
-        public Task DeleteSessionById(string id) => Task.CompletedTask;
-        public Task UpdateSessionIdsForAllTrackingData(List<SessionBatch> sessions)
+        public override Task UpdateSessionIdsForAllTrackingData(List<SessionBatch> sessions)
         {
             foreach (var session in sessions)
             {
@@ -329,46 +323,35 @@ public class AnalyticsExamples : IDisposable
             return Task.CompletedTask;
         }
 
-        public Task SetDeviceId(string? deviceId) => Task.CompletedTask;
-        public Task<string?> GetDeviceId() => Task.FromResult<string?>(null);
-        public Task SetUserId(string userId) => Task.CompletedTask;
-        public Task<string?> GetUserId() => Task.FromResult<string?>(null);
-        public Task SetUserEmail(string? email) => Task.CompletedTask;
-        public Task<string?> GetUserEmail() => Task.FromResult<string?>(null);
-        public Task SetAppId(string? appId) => Task.CompletedTask;
-        public Task<string?> GetAppId() => Task.FromResult<string?>(null);
-        public Task<string?> GetConsumerId() => Task.FromResult<string?>(null);
-        public Task SetConsumerId(string consumerId) => Task.CompletedTask;
-        public Task<string?> GetPushDeviceToken() => Task.FromResult(_pushDeviceToken);
-        public Task SetPushDeviceToken(string? token)
+        public override Task<string?> GetPushDeviceToken() => Task.FromResult(_pushDeviceToken);
+        public override Task SetPushDeviceToken(string? token)
         {
             _pushDeviceToken = token;
             return Task.CompletedTask;
         }
-        public Task<bool?> GetPushEnabled() => Task.FromResult(_pushEnabled);
-        public Task SetPushEnabled(bool enabled)
+        public override Task<bool?> GetPushEnabled() => Task.FromResult(_pushEnabled);
+        public override Task SetPushEnabled(bool enabled)
         {
             _pushEnabled = enabled;
             return Task.CompletedTask;
         }
 
-        public Task<List<LogEntity>> GetOldest100LogsAsync() => Task.FromResult(Logs.ToList());
-        public Task LogEventAsync(LogEntity logEntity)
+        public override Task<List<LogEntity>> GetOldest100LogsAsync() => Task.FromResult(Logs.ToList());
+        public override Task LogEventAsync(LogEntity logEntity)
         {
             Logs.Add(logEntity);
             return Task.CompletedTask;
         }
-        public Task DeleteLogList(List<LogEntity> logs) => Task.CompletedTask;
 
-        public Task LogAnalyticsEventAsync(EventEntity analyticsLog)
+        public override Task LogAnalyticsEventAsync(EventEntity analyticsLog)
         {
             Events.Add(analyticsLog);
             return Task.CompletedTask;
         }
 
-        public Task<List<EventEntity>> GetOldest100EventsAsync() => Task.FromResult(Events.ToList());
+        public override Task<List<EventEntity>> GetOldest100EventsAsync() => Task.FromResult(Events.ToList());
 
-        public Task DeleteEventList(List<EventEntity> logs)
+        public override Task DeleteEventList(List<EventEntity> logs)
         {
             foreach (var e in logs)
             {
@@ -377,16 +360,12 @@ public class AnalyticsExamples : IDisposable
             return Task.CompletedTask;
         }
 
-        public Task<List<BreadcrumbsEntity>> GetOldest100BreadcrumbsAsync() => Task.FromResult(Breadcrumbs.ToList());
-        public Task AddBreadcrumbAsync(BreadcrumbsEntity breadcrumb)
+        public override Task<List<BreadcrumbsEntity>> GetOldest100BreadcrumbsAsync() => Task.FromResult(Breadcrumbs.ToList());
+        public override Task AddBreadcrumbAsync(BreadcrumbsEntity breadcrumb)
         {
             Breadcrumbs.Add(breadcrumb);
             return Task.CompletedTask;
         }
-        public Task DeleteBreadcrumbs(List<BreadcrumbsEntity> breadcrumbs) => Task.CompletedTask;
-
-        public Task AddConfigsAsync(List<RemoteConfigEntity> configs) => Task.CompletedTask;
-        public Task<string?> GetConfig(string key) => Task.FromResult<string?>(null);
     }
 
     private sealed class FakeAppInfoService : IAppInfoService
