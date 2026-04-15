@@ -23,5 +23,9 @@
         <ShellContent Title="RemoteConfig"
               ContentTemplate="{DataTemplate local:RemoteConfigPage}"
               Route="RemoteConfigPage" />
+
+        <ShellContent Title="CMS"
+              ContentTemplate="{DataTemplate local:CmsPage}"
+              Route="CmsPage" />
     </TabBar>
 </Shell>

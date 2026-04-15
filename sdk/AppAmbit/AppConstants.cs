@@ -22,4 +22,6 @@ internal class AppConstants
     internal const int TrackEventMaxPropertyLimit = 20;
     internal const int TrackEventPropertyMaxCharacters = 80;
     internal const string LiveSessionStreaming = "live_session_streaming";
+    internal const string CmsBaseUrl = "https://cms.appambit.com/api/v1";
+    internal const string BaseUrlSdk = "https://appambit.com/api";
 }

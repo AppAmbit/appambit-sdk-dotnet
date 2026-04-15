@@ -3,6 +3,7 @@ using AppAmbit.Enums;
 using AppAmbit.Models.Analytics;
 using AppAmbit.Models.App;
 using AppAmbit.Models.Breadcrumbs;
+using AppAmbit.Models.Cms;
 using AppAmbit.Models.Logs;
 using AppAmbit.Models.RemoteConfigs;
 using AppAmbit.Services.Interfaces;
@@ -29,6 +30,7 @@ public class StorageService : IStorageService
         await _database.CreateTableAsync<SessionBatch>();
         await _database.CreateTableAsync<BreadcrumbsEntity>();
         await _database.CreateTableAsync<RemoteConfigEntity>();
+        await _database.CreateTableAsync<CmsCacheEntity>();
         await EnsureAppSecretsColumns();
     }
 
@@ -540,4 +542,105 @@ public class StorageService : IStorageService
             .FirstOrDefaultAsync();
         return config?.Value;
     }
+
+    #region CMS
+
+    public async Task<CmsCacheEntity?> GetCmsEntryAsync(string contentType)
+    {
+        return await _database.Table<CmsCacheEntity>()
+            .Where(c => c.ContentType == contentType)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+    }
+
+    public async Task UpsertCmsEntryAsync(CmsCacheEntity entry)
+    {
+        if (entry == null) return;
+        await _database.InsertOrReplaceAsync(entry).ConfigureAwait(false);
+    }
+
+    public async Task UpsertCmsEntryIfChangedAsync(string contentType, string remoteJson)
+    {
+        var local = await GetCmsEntryAsync(contentType).ConfigureAwait(false);
+
+        if (local != null &&
+            local.JsonData?.Length == remoteJson.Length &&
+            string.Equals(local.JsonData, remoteJson, StringComparison.Ordinal))
+            return;
+
+        await UpsertCmsEntryAsync(new CmsCacheEntity
+        {
+            ContentType  = contentType,
+            JsonData     = remoteJson,
+            LastSyncedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+        }).ConfigureAwait(false);
+    }
+
+    public async Task DeleteCmsEntryAsync(string contentType)
+    {
+        await _database.Table<CmsCacheEntity>()
+            .Where(x => x.ContentType == contentType)
+            .DeleteAsync()
+            .ConfigureAwait(false);
+    }
+
+    public async Task DeleteAllCmsEntriesAsync()
+    {
+        await _database.DeleteAllAsync<CmsCacheEntity>().ConfigureAwait(false);
+    }
+
+    public static string BuildListClause(string field, bool exists, int valueCount)
+    {
+        var placeholders = string.Join(",", Enumerable.Repeat("?", valueCount));
+        var prefix = exists ? "EXISTS" : "NOT EXISTS";
+        return $"{prefix} (SELECT 1 FROM json_each(" +
+               $"CASE WHEN json_type(e.value, '$.{field}') = 'array' " +
+               $"THEN json_extract(e.value, '$.{field}') " +
+               $"ELSE json_array(json_extract(e.value, '$.{field}')) END) AS je " +
+               $"WHERE je.value IN ({placeholders}))";
+    }
+
+    public async Task<List<string>> QueryCmsDataAsync(string contentType, string? filterClause, string[]? selectionArgs, string? orderBy, int limit, int offset)
+    {
+        var results = new List<string>();
+        var query = "SELECT json_extract(e.value, '$') FROM CmsEntries, json_each(JsonData, '$.data') AS e WHERE ContentType = ?";
+
+        if (!string.IsNullOrEmpty(filterClause))
+            query += " AND (" + filterClause + ")";
+
+        if (!string.IsNullOrEmpty(orderBy))
+            query += " ORDER BY " + orderBy;
+
+        if (limit > 0)
+        {
+            query += " LIMIT " + limit;
+            if (offset > 0)
+                query += " OFFSET " + offset;
+        }
+
+        var extraArgs = selectionArgs ?? Array.Empty<string>();
+        var args = new object[extraArgs.Length + 1];
+        args[0] = contentType;
+        for (int i = 0; i < extraArgs.Length; i++)
+            args[i + 1] = extraArgs[i];
+
+        Debug.WriteLine($"[AppAmbit.Cms] SQL: {query}");
+        Debug.WriteLine($"[AppAmbit.Cms] Args: [{string.Join(", ", args)}]");
+
+        var rows = await _database.QueryScalarsAsync<string>(query, args).ConfigureAwait(false);
+
+        Debug.WriteLine($"[AppAmbit.Cms] Results count: {rows?.Count ?? 0}");
+        if (rows != null && rows.Count > 0)
+        {
+            for (int i = 0; i < Math.Min(rows.Count, 5); i++)
+            {
+                var preview = rows[i]?.Length > 80 ? rows[i]![..80] + "..." : rows[i];
+                Debug.WriteLine($"[AppAmbit.Cms] Row[{i}]: {preview}");
+            }
+        }
+
+        return rows ?? results;
+    }
+
+    #endregion
 }
