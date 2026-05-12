@@ -29,8 +29,11 @@ public partial class MainView : UserControl
         txtChangeUserEmail.Text = "test@gmail.com";
         txtCustomLogError.Text = "Test Log Message";
 
-        // Configure notification customizer
+        // SetNotificationCustomizer removed on iOS (not available in SDK 0.5.0).
+        // Use SetNotificationListener for iOS, SetNotificationCustomizer for Android.
+#if ANDROID
         AppAmbit.PushNotifications.PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+#endif
 
         // Initial state update
         UpdateNotificationButtonState();

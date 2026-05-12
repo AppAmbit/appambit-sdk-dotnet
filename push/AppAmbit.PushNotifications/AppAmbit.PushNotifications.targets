@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <!-- Compute AppBundleDir if not defined -->
-  <Target Name="_ComputeAppAmbitBundleDir" 
-          BeforeTargets="CopyAppAmbitPushFrameworks" 
+  <Target Name="_ComputeAppAmbitBundleDir"
+          BeforeTargets="CopyAppAmbitPushFrameworks"
           Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(OutputType)' == 'Exe'">
     <PropertyGroup Condition="'$(AppBundleDir)' == ''">
       <_AppName>$(AssemblyName)</_AppName>
@@ -26,26 +26,31 @@
     </PropertyGroup>
   </Target>
 
-  <!-- Copy frameworks to app bundle -->
-  <Target Name="CopyAppAmbitPushFrameworks" 
-          AfterTargets="_CompileToNative;_CreateAppBundle;_UnpackLibraryResources;Build" 
+  <!--
+    Copy frameworks BEFORE _CodesignAppBundle so the toolchain includes them in
+    CodeResources and signs them with the resolved developer identity.
+    Runs after _CreateAppBundle to ensure the bundle directory exists.
+  -->
+  <Target Name="CopyAppAmbitPushFrameworks"
+          AfterTargets="_CreateAppBundle"
+          BeforeTargets="_CodesignAppBundle"
           Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(OutputType)' == 'Exe' AND '$(AppBundleDir)' != ''">
     <PropertyGroup>
       <_FrameworksDir>$(AppBundleDir)/Frameworks</_FrameworksDir>
     </PropertyGroup>
-    
+
     <MakeDir Directories="$(_FrameworksDir)" ContinueOnError="true" />
-    
-    <!-- Copy AppAmbitPushNotifications.framework (direct path = CONFIGURATION_BUILD_DIR output) -->
+
+    <!-- Copy AppAmbitPushNotifications.framework -->
     <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications.framework')"
           Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications.framework&quot; &quot;$(_FrameworksDir)/&quot;"
           ContinueOnError="true" />
-    <!-- Fallback: subdirectory layout (legacy / derivedDataPath builds) -->
+    <!-- Fallback: subdirectory layout -->
     <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND !Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications.framework') AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework')"
           Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework&quot; &quot;$(_FrameworksDir)/&quot;"
           ContinueOnError="true" />
 
-    <!-- Copy AppAmbit.framework (direct path) -->
+    <!-- Copy AppAmbit.framework -->
     <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbit.framework')"
           Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;"
           ContinueOnError="true" />
@@ -54,7 +59,7 @@
           Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;"
           ContinueOnError="true" />
 
-    <!-- Remove _CodeSignature to allow dotnet to sign fresh -->
+    <!-- Remove stale _CodeSignature so the toolchain can sign fresh -->
     <Exec Condition="Exists('$(_FrameworksDir)/AppAmbitPushNotifications.framework/_CodeSignature')"
           Command="rm -rf &quot;$(_FrameworksDir)/AppAmbitPushNotifications.framework/_CodeSignature&quot;" />
     <Exec Condition="Exists('$(_FrameworksDir)/AppAmbit.framework/_CodeSignature')"

@@ -85,6 +85,9 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
     <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
+    <ProjectReference Include="..\AppAmbit.App.Maui.NotificationExtension\AppAmbit.App.Maui.NotificationExtension.csproj">
+      <IsAppExtension>true</IsAppExtension>
+    </ProjectReference>
   </ItemGroup>
 
     <PropertyGroup Condition="$(TargetFramework.Contains('-ios')) and '$(Configuration)' == 'Release'">

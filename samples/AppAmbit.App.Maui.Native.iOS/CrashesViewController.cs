@@ -115,8 +115,12 @@ UIButton MakeButton(string title)
         base.ViewDidLoad();
         View.BackgroundColor = BackgroundCompat();
 
-        // Configure notification customizer
-        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+        // Register listener for incoming push notifications (foreground + tap)
+        PushNotifications.SetNotificationListener((userInfo, state) =>
+        {
+            var stateStr = state == PushNotificationState.Foreground ? "Foreground" : "Opened";
+            System.Diagnostics.Debug.WriteLine($"[AppAmbit] Push notification {stateStr}");
+        });
 
         var scroll = new UIScrollView { TranslatesAutoresizingMaskIntoConstraints = false };
         var container = new UIView { TranslatesAutoresizingMaskIntoConstraints = false };
@@ -382,25 +386,5 @@ UIButton MakeButton(string title)
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
-    }
-
-    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
-    {
-        public void Customize(object context, object builder, PushNotificationData notification)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
-
-            if (notification.Data is System.Collections.IDictionary dict)
-            {
-                foreach (var key in dict.Keys)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
-                }
-            }
-            else if (notification.Data != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
-            }
-        }
     }
 }
