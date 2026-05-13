@@ -41,8 +41,24 @@ public class MainActivity : Activity
         AppAmbit.RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
 
+        PushNotifications.SetForegroundListener(data =>
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppAmbit][Foreground] {data.Title} — {data.Body}");
+        });
+
+        PushNotifications.SetOpenedListener(data =>
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppAmbit][Opened] {data.Title} — {data.Body}");
+        });
+
+        PushNotifications.Android.SetBackgroundListener(data =>
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppAmbit][Background] {data.Title} — {data.Body}");
+        });
+
+        PushNotifications.Android.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+
         PushNotifications.Start(this);
-        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
 
         SetContentView(L("activity_main"));
 
@@ -346,18 +362,10 @@ public class MainActivity : Activity
     {
         public void Customize(object context, object builder, PushNotificationData notification)
         {
-            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
-
-            if (notification.Data is System.Collections.IDictionary dict)
+            System.Diagnostics.Debug.WriteLine($"[Customizer] {notification.Title}");
+            if (builder is AndroidX.Core.App.NotificationCompat.Builder b)
             {
-                foreach (var key in dict.Keys)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
-                }
-            }
-            else if (notification.Data != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
+                b.SetContentTitle($"Custom {notification.Title}");
             }
         }
     }

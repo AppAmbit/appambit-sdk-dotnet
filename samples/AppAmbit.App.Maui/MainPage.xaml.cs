@@ -73,6 +73,19 @@ public partial class MainPage : ContentPage
 
         PushNotifications.Android.SetBackgroundListener(data =>
             Console.WriteLine($"[AppAmbitMaui] Background push: {data.Title}"));
+
+        PushNotifications.Android.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+    }
+
+    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, PushNotificationData notification)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppAmbitMaui][Customizer] {notification.Title}");
+
+            dynamic b = builder;
+            b.SetContentTitle($"{notification.Title} Custom");
+        }
     }
 
     private async void OnGenerateLogsForBatch(object? sender, EventArgs e)

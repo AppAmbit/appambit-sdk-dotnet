@@ -169,9 +169,6 @@ public static class PushNotifications
     public static void RequestNotificationPermission(AndroidApp.Activity activity, IPermissionListener? listener)
         => PushNotificationsAndroid.RequestNotificationPermission(activity, listener);
 
-    public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
-        => PushNotificationsAndroid.SetNotificationCustomizer(customizer);
-
 #elif IOS
     public static void RequestNotificationPermission(IPermissionListener? listener)
         => PushNotificationsIos.RequestNotificationPermission(granted => listener?.OnPermissionResult(granted));
@@ -196,6 +193,18 @@ public static class PushNotifications
         {
 #if ANDROID
             PushNotificationsAndroid.SetBackgroundListener(listener);
+#endif
+        }
+
+        /// <summary>
+        /// Registers a customizer that mutates the <c>NotificationCompat.Builder</c> before the system posts the notification.
+        /// Only available on Android — on iOS, equivalent mutation is performed in the Notification Service Extension.
+        /// </summary>
+        [SupportedOSPlatform("android")]
+        public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
+        {
+#if ANDROID
+            PushNotificationsAndroid.SetNotificationCustomizer(customizer);
 #endif
         }
     }
