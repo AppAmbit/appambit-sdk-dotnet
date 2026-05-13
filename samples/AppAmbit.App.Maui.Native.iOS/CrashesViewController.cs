@@ -115,12 +115,11 @@ UIButton MakeButton(string title)
         base.ViewDidLoad();
         View.BackgroundColor = BackgroundCompat();
 
-        // Register listener for incoming push notifications (foreground + tap)
-        PushNotifications.SetNotificationListener((userInfo, state) =>
-        {
-            var stateStr = state == PushNotificationState.Foreground ? "Foreground" : "Opened";
-            System.Diagnostics.Debug.WriteLine($"[AppAmbit] Push notification {stateStr}");
-        });
+        PushNotifications.SetForegroundListener(data =>
+            System.Diagnostics.Debug.WriteLine($"[AppAmbit] Foreground push: {data.Title}"));
+
+        PushNotifications.SetOpenedListener(data =>
+            System.Diagnostics.Debug.WriteLine($"[AppAmbit] Opened push: {data.Title}"));
 
         var scroll = new UIScrollView { TranslatesAutoresizingMaskIntoConstraints = false };
         var container = new UIView { TranslatesAutoresizingMaskIntoConstraints = false };

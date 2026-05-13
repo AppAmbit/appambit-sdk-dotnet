@@ -45,7 +45,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
-    <AndroidMavenLibrary Include="com.appambit:appambit.push.notifications" Version="0.3.1" />
+    <AndroidLibrary Include="Platforms\Android_Libs\appambit.push.notifications.aar" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">

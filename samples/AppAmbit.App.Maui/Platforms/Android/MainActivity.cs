@@ -1,4 +1,4 @@
-﻿using Android.App;
+using Android.App;
 using Android.Content.PM;
 using Android.OS;
 using AppAmbit.PushNotifications;
@@ -13,9 +13,6 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-
-        // Start push SDK but don't enable notifications automatically
-        // User will enable them manually through the UI
         PushNotifications.Start(this);
     }
 }

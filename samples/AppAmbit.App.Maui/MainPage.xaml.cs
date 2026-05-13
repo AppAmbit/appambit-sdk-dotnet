@@ -64,9 +64,15 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         this.BindingContext = this;
         UserId = Guid.NewGuid().ToString();
-        
-        // Configure notification customizer
-        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+
+        PushNotifications.SetForegroundListener(data =>
+            Console.WriteLine($"[AppAmbitMaui] Foreground push: {data.Title}"));
+
+        PushNotifications.SetOpenedListener(data =>
+            Console.WriteLine($"[AppAmbitMaui] Opened push: {data.Title}"));
+
+        PushNotifications.Android.SetBackgroundListener(data =>
+            Console.WriteLine($"[AppAmbitMaui] Background push: {data.Title}"));
     }
 
     private async void OnGenerateLogsForBatch(object? sender, EventArgs e)
@@ -263,26 +269,6 @@ public partial class MainPage : ContentPage
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
-    }
-
-    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
-    {
-        public void Customize(object context, object builder, PushNotificationData notification)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
-            
-            if (notification.Data is System.Collections.IDictionary dict)
-            {
-                foreach (var key in dict.Keys)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
-                }
-            }
-            else if (notification.Data != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
-            }
-        }
     }
 
     private async void OnTestErrorLogClicked(object sender, EventArgs e)

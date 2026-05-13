@@ -1,0 +1,37 @@
+#if IOS
+using System.Collections.Generic;
+using Foundation;
+
+namespace AppAmbit.PushNotifications;
+
+internal static class IosNotificationMapper
+{
+    public static PushNotificationData ToData(NSDictionary userInfo)
+    {
+        var aps   = (userInfo["aps"] as NSDictionary) ?? userInfo;
+        var alert = aps["alert"] as NSDictionary;
+
+        string? title    = (alert?["title"]    ?? userInfo["title"])    as NSString;
+        string? body     = (alert?["body"]     ?? userInfo["body"])     as NSString;
+        string? subtitle = (alert?["subtitle"] ?? userInfo["subtitle"]) as NSString;
+        string? imageUrl = userInfo["image"] as NSString;
+
+        var data = new Dictionary<string, string>();
+        foreach (var key in userInfo.Keys)
+        {
+            if (key is NSString k && key.ToString() != "aps")
+            {
+                var value = userInfo[key];
+                if (value != null) data[k.ToString()] = value.ToString();
+            }
+        }
+
+        return new PushNotificationData(
+            Title: title,
+            Body: body,
+            ImageUrl: imageUrl,
+            Data: data,
+            Ios: new IosPushData(subtitle));
+    }
+}
+#endif
