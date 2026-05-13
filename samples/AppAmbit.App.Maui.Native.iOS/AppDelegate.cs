@@ -14,6 +14,12 @@ public class AppDelegate : UIApplicationDelegate
 
     public override bool FinishedLaunching(UIApplication application, NSDictionary launchOptions)
     {
+        PushNotifications.SetForegroundListener(data =>
+            Console.WriteLine($"[AppAmbitNativeiOS] Foreground push: {data.Title}"));
+
+        PushNotifications.SetOpenedListener(data =>
+            Console.WriteLine($"[AppAmbitNativeiOS] Opened push: {data.Title}"));
+
         AppAmbit.RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR-APPKEY>");
         PushNotifications.Start();

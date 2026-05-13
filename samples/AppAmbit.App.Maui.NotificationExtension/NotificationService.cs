@@ -10,15 +10,49 @@ namespace AppAmbit.App.Maui.NotificationExtension;
 [Register("NotificationService")]
 public class SampleNotificationService : AppAmbitNotificationServiceExtension
 {
-    protected override void OnNotificationArrived(UNNotificationRequest request)
+    public override void DidReceiveNotificationRequest(
+        UNNotificationRequest request,
+        Action<UNNotificationContent> contentHandler)
     {
-        Log($"[AppAmbit NSE] Notification arrived — identifier: {request.Identifier}");
+        if (request.Content.MutableCopy() is not UNMutableNotificationContent bestAttemptContent)
+        {
+            Log("[AppAmbit NSE] Failed to create mutable content copy.");
+            contentHandler(request.Content);
+            return;
+        }
+
+        Log($"[AppAmbit NSE] Processing notification -> {bestAttemptContent.Title}");
+
+        var userInfo = bestAttemptContent.UserInfo;
+        var dataPayload = userInfo[(NSString)"data"] as NSDictionary ?? userInfo;
+
+        bestAttemptContent.Title += " Customs";
+
+        if (dataPayload[(NSString)"category_type"] is NSString category)
+            bestAttemptContent.CategoryIdentifier = category;
+
+        if (dataPayload[(NSString)"chat_id"] is NSString threadId)
+            bestAttemptContent.ThreadIdentifier = threadId;
+
+        if (OperatingSystem.IsIOSVersionAtLeast(15)
+            && dataPayload[(NSString)"is_urgent"] is NSString urgent
+            && urgent == "true")
+        {
+            bestAttemptContent.InterruptionLevel = UNNotificationInterruptionLevel.TimeSensitive;
+        }
+
+        if (dataPayload[(NSString)"badge_count"] is NSString badgeStr && int.TryParse(badgeStr, out var badge))
+            bestAttemptContent.Badge = badge;
+
+        var newRequest = UNNotificationRequest.FromIdentifier(request.Identifier, bestAttemptContent, request.Trigger);
+
+        Log("[AppAmbit NSE] Content modified, delegating to base.");
+        base.DidReceiveNotificationRequest(newRequest, contentHandler);
     }
 
     protected override void HandlePayload(AppAmbitNotificationData notification, UNMutableNotificationContent content)
     {
-        content.Title = (notification.Title ?? content.Title) + " + Custom";
-        Log($"[AppAmbit NSE] title: {notification.Title}, body: {notification.Body}");
+        Log($"[AppAmbit NSE] HandlePayload — title: {notification.Title}, body: {notification.Body}");
     }
 
     protected override void OnTimeExpiring()
@@ -26,8 +60,6 @@ public class SampleNotificationService : AppAmbitNotificationServiceExtension
         Log("[AppAmbit NSE] Time limit reached — delivering best attempt content");
     }
 
-    // Writes to the iOS Unified Logging System — visible in Console.app on Mac,
-    // filtered by this extension's process name.
     private static void Log(string message)
     {
         var ptr = NSString.CreateNative(message);

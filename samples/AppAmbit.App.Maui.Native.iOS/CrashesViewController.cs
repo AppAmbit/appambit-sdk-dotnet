@@ -115,12 +115,6 @@ UIButton MakeButton(string title)
         base.ViewDidLoad();
         View.BackgroundColor = BackgroundCompat();
 
-        PushNotifications.SetForegroundListener(data =>
-            System.Diagnostics.Debug.WriteLine($"[AppAmbit] Foreground push: {data.Title}"));
-
-        PushNotifications.SetOpenedListener(data =>
-            System.Diagnostics.Debug.WriteLine($"[AppAmbit] Opened push: {data.Title}"));
-
         var scroll = new UIScrollView { TranslatesAutoresizingMaskIntoConstraints = false };
         var container = new UIView { TranslatesAutoresizingMaskIntoConstraints = false };
         var stack = new UIStackView

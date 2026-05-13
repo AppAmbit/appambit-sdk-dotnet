@@ -31,8 +31,6 @@ public abstract class AppAmbitNotificationServiceExtension : UNNotificationServi
         _contentHandler      = contentHandler;
         _bestAttemptContent  = (UNMutableNotificationContent)request.Content.MutableCopy();
 
-        OnNotificationArrived(request);
-
         AppAmbitNotificationProcessor.Process(request, contentHandler, HandlePayload);
     }
 
@@ -42,11 +40,6 @@ public abstract class AppAmbitNotificationServiceExtension : UNNotificationServi
         if (_bestAttemptContent is not null)
             _contentHandler?.Invoke(_bestAttemptContent);
     }
-
-    /// <summary>
-    /// Called when the notification arrives, before any processing begins.
-    /// </summary>
-    protected virtual void OnNotificationArrived(UNNotificationRequest request) { }
 
     /// <summary>
     /// Called synchronously during processing. Mutate <paramref name="content"/> to change
