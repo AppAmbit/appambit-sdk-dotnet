@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-ios</TargetFramework>
+    <IsAppExtension>true</IsAppExtension>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SupportedOSPlatformVersion>12.2</SupportedOSPlatformVersion>
+    <RootNamespace>AppAmbit.App.Avalonia.NotificationExtension</RootNamespace>
+    <AssemblyName>AppAmbit.App.Avalonia.NotificationExtension</AssemblyName>
+    <ApplicationId>com.AppAmbit.TestAppSwift.NotificationExtension</ApplicationId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
+  </ItemGroup>
+
+  <!-- Simulator -->
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')">
+    <NativeReference Include="..\..\push\AppAmbit.PushNotifications\Platforms\iOS_Build\build\Debug-iphonesimulator\AppAmbitPushNotifications.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+    <NativeReference Include="..\..\push\AppAmbit.PushNotifications\Platforms\iOS_Build\build\Debug-iphonesimulator\AppAmbit.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+  </ItemGroup>
+
+  <!-- Device -->
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')">
+    <NativeReference Include="..\..\push\AppAmbit.PushNotifications\Platforms\iOS_Build\build\Debug-iphoneos\AppAmbitPushNotifications.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+    <NativeReference Include="..\..\push\AppAmbit.PushNotifications\Platforms\iOS_Build\build\Debug-iphoneos\AppAmbit.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+  </ItemGroup>
+
+</Project>

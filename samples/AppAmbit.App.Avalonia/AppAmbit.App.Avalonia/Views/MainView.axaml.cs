@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using System.Collections.Generic;
 using AppAmbitAvalonia;
+using AppAmbit.PushNotifications;
 using System.Threading.Tasks;
 using System.Linq;
 
@@ -24,7 +25,17 @@ public partial class MainView : UserControl
 
         try
         {
-            
+            PushNotifications.SetForegroundListener(data =>
+                Console.WriteLine($"[AppAmbitAvalonia][Foreground] {data.Title} — {data.Body}"));
+
+            PushNotifications.SetOpenedListener(data =>
+                Console.WriteLine($"[AppAmbitAvalonia][Opened] {data.Title} — {data.Body}"));
+
+            PushNotifications.Android.SetBackgroundListener(data =>
+                Console.WriteLine($"[AppAmbitAvalonia][Background] {data.Title} — {data.Body}"));
+
+            PushNotifications.Android.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+
         txtChangeUserId.Text = Guid.NewGuid().ToString();
         txtChangeUserEmail.Text = "test@gmail.com";
         txtCustomLogError.Text = "Test Log Message";
@@ -259,6 +270,16 @@ public partial class MainView : UserControl
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
+    }
+
+    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, PushNotificationData notification)
+        {
+            Console.WriteLine($"[AppAmbitAvalonia][Customizer] {notification.Title}");
+            dynamic b = builder;
+            b.SetContentTitle($"Custom {notification.Title}");
+        }
     }
 
     private async void OnSessionStartClicked(object? sender, RoutedEventArgs e)
