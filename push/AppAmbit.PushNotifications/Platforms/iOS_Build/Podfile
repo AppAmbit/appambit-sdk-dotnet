@@ -3,20 +3,14 @@ use_frameworks!
 install! 'cocoapods', :integrate_targets => false
 
 target 'AppAmbitPushNotificationsBuild' do
-    pod 'AppAmbitPushNotifications', :path => '../../../../../appambit-sdk-ios/Push/AppAmbitPushNotifications'
+    pod 'AppAmbitPushNotifications', '~> 1.0'
+end
+
+target 'AppAmbitPushNotificationsExtensionBuild' do
+    pod 'AppAmbitPushNotificationsExtension', '~> 1.0'
 end
 
 post_install do |installer|
-  # Workaround: CocoaPods 1.16.2 + Ruby 4.0 bug — clean_sandbox removes local podspec files
-  # before write_lockfiles tries to checksum them. Re-write them here so checksums succeed.
-  specs_root = installer.sandbox.specifications_root
-  specs_root.mkpath
-  installer.pod_targets.each do |target|
-    spec = target.root_spec
-    json_path = specs_root + "#{spec.name}.podspec.json"
-    json_path.write(spec.to_pretty_json) unless json_path.exist?
-  end
-
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'

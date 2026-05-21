@@ -1,4 +1,4 @@
-# AppAmbit Push Notifications SDK (MAUI / Android)
+# AppAmbit Push Notifications SDK (MAUI / Android / iOS)
 
 **Seamlessly integrate push notifications with your AppAmbit analytics.**
 
@@ -22,6 +22,7 @@ Extension of the core AppAmbit MAUI SDK for handling Firebase Cloud Messaging (F
 * Enable/disable notifications at business + FCM level.
 * Automatically handles standard FCM notification fields (`title`, `body`, `color`, `icon`, `channel_id`, `click_action`, `image`).
 * Permission helper for `POST_NOTIFICATIONS` (Android 13+).
+* Foreground / opened listeners (plus an Android background listener), including delivery of **cold-start taps** when the app was fully terminated.
 * Optional hook to fully customize the notification.
 
 ## Requirements
@@ -77,6 +78,29 @@ protected override void OnCreate(Bundle? savedInstanceState)
 }
 ```
 
+`Platforms/iOS/AppDelegate.cs`
+```csharp
+using AppAmbit.PushNotifications;
+using Foundation;
+using UIKit;
+
+public override bool FinishedLaunching(UIApplication app, NSDictionary options)
+{
+    var result = base.FinishedLaunching(app, options);
+
+    PushNotifications.Start();
+
+    // Required for cold-start taps (app fully terminated): iOS delivers the tapped
+    // notification in the launch options instead of to the opened listener, so forward
+    // them to the SDK. It buffers the payload and delivers it to your opened listener
+    // once that listener is registered. Without this, the opened listener does not fire
+    // on a cold-start tap.
+    PushNotifications.HandleLaunchOptions(options);
+
+    return result;
+}
+```
+
 ### .NET Android (native Activity)
 ```csharp
 using AppAmbitMaui; // core SDK
@@ -93,6 +117,32 @@ public class MainActivity : AppCompatActivity
 
         PushNotifications.Start(ApplicationContext);
         PushNotifications.RequestNotificationPermission(this);
+    }
+}
+```
+
+### .NET iOS (native AppDelegate)
+```csharp
+using AppAmbit;
+using AppAmbit.PushNotifications;
+using Foundation;
+using UIKit;
+
+[Register("AppDelegate")]
+public class AppDelegate : UIApplicationDelegate
+{
+    public override bool FinishedLaunching(UIApplication app, NSDictionary options)
+    {
+        AppAmbitSdk.Start("<YOUR-APPKEY>");
+
+        PushNotifications.Start();
+        PushNotifications.RequestNotificationPermission(callback: granted =>
+            System.Diagnostics.Debug.WriteLine($"Push permission: {granted}"));
+
+        // Required for cold-start taps — forwards the launch payload to the opened listener.
+        PushNotifications.HandleLaunchOptions(options);
+
+        return true;
     }
 }
 ```
@@ -137,6 +187,8 @@ Register the listeners below (and the customizer) **once, at host startup, right
 | **.NET Android (native)** | `MainActivity.cs` → `OnCreate`, immediately after `AppAmbitSdk.Start(...)` and `PushNotifications.Start(this)`. |
 | **.NET iOS (native)** | `AppDelegate.cs` → `FinishedLaunching`, alongside `AppAmbitSdk.Start(...)` and `PushNotifications.Start()`. |
 
+> **iOS cold-start tap:** when a tap launches the app from a fully terminated state, iOS hands the payload to `FinishedLaunching` (launch options), not to the listener. Call `PushNotifications.HandleLaunchOptions(options)` in your `AppDelegate.FinishedLaunching` (see Quickstart) — the SDK buffers it and delivers it to your opened listener once it registers. Omit this and the opened listener will **not** fire on a cold-start tap.
+
 > Pre-display processing for background/killed apps on iOS does **not** go here — it belongs in the [Notification Service Extension](#ios--notification-service-extension).
 
 ```csharp
@@ -159,9 +211,31 @@ PushNotifications.Android.SetBackgroundListener(data =>
 
 Send any custom keys you need in `data`; `PushNotificationData.Data` exposes the full map.
 
+### What the SDK applies automatically (Android)
+
+The Android SDK reads the backend payload and configures `NotificationCompat.Builder` for you before posting — both in foreground (`onMessageReceived`) and background (`handleIntent`). You do **not** need a customizer for the standard fields. The customizer below is for *additional* changes on top of what the SDK already did.
+
+| Backend field | What the SDK does | Surfaced on `PushNotificationData` |
+|---|---|---|
+| `title` / `body` | `setContentTitle` / `setContentText` | `Title`, `Body` |
+| `icon` | `setSmallIcon` (drawable lookup; falls back to app launcher icon) | `Android.SmallIconName` |
+| `color` | `setColor(parsed)` (hex, e.g. `#FF5722`) | `Android.Color` |
+| `sound` / default sound | `setSound(...)` via `getSoundUri()` (`"default"` → system default; else a resource name in `res/raw/`) | `Android.Sound` |
+| `tag` | `notify(tag, ...)` — same-tag notifications replace each other | `Android.Tag` |
+| `ticker` | `setTicker(...)` (status-bar short text on older Android) | `Android.Ticker` |
+| `sticky` | `setOngoing(true)` + `setAutoCancel(false)` when `true` | `Android.Sticky` |
+| `image` / `image_url` | `BigPictureStyle.bigPicture(downloaded bitmap)` (JPG/PNG/BMP, max ~1 MB) | `PushNotificationData.ImageUrl` |
+| `channel_id` / `android_channel_id` | `Builder(ctx, channelId)` + `createNotificationChannel(...)` (Android 8+) | `Android.ChannelId` |
+| `notification_priority` | `setPriority(...)` (accepts `-2..2` int or `"max"`/`"high"`/`"low"`/`"min"`) | `Android.Priority` |
+| `visibility` | `setVisibility(...)` (accepts int or `"public"`/`"private"`/`"secret"`) | `Android.Visibility` |
+| `click_action` | exposed as a data extra; route from your opened listener as needed | `Android.ClickAction` |
+| Custom data payload (any other keys) | passed through verbatim | `PushNotificationData.Data` |
+
+FCM transport fields (collapse key, FCM delivery priority, TTL, restricted package name, Firebase Analytics label) are honored by Firebase before the message reaches the device — the SDK does not touch them.
+
 ### Android — modify the notification before display
 
-On Android only, register a customizer to mutate `NotificationCompat.Builder` before the system posts the notification (tint color, subtext, actions, channel, etc.). On iOS, the equivalent mutation point is the Notification Service Extension.
+On Android only, register a customizer for *additional* changes on top of what the SDK already configured (add actions, RemoteViews, group keys, light/vibrate patterns, …). The customizer runs **after** the SDK applies the table above, so anything you set wins. On iOS, the equivalent mutation point is the Notification Service Extension.
 
 ```csharp
 class MyCustomizer : PushNotifications.INotificationCustomizer
@@ -192,7 +266,7 @@ public void Customize(object context, object builder, PushNotificationData notif
 
 ## iOS — Notification Service Extension
 
-On iOS the `PushNotifications` facade forwards the native framework API (`Start()`, `SetNotificationsEnabled()`, `IsNotificationsEnabled()`, `RequestNotificationPermission()`, `SetForegroundListener()`, `SetOpenedListener()`). The bundled `AppAmbitPushNotifications.framework` and `AppAmbit.framework` are copied into the app bundle and signed by the build — there is no CocoaPods or manual setup.
+On iOS the `PushNotifications` facade forwards the native framework API (`Start()`, `SetNotificationsEnabled()`, `IsNotificationsEnabled()`, `RequestNotificationPermission()`, `SetForegroundListener()`, `SetOpenedListener()`, `HandleLaunchOptions()`). The bundled `AppAmbitPushNotifications.framework` and `AppAmbit.framework` are copied into the app bundle and signed by the build — there is no CocoaPods or manual setup.
 
 To run code on a push **before the banner is shown** — including when the app is in the background or killed — add a Notification Service Extension (NSE). The NSE is a separate project; iOS is the only platform that supports it (on Android, use `PushNotifications.Android.SetBackgroundListener`).
 

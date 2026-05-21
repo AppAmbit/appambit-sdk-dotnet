@@ -49,7 +49,6 @@
         <ProgressBar Grid.Row="1"
                      x:Name="LoadingBar"
                      IsVisible="False"
-                     IsIndeterminate="True"
                      HeightRequest="3"
                      Margin="16,0,16,8" />
 

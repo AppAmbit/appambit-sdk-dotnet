@@ -188,10 +188,25 @@ internal static class PushNotificationsAndroid
     public static void SetOpenedListener(System.Action<PushNotificationData> listener)
     {
         PushKernel.OpenedNotificationListener = new OpenedListenerProxy(listener);
+        // Cold-start: the notification intent arrived in OnCreate before this listener
+        // was registered. Check the current activity's intent and replay it now.
+        var activity = GetCurrentActivity();
+        if (activity != null)
+            TryHandleOpenedIntent(activity.Intent);
     }
 
     public static void SetBackgroundListener(System.Action<PushNotificationData> listener)
     {
         PushKernel.BackgroundNotificationListener = new BackgroundListenerProxy(listener);
+    }
+
+    private const string ActionNotificationOpened = "com.appambit.sdk.NOTIFICATION_OPENED";
+
+    internal static void TryHandleOpenedIntent(Intent? intent)
+    {
+        if (intent == null || intent.Action != ActionNotificationOpened) return;
+        var context = (Context?)GetCurrentActivity() ?? Android.App.Application.Context;
+        PushKernel.HandleNotificationOpened(context, intent);
+        intent.SetAction(null);
     }
 }

@@ -16,6 +16,11 @@ internal static class IosNotificationMapper
         string? subtitle = (alert?["subtitle"] ?? userInfo["subtitle"]) as NSString;
         string? imageUrl = userInfo["image"] as NSString;
 
+        string? sound    = aps["sound"] as NSString;
+        int?    badge    = aps["badge"] is NSNumber n ? (int?)n.Int32Value : null;
+        string? threadId = aps["thread-id"] as NSString;
+        string? category = aps["category"] as NSString;
+
         var data = new Dictionary<string, string>();
         foreach (var key in userInfo.Keys)
         {
@@ -31,7 +36,7 @@ internal static class IosNotificationMapper
             Body: body,
             ImageUrl: imageUrl,
             Data: data,
-            Ios: new IosPushData(subtitle));
+            Ios: new IosPushData(subtitle, sound, badge, threadId, category));
     }
 }
 #endif

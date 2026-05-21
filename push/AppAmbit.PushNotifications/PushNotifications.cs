@@ -17,9 +17,24 @@ public record PushNotificationData(
     AndroidPushData? Android = null,
     IosPushData? Ios = null);
 
-public record AndroidPushData(string? Color, string? SmallIconName);
+public record AndroidPushData(
+    string? Color,
+    string? SmallIconName,
+    string? Ticker = null,
+    bool? Sticky = null,
+    string? Visibility = null,
+    string? ChannelId = null,
+    string? Priority = null,
+    string? Tag = null,
+    string? Sound = null,
+    string? ClickAction = null);
 
-public record IosPushData(string? Subtitle);
+public record IosPushData(
+    string? Subtitle,
+    string? Sound = null,
+    int? Badge = null,
+    string? ThreadId = null,
+    string? Category = null);
 
 /// <summary>
 /// Cross-platform facade for AppAmbit push notifications.
@@ -148,6 +163,17 @@ public static class PushNotifications
 #endif
     }
 
+#if IOS
+    /// <summary>
+    /// Delivers a cold-start launch notification (app launched by tapping a notification
+    /// while fully terminated) to the opened listener. Call from the iOS AppDelegate's
+    /// <c>FinishedLaunching</c>, passing its launch options. iOS hands a cold-start tap to
+    /// the launch options rather than the notification-center delegate, so this covers that gap.
+    /// </summary>
+    public static void HandleLaunchOptions(Foundation.NSDictionary? launchOptions)
+        => PushNotificationsIos.HandleColdStartLaunch(launchOptions);
+#endif
+
     // ── Interfaces ────────────────────────────────────────────────────────
 
     public interface IPermissionListener
@@ -207,6 +233,11 @@ public static class PushNotifications
             PushNotificationsAndroid.SetNotificationCustomizer(customizer);
 #endif
         }
+
+#if ANDROID
+        public static void HandleNotificationOpened(global::Android.Content.Intent? intent)
+            => PushNotificationsAndroid.TryHandleOpenedIntent(intent);
+#endif
     }
 
     // ─────────────────────────────────────────────────────────────────────

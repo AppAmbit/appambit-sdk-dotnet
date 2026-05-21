@@ -1,4 +1,54 @@
 <Project>
+  <!--
+    AppAmbitEnsureIosFrameworks
+    Runs pod install + xcodebuild automatically before the first iOS build.
+    Subsequent builds skip all steps when the framework directories already exist.
+    Requires: CocoaPods (pod) and Xcode (xcodebuild) on PATH.
+  -->
+  <Target Name="AppAmbitEnsureIosFrameworks"
+          BeforeTargets="ResolveReferences"
+          Condition="'$(TargetFramework)' == 'net10.0-ios' AND $([MSBuild]::IsOSPlatform('osx'))">
+
+    <PropertyGroup>
+      <_AAPodsDir>$(MSBuildThisFileDirectory)Platforms/iOS_Build</_AAPodsDir>
+      <_AAPodsProj>$(_AAPodsDir)/Pods/Pods.xcodeproj</_AAPodsProj>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_IsSimulator)' == 'true'">
+      <_AAXcPlatform>iOS Simulator</_AAXcPlatform>
+      <_AAFwDir>$(_AAPodsDir)/build/Debug-iphonesimulator</_AAFwDir>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(_IsSimulator)' != 'true'">
+      <_AAXcPlatform>iOS</_AAXcPlatform>
+      <_AAFwDir>$(_AAPodsDir)/build/Debug-iphoneos</_AAFwDir>
+    </PropertyGroup>
+
+    <Message Importance="High" Text="[AppAmbit] Checking iOS native frameworks in $(_AAFwDir)..." />
+
+    <!-- Step 1: pod install — only when Pods project is missing -->
+    <Exec Condition="!Exists('$(_AAPodsProj)')"
+          Command="pod install --repo-update"
+          WorkingDirectory="$(_AAPodsDir)"
+          ConsoleToMSBuild="true" />
+
+    <!-- Step 2: build AppAmbit.framework (AppAmbitSdk pod) -->
+    <Exec Condition="!Exists('$(_AAFwDir)/AppAmbit.framework')"
+          Command="xcodebuild -project &quot;$(_AAPodsProj)&quot; -scheme AppAmbitSdk -configuration Debug -destination &quot;generic/platform=$(_AAXcPlatform)&quot; CONFIGURATION_BUILD_DIR=&quot;$(_AAFwDir)&quot; ONLY_ACTIVE_ARCH=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES -quiet"
+          WorkingDirectory="$(_AAPodsDir)" />
+
+    <!-- Step 3: build AppAmbitPushNotifications.framework -->
+    <Exec Condition="!Exists('$(_AAFwDir)/AppAmbitPushNotifications.framework')"
+          Command="xcodebuild -project &quot;$(_AAPodsProj)&quot; -scheme AppAmbitPushNotifications -configuration Debug -destination &quot;generic/platform=$(_AAXcPlatform)&quot; CONFIGURATION_BUILD_DIR=&quot;$(_AAFwDir)&quot; ONLY_ACTIVE_ARCH=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES -quiet"
+          WorkingDirectory="$(_AAPodsDir)" />
+
+    <!-- Step 4: build AppAmbitPushNotificationsExtension.framework (used by the .NET NSE project) -->
+    <Exec Condition="!Exists('$(_AAFwDir)/AppAmbitPushNotificationsExtension.framework')"
+          Command="xcodebuild -project &quot;$(_AAPodsProj)&quot; -scheme AppAmbitPushNotificationsExtension -configuration Debug -destination &quot;generic/platform=$(_AAXcPlatform)&quot; CONFIGURATION_BUILD_DIR=&quot;$(_AAFwDir)&quot; ONLY_ACTIVE_ARCH=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES -quiet"
+          WorkingDirectory="$(_AAPodsDir)" />
+
+    <Message Importance="High" Text="[AppAmbit] iOS frameworks ready." />
+  </Target>
+
   <!-- Copy iOS native dynamic frameworks to app bundle -->
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">

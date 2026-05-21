@@ -24,6 +24,12 @@
       <SmartLink>True</SmartLink>
       <ForceLoad>True</ForceLoad>
     </NativeReference>
+    <NativeReference Include="..\..\push\AppAmbit.PushNotifications\Platforms\iOS_Build\build\Debug-iphonesimulator\AppAmbitPushNotificationsExtension.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
     <NativeReference Include="..\..\push\AppAmbit.PushNotifications\Platforms\iOS_Build\build\Debug-iphonesimulator\AppAmbit.framework">
       <Kind>Framework</Kind>
       <IsDynamic>True</IsDynamic>
@@ -35,6 +41,12 @@
   <!-- Device -->
   <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')">
     <NativeReference Include="..\..\push\AppAmbit.PushNotifications\Platforms\iOS_Build\build\Debug-iphoneos\AppAmbitPushNotifications.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+    <NativeReference Include="..\..\push\AppAmbit.PushNotifications\Platforms\iOS_Build\build\Debug-iphoneos\AppAmbitPushNotificationsExtension.framework">
       <Kind>Framework</Kind>
       <IsDynamic>True</IsDynamic>
       <SmartLink>True</SmartLink>

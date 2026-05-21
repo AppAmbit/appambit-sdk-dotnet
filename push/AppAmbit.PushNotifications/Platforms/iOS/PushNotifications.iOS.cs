@@ -191,7 +191,6 @@ internal static partial class PushNotificationsIos
             if (granted)
             {
                 NSUserDefaults.StandardUserDefaults.SetBool(true, "AppAmbit.Push.HasPermission");
-                InvokeOnMainThreadSafe(() => UIApplication.SharedApplication.RegisterForRemoteNotifications());
                 SetNotificationsEnabled(true);
             }
 

@@ -17,6 +17,16 @@ internal static class AndroidNotificationMapper
             Body: notification.Body,
             ImageUrl: notification.ImageUrl,
             Data: data,
-            Android: new AndroidPushData(notification.Color, notification.SmallIconName));
+            Android: new AndroidPushData(
+                Color:         notification.Color,
+                SmallIconName: notification.SmallIconName,
+                Ticker:        notification.Ticker,
+                Sticky:        notification.Sticky?.BooleanValue(),
+                Visibility:    notification.Visibility,
+                ChannelId:     notification.ChannelId,
+                Priority:      notification.Priority,
+                Tag:           notification.Tag,
+                Sound:         notification.Sound,
+                ClickAction:   notification.ClickAction));
     }
 }
