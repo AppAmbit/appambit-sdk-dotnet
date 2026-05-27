@@ -18,7 +18,14 @@ public class AppDelegate : UIApplicationDelegate
             Console.WriteLine($"[AppAmbitNativeiOS] Foreground push: {data.Title}"));
 
         PushNotifications.SetOpenedListener(data =>
-            Console.WriteLine($"[AppAmbitNativeiOS] Opened push: {data.Title}"));
+        {
+            Console.WriteLine($"[AppAmbitNativeiOS] Opened push: {data.Title}");
+            Foundation.NSThread.MainThread.BeginInvokeOnMainThread(() =>
+            {
+                var nav = (Window?.RootViewController as UITabBarController)?.SelectedViewController as UINavigationController;
+                nav?.PushViewController(new SecondView(), true);
+            });
+        });
 
         AppAmbit.RemoteConfig.Enable();
         AppAmbitSdk.Start("<YOUR-APPKEY>");

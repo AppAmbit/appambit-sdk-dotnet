@@ -23,7 +23,7 @@ public partial class App : Avalonia.Application
         Console.WriteLine("[AppAmbit] OnFrameworkInitializationCompleted called.");
 
         RemoteConfig.Enable();
-        AppAmbitSdk.Start("<YOUR-APPKEY>");
+        AppAmbitSdk.Start("b1365d52-8bbc-40d9-9fe6-6c5a9140d0c1");
 
         PushNotifications.Start();
 

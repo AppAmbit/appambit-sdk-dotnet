@@ -29,7 +29,22 @@ public partial class MainView : UserControl
                 Console.WriteLine($"[AppAmbitAvalonia][Foreground] {data.Title} — {data.Body}"));
 
             PushNotifications.SetOpenedListener(data =>
-                Console.WriteLine($"[AppAmbitAvalonia][Opened] {data.Title} — {data.Body}"));
+            {
+                Console.WriteLine($"[AppAmbitAvalonia][Opened] {data.Title} — {data.Body}");
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    var root = this.GetVisualRoot();
+                    object previousContent = this;
+                    if (root is Window w)
+                    {
+                        previousContent = w.Content ?? this;
+                        w.Content = new SecondView(previousContent);
+                        return;
+                    }
+                    if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.ISingleViewApplicationLifetime sv)
+                        sv.MainView = new SecondView(previousContent);
+                });
+            });
 
             PushNotifications.Android.SetBackgroundListener(data =>
                 Console.WriteLine($"[AppAmbitAvalonia][Background] {data.Title} — {data.Body}"));
@@ -184,8 +199,8 @@ public partial class MainView : UserControl
         Console.WriteLine($"[AppAmbit][Debug] OnPushNotificationsClicked start _isUpdatingPushButton={_isUpdatingPushButton} _notificationsEnabled={_notificationsEnabled}");
         try
         {
-            _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasSystemPermission();
-            Console.WriteLine($"[AppAmbit][Debug] HasSystemPermission={_hasNotificationPermission}");
+            _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasNotificationPermission();
+            Console.WriteLine($"[AppAmbit][Debug] HasNotificationPermission={_hasNotificationPermission}");
 
             if (!_hasNotificationPermission)
             {
@@ -246,7 +261,7 @@ public partial class MainView : UserControl
 
     private void UpdateNotificationButtonState()
     {
-        _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasSystemPermission();
+        _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasNotificationPermission();
         Console.WriteLine($"[AppAmbit][Debug] UpdateNotificationButtonState hasPermission={_hasNotificationPermission}");
 
         if (!_hasNotificationPermission)

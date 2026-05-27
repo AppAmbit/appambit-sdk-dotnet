@@ -273,17 +273,6 @@ internal static partial class NativePlatforms
         }
     }
 
-    private static void Log(string msg)
-    {
-        try
-        {
-            Debug.WriteLine(msg);
-            Debug.WriteLine(msg);
-        }
-        catch
-        {
-            Debug.WriteLine(msg);
-        }
-    }
+    private static void Log(string msg) => Debug.WriteLine(msg);
 }
 #endif

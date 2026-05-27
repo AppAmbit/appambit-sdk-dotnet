@@ -30,7 +30,6 @@ public record AndroidPushData(
     string? ClickAction = null);
 
 public record IosPushData(
-    string? Subtitle,
     string? Sound = null,
     int? Badge = null,
     string? ThreadId = null,
@@ -55,13 +54,6 @@ public static class PushNotifications
         PushNotificationsAndroid.Start(platformContext as Context);
 #elif IOS
         PushNotificationsIos.Start();
-
-        if (PushNotificationsIos.IsNotificationsEnabled())
-        {
-            var token = PushNotificationsIos.GetCurrentToken();
-            if (!string.IsNullOrEmpty(token))
-                _ = System.Threading.Tasks.Task.Run(() => AppAmbitSdk.UpdateConsumerAsync(token, true));
-        }
 #else
         NotSupported();
 #endif
@@ -96,12 +88,12 @@ public static class PushNotifications
 #endif
     }
 
-    public static bool HasSystemPermission(object? platformContext = null)
+    public static bool HasNotificationPermission(object? platformContext = null)
     {
 #if ANDROID
-        return PushNotificationsAndroid.HasSystemPermission();
+        return PushNotificationsAndroid.HasNotificationPermission();
 #elif IOS
-        return PushNotificationsIos.HasSystemPermission();
+        return PushNotificationsIos.HasNotificationPermission();
 #else
         NotSupported();
         return false;

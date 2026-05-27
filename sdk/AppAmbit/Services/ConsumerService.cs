@@ -1,4 +1,4 @@
-﻿using AppAmbit;
+using AppAmbit;
 using AppAmbit.Models.App;
 using AppAmbit.Models.Responses;
 using AppAmbit.Services.Endpoints;

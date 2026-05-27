@@ -56,7 +56,8 @@ internal static partial class NativePlatforms
 
             await SessionManager.SendEndSessionFromDatabase();
             await SessionManager.SendStartSessionIfExist();
-            await Crashes.LoadCrashFileIfExists();            
+            await Crashes.LoadCrashFileIfExists();
+            await AppAmbitSdk.InternalFirePushConnectivityHook();
             await AppAmbitSdk.InternalSendPending();
         }
         finally

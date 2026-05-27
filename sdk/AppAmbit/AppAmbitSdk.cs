@@ -19,6 +19,9 @@ public static class AppAmbitSdk
     private static bool _skippedFirstResume = false;
     public static void MarkConfiguredByBuilder() => _configuredByBuilder = true;
 
+    private static Func<Task>? _pushConnectivityHook;
+    internal static void RegisterPushConnectivityHook(Func<Task> hook) => _pushConnectivityHook = hook;
+
     private static void OnStart(string appKey)
     {
         try
@@ -91,7 +94,8 @@ public static class AppAmbitSdk
         await SessionManager.SendEndSessionFromDatabase();
         await SessionManager.SendStartSessionIfExist();
         await Crashes.LoadCrashFileIfExists();
-        await SendDataPending();       
+        await InternalFirePushConnectivityHook();
+        await SendDataPending();
     }
 
     private static void OnSleep()
@@ -282,4 +286,5 @@ public static class AppAmbitSdk
     internal static Task InternalEnsureToken(string? appKey) => GetNewToken(appKey);
     internal static Task InternalSendPending() => SendDataPending();
     internal static bool InternalTokenIsValid() => TokenIsValid();
+    internal static Task InternalFirePushConnectivityHook() => _pushConnectivityHook?.Invoke() ?? Task.CompletedTask;
 }

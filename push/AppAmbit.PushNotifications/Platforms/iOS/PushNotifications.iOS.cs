@@ -104,6 +104,24 @@ internal static partial class PushNotificationsIos
         objc_msgSend_IntPtr(_classHandle, _selSetTokenListener, listener.Handle);
         _tokenListener = listener;
 
+        AppAmbitSdk.RegisterPushConnectivityHook(() =>
+        {
+            // PushKernel.handleNewToken deduplicates: it only calls back when the token
+            // CHANGES from its cached value. On cold start after an offline enable/disable
+            // sequence, OnNewToken is never fired because APNs re-delivers the same token.
+            // Fall back to GetCurrentToken() (the native SDK's persisted cached value) so
+            // we always have a token to sync even when _lastPushToken is null.
+            var token = _lastPushToken ?? GetCurrentToken();
+
+            // If still no token but push is enabled, nudge the native SDK to activate
+            // in case it was left in a deferred state (e.g. set-enabled while offline).
+            if (token == null && IsNotificationsEnabled())
+                InvokeOnMainThreadSafe(() =>
+                    objc_msgSend_bool(_classHandle, _selSetNotificationsEnabled, true));
+
+            return AppAmbitSdk.UpdateConsumerAsync(token, IsNotificationsEnabled());
+        });
+
         InvokeOnMainThreadSafe(() =>
         {
             var app = UIApplication.SharedApplication;
@@ -119,6 +137,15 @@ internal static partial class PushNotificationsIos
                 if (del != null)
                     app.Delegate = del;
 
+                // Restore the native SDK's in-memory enabled state from the persisted
+                // preference before requesting the token. The native SDK resets its
+                // enabled flag on every cold start, so without this it silently drops
+                // the didRegisterForRemoteNotificationsWithDeviceToken callback and
+                // OnNewToken is never called — leaving _lastPushToken null and causing
+                // the stored (potentially stale) token to be re-used on the next sync.
+                if (IsNotificationsEnabled())
+                    objc_msgSend_bool(_classHandle, _selSetNotificationsEnabled, true);
+
                 app.RegisterForRemoteNotifications();
             }
         });
@@ -131,6 +158,9 @@ internal static partial class PushNotificationsIos
         });
     }
 
+    private const string PrefKeyIsEnabled    = "AppAmbit.Push.IsEnabled";
+    private const string PrefKeyIsEnabledSet = "AppAmbit.Push.IsEnabledSet";
+
     public static void SetNotificationsEnabled(bool enabled)
     {
         EnsureNativeAvailable();
@@ -140,10 +170,18 @@ internal static partial class PushNotificationsIos
 
         objc_msgSend_bool(_classHandle, _selSetNotificationsEnabled, enabled);
 
+        // Persist so IsNotificationsEnabled() survives cold restarts independently
+        // of whether the native SDK persists its own in-memory state.
+        NSUserDefaults.StandardUserDefaults.SetBool(enabled, PrefKeyIsEnabled);
+        NSUserDefaults.StandardUserDefaults.SetBool(true, PrefKeyIsEnabledSet);
+
         if (enabled)
             InvokeOnMainThreadSafe(() => UIApplication.SharedApplication.RegisterForRemoteNotifications());
 
-        var token = _lastPushToken;
+        // _lastPushToken is set by OnNewToken. On subsequent launches iOS won't re-deliver
+        // an unchanged token, so _lastPushToken stays null for the session. Fall back to
+        // GetCurrentToken() (native cached value) so the consumer update is not skipped.
+        var token = enabled ? (_lastPushToken ?? GetCurrentToken()) : _lastPushToken;
         _ = Task.Run(async () =>
         {
             try { await AppAmbitSdk.UpdateConsumerAsync(token, enabled); }
@@ -154,10 +192,15 @@ internal static partial class PushNotificationsIos
     public static bool IsNotificationsEnabled()
     {
         EnsureNativeAvailable();
+        // NSUserDefaults is the primary source of truth when the user has explicitly
+        // called SetNotificationsEnabled. The native SDK resets its in-memory state on
+        // cold restart, so we cannot rely on it alone.
+        if (NSUserDefaults.StandardUserDefaults.BoolForKey(PrefKeyIsEnabledSet))
+            return NSUserDefaults.StandardUserDefaults.BoolForKey(PrefKeyIsEnabled);
         return objc_msgSend_bool_ret(_classHandle, _selIsNotificationsEnabled);
     }
 
-    public static bool HasSystemPermission()
+    public static bool HasNotificationPermission()
     {
         EnsureNativeAvailable();
         bool hasPerm = NSUserDefaults.StandardUserDefaults.BoolForKey("AppAmbit.Push.HasPermission");

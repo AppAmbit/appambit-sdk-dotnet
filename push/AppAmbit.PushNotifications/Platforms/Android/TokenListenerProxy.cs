@@ -13,5 +13,7 @@ public sealed class TokenListenerProxy : Java.Lang.Object, Com.Appambit.Sdk.Push
     {
         PushNotificationsAndroid._lastPushToken = token;
         Log.Debug(PushNotificationsAndroid.LogTag, $"FCM token cached: {token.Substring(0, System.Math.Min(10, token.Length))}...");
+        _ = System.Threading.Tasks.Task.Run(() =>
+            AppAmbitSdk.UpdateConsumerAsync(token, PushNotificationsAndroid.IsNotificationsEnabled()));
     }
 }

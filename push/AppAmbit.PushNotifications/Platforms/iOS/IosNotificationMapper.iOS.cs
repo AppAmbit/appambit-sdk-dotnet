@@ -13,7 +13,6 @@ internal static class IosNotificationMapper
 
         string? title    = (alert?["title"]    ?? userInfo["title"])    as NSString;
         string? body     = (alert?["body"]     ?? userInfo["body"])     as NSString;
-        string? subtitle = (alert?["subtitle"] ?? userInfo["subtitle"]) as NSString;
         string? imageUrl = userInfo["image"] as NSString;
 
         string? sound    = aps["sound"] as NSString;
@@ -36,7 +35,7 @@ internal static class IosNotificationMapper
             Body: body,
             ImageUrl: imageUrl,
             Data: data,
-            Ios: new IosPushData(subtitle, sound, badge, threadId, category));
+            Ios: new IosPushData(sound, badge, threadId, category));
     }
 }
 #endif

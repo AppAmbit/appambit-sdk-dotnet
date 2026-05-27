@@ -69,7 +69,11 @@ public partial class MainPage : ContentPage
             Console.WriteLine($"[AppAmbitMaui] Foreground push: {data.Title}"));
 
         PushNotifications.SetOpenedListener(data =>
-            Console.WriteLine($"[AppAmbitMaui] Opened push: {data.Title}"));
+        {
+            Console.WriteLine($"[AppAmbitMaui] Opened push: {data.Title}");
+            MainThread.BeginInvokeOnMainThread(async () =>
+                await Shell.Current.Navigation.PushModalAsync(new SecondPage()));
+        });
 
         PushNotifications.Android.SetBackgroundListener(data =>
             Console.WriteLine($"[AppAmbitMaui] Background push: {data.Title}"));
@@ -217,7 +221,7 @@ public partial class MainPage : ContentPage
         _isUpdatingPushButton = true;
         try
         {
-            _hasNotificationPermission = PushNotifications.HasSystemPermission();
+            _hasNotificationPermission = PushNotifications.HasNotificationPermission();
 
             if (!_hasNotificationPermission)
             {
@@ -278,7 +282,7 @@ public partial class MainPage : ContentPage
 
     private void UpdateNotificationButtonState()
     {
-        _hasNotificationPermission = PushNotifications.HasSystemPermission();
+        _hasNotificationPermission = PushNotifications.HasNotificationPermission();
         
         if (!_hasNotificationPermission)
         {

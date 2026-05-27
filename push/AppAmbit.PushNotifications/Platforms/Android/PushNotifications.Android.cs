@@ -60,7 +60,11 @@ internal static class PushNotificationsAndroid
         if (target == null) throw new System.ArgumentNullException(nameof(context));
 
         if (target is Activity activity)
+        {
             _currentActivity = activity;
+            if (PushKernel.OpenedNotificationListener != null)
+                TryHandleOpenedIntent(activity.Intent);
+        }
 
         InternalStart(target.ApplicationContext ?? target);
     }
@@ -83,7 +87,15 @@ internal static class PushNotificationsAndroid
         if (!_initialized)
         {
             PushKernel.SetTokenListener(new TokenListenerProxy(appContext));
+            AppAmbitSdk.RegisterPushConnectivityHook(() =>
+                AppAmbitSdk.UpdateConsumerAsync(_lastPushToken, IsNotificationsEnabled()));
             _initialized = true;
+
+            _ = Task.Run(async () =>
+            {
+                try { await AppAmbitSdk.UpdateConsumerAsync(null, IsNotificationsEnabled(appContext)); }
+                catch (System.Exception ex) { Log.Error(LogTag, $"Push initial sync failed: {ex.Message}"); }
+            });
         }
 
         _ = Task.Run(() =>
@@ -129,7 +141,7 @@ internal static class PushNotificationsAndroid
         return PushKernel.IsNotificationsEnabled(target);
     }
 
-    public static bool HasSystemPermission()
+    public static bool HasNotificationPermission()
     {
         var context = (Context?)GetCurrentActivity() ?? Android.App.Application.Context;
         if ((int)Build.VERSION.SdkInt < 33) return true;
@@ -151,7 +163,7 @@ internal static class PushNotificationsAndroid
             return;
         }
 
-        if (HasSystemPermission())
+        if (HasNotificationPermission())
         {
             listener?.OnPermissionResult(true);
             return;

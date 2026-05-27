@@ -58,7 +58,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="com.AppAmbit.Sdk" Version="3.1.0" />
+    <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">

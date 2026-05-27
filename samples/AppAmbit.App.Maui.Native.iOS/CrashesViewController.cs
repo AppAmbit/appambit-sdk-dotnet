@@ -280,7 +280,7 @@ UIButton MakeButton(string title)
         {
             if (!_hasNotificationPermission)
             {
-                bool nativePerm = PushNotifications.HasSystemPermission();
+                bool nativePerm = PushNotifications.HasNotificationPermission();
                 if (nativePerm) _hasNotificationPermission = true;
             }
 
@@ -339,7 +339,7 @@ UIButton MakeButton(string title)
     {
         if (!_hasNotificationPermission)
         {
-            bool nativePerm = PushNotifications.HasSystemPermission();
+            bool nativePerm = PushNotifications.HasNotificationPermission();
             if (nativePerm) _hasNotificationPermission = true;
         }
 

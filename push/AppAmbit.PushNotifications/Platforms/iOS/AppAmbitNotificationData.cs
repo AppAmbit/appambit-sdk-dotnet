@@ -1,50 +1,34 @@
 #if IOS
-using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Foundation;
-using ObjCRuntime;
 
 namespace AppAmbit.PushNotifications;
 
 /// <summary>
-/// Wraps the ObjC AppAmbitNotification payload delivered to a Notification Service Extension.
+/// Parsed AppAmbit push payload for use inside a Notification Service Extension.
+/// <c>Title</c> and <c>Body</c> come from <c>aps.alert</c>;
+/// <c>ImageUrl</c> from the top-level <c>"image"</c> key.
 /// </summary>
 [SupportedOSPlatform("ios12.0")]
 public sealed class AppAmbitNotificationData
 {
-    private static readonly IntPtr _selTitle    = Selector.GetHandle("title");
-    private static readonly IntPtr _selSubtitle = Selector.GetHandle("subtitle");
-    private static readonly IntPtr _selBody     = Selector.GetHandle("body");
-    private static readonly IntPtr _selImageUrl = Selector.GetHandle("imageUrl");
-    private static readonly IntPtr _selData     = Selector.GetHandle("data");
+    public string? Title    { get; }
+    public string? Body     { get; }
+    public string? ImageUrl { get; }
+    public NSDictionary Data { get; }
 
-    internal IntPtr Handle { get; }
-
-    internal AppAmbitNotificationData(IntPtr handle) => Handle = handle;
-
-    public string? Title    => GetString(_selTitle);
-    public string? Subtitle => GetString(_selSubtitle);
-    public string? Body     => GetString(_selBody);
-    public string? ImageUrl => GetString(_selImageUrl);
-
-    public NSDictionary Data
+    internal AppAmbitNotificationData(NSDictionary userInfo)
     {
-        get
-        {
-            var ptr = objc_msgSend_ptr(Handle, _selData);
-            return ptr != IntPtr.Zero
-                ? Runtime.GetNSObject<NSDictionary>(ptr) ?? new NSDictionary()
-                : new NSDictionary();
-        }
-    }
+        var aps   = userInfo[(NSString)"aps"]   as NSDictionary;
+        var alert = aps?[(NSString)"alert"]     as NSDictionary;
 
-    private string? GetString(IntPtr sel)
-    {
-        var ptr = objc_msgSend_ptr(Handle, sel);
-        return ptr != IntPtr.Zero ? NSString.FromHandle(ptr) : null;
-    }
+        Title    = (alert?[(NSString)"title"] as NSString)?.ToString();
+        Body     = (alert?[(NSString)"body"]  as NSString)?.ToString();
+        ImageUrl = (userInfo[(NSString)"image"] as NSString)?.ToString();
 
-    [DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_msgSend")]
-    private static extern IntPtr objc_msgSend_ptr(IntPtr receiver, IntPtr selector);
+        var mutable = new NSMutableDictionary(userInfo);
+        mutable.Remove((NSString)"image");
+        Data = mutable;
+    }
 }
 #endif

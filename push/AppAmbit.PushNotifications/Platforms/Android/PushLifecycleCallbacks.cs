@@ -5,8 +5,17 @@ public sealed class PushLifecycleCallbacks : Java.Lang.Object, Android.App.Appli
     public PushLifecycleCallbacks() { }
     public PushLifecycleCallbacks(System.IntPtr handle, Android.Runtime.JniHandleOwnership transfer) : base(handle, transfer) { }
 
-    public void OnActivityCreated(Android.App.Activity activity, Android.OS.Bundle? savedInstanceState) => PushNotificationsAndroid.SetCurrentActivity(activity);
-    public void OnActivityResumed(Android.App.Activity activity) => PushNotificationsAndroid.SetCurrentActivity(activity);
+    public void OnActivityCreated(Android.App.Activity activity, Android.OS.Bundle? savedInstanceState)
+    {
+        PushNotificationsAndroid.SetCurrentActivity(activity);
+        PushNotificationsAndroid.TryHandleOpenedIntent(activity.Intent);
+    }
+
+    public void OnActivityResumed(Android.App.Activity activity)
+    {
+        PushNotificationsAndroid.SetCurrentActivity(activity);
+        PushNotificationsAndroid.TryHandleOpenedIntent(activity.Intent);
+    }
     public void OnActivityDestroyed(Android.App.Activity activity) => PushNotificationsAndroid.ClearCurrentActivity(activity);
     public void OnActivityPaused(Android.App.Activity activity) { }
     public void OnActivitySaveInstanceState(Android.App.Activity activity, Android.OS.Bundle outState) { }

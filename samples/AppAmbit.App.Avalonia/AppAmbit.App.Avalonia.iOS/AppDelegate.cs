@@ -5,8 +5,8 @@ using AppAmbit.PushNotifications;
 
 namespace AppAmbitTestingAppAvalonia.iOS;
 
-// The UIApplicationDelegate for the application. This class is responsible for launching the 
-// User Interface of the application, as well as listening (and optionally responding) to 
+// The UIApplicationDelegate for the application. This class is responsible for launching the
+// User Interface of the application, as well as listening (and optionally responding) to
 // application events from iOS.
 [Register("AppDelegate")]
 #pragma warning disable CA1711 // Identifiers should not have incorrect suffix
@@ -17,8 +17,8 @@ public partial class AppDelegate : AvaloniaAppDelegate<App>
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
         // Init SDK
-        AppAmbitSdk.Start("<YOUR_APPKEY>");
-        
+        AppAmbitSdk.Start("b1365d52-8bbc-40d9-9fe6-6c5a9140d0c1");
+
         // Init Push
         PushNotifications.Start(null);
 
