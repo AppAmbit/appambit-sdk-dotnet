@@ -141,4 +141,67 @@ public class ConsumerServicePushSyncTests : IDisposable
         // Cleanup: reset hook so other tests are not affected
         AppAmbitSdk.RegisterPushConnectivityHook(() => Task.CompletedTask);
     }
+
+    [Fact]
+    public async Task OnNewToken_EnabledFalse_StoredNull_WouldHitApi_WhyGuardIsNeeded()
+    {
+        // Documents WHY TokenListenerProxy.OnNewToken must guard against calling
+        // UpdateConsumerAsync when push is disabled:
+        // If called with (token, enabled=false) on a fresh install (storedEnabled=null),
+        // ConsumerService detects a diff (null != false) and hits the backend unnecessarily.
+        // The guard in OnNewToken ("only call when enabled=true") prevents this on every launch.
+        _mockStorage.Setup(s => s.GetConsumerId()).ReturnsAsync("consumer-1");
+        _mockStorage.Setup(s => s.GetPushDeviceToken()).ReturnsAsync("some-token");
+        _mockStorage.Setup(s => s.GetPushEnabled()).ReturnsAsync((bool?)null);
+        SetupSuccessApiResponse();
+
+        await AppAmbitSdk.UpdateConsumerAsync("some-token", false);
+
+        // ConsumerService correctly detects diff (storedEnabled=null vs false) → hits API.
+        // This is why OnNewToken must NOT call UpdateConsumerAsync when enabled=false.
+        _mockApi.Verify(s => s.ExecuteRequest<object>(It.IsAny<UpdateConsumerEndpoint>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AppStart_NullToken_EnabledFalse_StorageAlreadyFalse_SkipsApiCall()
+    {
+        // After the first launch with push never enabled, storage has enabled=false stored.
+        // Subsequent launches must NOT call the API again — no diff.
+        _mockStorage.Setup(s => s.GetConsumerId()).ReturnsAsync("consumer-1");
+        _mockStorage.Setup(s => s.GetPushDeviceToken()).ReturnsAsync((string?)null);
+        _mockStorage.Setup(s => s.GetPushEnabled()).ReturnsAsync(false);
+
+        await AppAmbitSdk.UpdateConsumerAsync(null, false);
+
+        _mockApi.Verify(s => s.ExecuteRequest<object>(It.IsAny<UpdateConsumerEndpoint>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ConnectivityRestored_WithStoredEnabledState_SyncsToApi()
+    {
+        // Simulates: user previously enabled notifications (stored enabled=true, token saved).
+        // App goes offline, then connectivity is restored → hook fires → API called to re-sync.
+        _mockStorage.Setup(s => s.GetConsumerId()).ReturnsAsync("consumer-1");
+        _mockStorage.Setup(s => s.GetPushDeviceToken()).ReturnsAsync("token-abc");
+        _mockStorage.Setup(s => s.GetPushEnabled()).ReturnsAsync((bool?)null); // diff from true → will call API
+        SetupSuccessApiResponse();
+
+        // Fire what the connectivity hook calls: UpdateConsumerAsync(lastToken, isEnabled).
+        await AppAmbitSdk.UpdateConsumerAsync("token-abc", true);
+
+        _mockApi.Verify(s => s.ExecuteRequest<object>(It.IsAny<UpdateConsumerEndpoint>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConnectivityRestored_NoChangeSinceLastSync_SkipsApiCall()
+    {
+        // User has push enabled and the stored state already matches → no diff → no API call.
+        _mockStorage.Setup(s => s.GetConsumerId()).ReturnsAsync("consumer-1");
+        _mockStorage.Setup(s => s.GetPushDeviceToken()).ReturnsAsync("token-abc");
+        _mockStorage.Setup(s => s.GetPushEnabled()).ReturnsAsync(true);
+
+        await AppAmbitSdk.UpdateConsumerAsync("token-abc", true);
+
+        _mockApi.Verify(s => s.ExecuteRequest<object>(It.IsAny<UpdateConsumerEndpoint>()), Times.Never);
+    }
 }

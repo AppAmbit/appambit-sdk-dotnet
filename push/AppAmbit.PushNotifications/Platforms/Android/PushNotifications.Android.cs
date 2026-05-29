@@ -62,8 +62,9 @@ internal static class PushNotificationsAndroid
         if (target is Activity activity)
         {
             _currentActivity = activity;
-            if (PushKernel.OpenedNotificationListener != null)
-                TryHandleOpenedIntent(activity.Intent);
+            // Capture intent early, before kernel starts — deferred dispatch happens once
+            // both the kernel is ready and the listener is registered.
+            TryHandleOpenedIntent(activity.Intent);
         }
 
         InternalStart(target.ApplicationContext ?? target);
@@ -90,17 +91,16 @@ internal static class PushNotificationsAndroid
             AppAmbitSdk.RegisterPushConnectivityHook(() =>
                 AppAmbitSdk.UpdateConsumerAsync(_lastPushToken, IsNotificationsEnabled()));
             _initialized = true;
-
-            _ = Task.Run(async () =>
-            {
-                try { await AppAmbitSdk.UpdateConsumerAsync(null, IsNotificationsEnabled(appContext)); }
-                catch (System.Exception ex) { Log.Error(LogTag, $"Push initial sync failed: {ex.Message}"); }
-            });
         }
 
         _ = Task.Run(() =>
         {
-            try { PushKernel.Start(appContext); }
+            try
+            {
+                PushKernel.Start(appContext);
+                _kernelReady = true;
+                TryDispatchPendingIntent(appContext);
+            }
             catch (Java.Lang.IllegalStateException ex) { Log.Error(LogTag, $"Failed to start push: {ex}"); }
         });
     }
@@ -200,11 +200,7 @@ internal static class PushNotificationsAndroid
     public static void SetOpenedListener(System.Action<PushNotificationData> listener)
     {
         PushKernel.OpenedNotificationListener = new OpenedListenerProxy(listener);
-        // Cold-start: the notification intent arrived in OnCreate before this listener
-        // was registered. Check the current activity's intent and replay it now.
-        var activity = GetCurrentActivity();
-        if (activity != null)
-            TryHandleOpenedIntent(activity.Intent);
+        TryDispatchPendingIntent((Context?)GetCurrentActivity() ?? Android.App.Application.Context);
     }
 
     public static void SetBackgroundListener(System.Action<PushNotificationData> listener)
@@ -214,11 +210,37 @@ internal static class PushNotificationsAndroid
 
     private const string ActionNotificationOpened = "com.appambit.sdk.NOTIFICATION_OPENED";
 
+    // Holds an intent that arrived before both the kernel and the listener were ready.
+    private static Intent? _pendingOpenedIntent;
+    // Set to true after PushKernel.Start() completes on the background thread.
+    private static bool _kernelReady;
+
+    // Captures the intent (without touching its action) and attempts immediate dispatch.
+    // The _pendingOpenedIntent guard prevents re-capture while buffered or in-flight.
+    // If either condition is not yet met (kernel not ready / listener not set), the intent
+    // stays buffered; TryDispatchPendingIntent is called again by whichever arrives last.
     internal static void TryHandleOpenedIntent(Intent? intent)
     {
         if (intent == null || intent.Action != ActionNotificationOpened) return;
-        var context = (Context?)GetCurrentActivity() ?? Android.App.Application.Context;
-        PushKernel.HandleNotificationOpened(context, intent);
-        intent.SetAction(null);
+        if (_pendingOpenedIntent != null) return; // already captured
+
+        _pendingOpenedIntent = intent;
+        TryDispatchPendingIntent((Context?)GetCurrentActivity() ?? Android.App.Application.Context);
+    }
+
+    // Fires the listener only when BOTH conditions are met:
+    // (1) PushKernel.Start() has completed, and (2) OpenedNotificationListener is set.
+    // Action is cleared AFTER HandleNotificationOpened so the Java kernel can read it.
+    private static void TryDispatchPendingIntent(Context? context)
+    {
+        if (!_kernelReady) return;
+        if (PushKernel.OpenedNotificationListener == null) return;
+
+        var pending = System.Threading.Interlocked.Exchange(ref _pendingOpenedIntent, null);
+        if (pending == null) return;
+
+        var ctx = context ?? Android.App.Application.Context;
+        PushKernel.HandleNotificationOpened(ctx, pending);
+        pending.SetAction(null); // clear AFTER processing to prevent lifecycle re-trigger
     }
 }

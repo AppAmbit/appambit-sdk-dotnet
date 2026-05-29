@@ -13,16 +13,10 @@ public class MainActivity : MauiAppCompatActivity
 {
     protected override void OnCreate(Bundle? savedInstanceState)
     {
-        // Register push listeners before MAUI UI is created so they are active
-        // when a notification arrives while the app is in background or killed.
-        PushNotifications.SetForegroundListener(data =>
-            Console.WriteLine($"[AppAmbitMaui] Foreground push: {data.Title}"));
-
-        PushNotifications.SetOpenedListener(data =>
-            Console.WriteLine($"[AppAmbitMaui] Opened push: {data.Title}"));
-
-        PushNotifications.Android.SetBackgroundListener(data =>
-            Console.WriteLine($"[AppAmbitMaui] Background push: {data.Title}"));
+        // SetOpenedListener is intentionally NOT registered here.
+        // Registering it before MAUI/Shell is ready would consume the cold-start intent
+        // before MainPage can register the listener that actually navigates.
+        // MainPage registers all three listeners (foreground, opened, background).
 
         PushNotifications.Android.SetNotificationCustomizer(new AppAmbitNotificationCustomizer());
 
