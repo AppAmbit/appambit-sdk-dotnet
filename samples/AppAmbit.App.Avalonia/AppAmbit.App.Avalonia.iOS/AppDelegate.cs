@@ -17,7 +17,7 @@ public partial class AppDelegate : AvaloniaAppDelegate<App>
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
         // Init SDK
-        AppAmbitSdk.Start("b1365d52-8bbc-40d9-9fe6-6c5a9140d0c1");
+        AppAmbitSdk.Start("<YOUR_APPKEY>");
 
         // Init Push
         PushNotifications.Start(null);

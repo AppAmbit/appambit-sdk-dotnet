@@ -19,7 +19,7 @@ public class MainActivity : AvaloniaMainActivity<App>
 {
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
-        AppAmbitSdk.Start("35854303-2809-46eb-8ff9-29bf22f30a03");
+        AppAmbitSdk.Start("<YOUR_APPKEY>");
         PushNotifications.Start(this);
 
         return base.CustomizeAppBuilder(builder);
