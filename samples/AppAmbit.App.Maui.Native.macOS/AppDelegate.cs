@@ -8,7 +8,7 @@ public class AppDelegate : UIApplicationDelegate
 	public override bool FinishedLaunching(UIApplication application, NSDictionary? launchOptions)
 	{
 		AppAmbit.RemoteConfig.Enable();
-		AppAmbitMaui.AppAmbitSdk.Start("<YOUR-APPKEY>");
+		AppAmbitMaui.AppAmbitSdk.Start("<YOUR_APPKEY>");
 
 		return true;
 	}
