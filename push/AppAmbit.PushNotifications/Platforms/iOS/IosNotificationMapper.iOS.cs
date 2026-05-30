@@ -20,14 +20,17 @@ internal static class IosNotificationMapper
         string? threadId = aps["thread-id"] as NSString;
         string? category = aps["category"] as NSString;
 
+        // Avoid calling .ToString() on NSObject values: for non-NSString values (e.g. NSDictionary)
+        // .ToString() returns the managed type name instead of the actual content.
+        // Cast explicitly to NSString so only proper string values are included.
         var data = new Dictionary<string, string>();
         foreach (var key in userInfo.Keys)
         {
-            if (key is NSString k && key.ToString() != "aps")
-            {
-                var value = userInfo[key];
-                if (value != null) data[k.ToString()] = value.ToString();
-            }
+            if (key is not NSString k) continue;
+            var keyStr = (string)k;
+            if (keyStr == "aps") continue;
+            if (userInfo[key] is NSString strValue)
+                data[keyStr] = (string)strValue;
         }
 
         return new PushNotificationData(
