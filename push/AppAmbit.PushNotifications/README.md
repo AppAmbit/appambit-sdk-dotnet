@@ -80,38 +80,90 @@ builder.UseMauiApp<App>().UseAppAmbit("<YOUR-APPKEY>");
 ```
 
 **`Platforms/iOS/AppDelegate.cs`**
+
+`FinishedLaunching` runs before the MAUI Shell is ready, so **do not register listeners here** — register them from a shared page (e.g. `MainPage`). `Start` and `HandleLaunchOptions` must be called here.
+
 ```csharp
+using Foundation;
+using UIKit;
 using AppAmbit.PushNotifications;
 
-public override bool FinishedLaunching(UIApplication app, NSDictionary options)
+[Register("AppDelegate")]
+public class AppDelegate : MauiUIApplicationDelegate
 {
-    var result = base.FinishedLaunching(app, options);
-    PushNotifications.Start();
-    // Required for cold-start taps (app fully terminated when notification was tapped).
-    PushNotifications.HandleLaunchOptions(options);
-    return result;
+    protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+
+    public override bool FinishedLaunching(UIApplication app, NSDictionary options)
+    {
+        var result = base.FinishedLaunching(app, options);
+
+        PushNotifications.Start();
+
+        // Required for cold-start taps: when the app is fully terminated and the user taps
+        // a notification, iOS delivers the payload here instead of the notification delegate.
+        // The SDK buffers it and dispatches to SetOpenedListener once it is registered.
+        PushNotifications.HandleLaunchOptions(options);
+
+        return result;
+    }
 }
 ```
 
 **`Platforms/Android/MainActivity.cs`**
+
+Register the notification customizer and call `Start` here. **Do not register listeners here** — register them from a shared page so the MAUI Shell is ready to navigate.
+
 ```csharp
+using Android.App;
+using Android.Content;
+using Android.Content.PM;
+using Android.OS;
 using AppAmbit.PushNotifications;
 
-protected override void OnCreate(Bundle? savedInstanceState)
+[Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true,
+    LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ...)]
+public class MainActivity : MauiAppCompatActivity
 {
-    base.OnCreate(savedInstanceState);
-    PushNotifications.Start(ApplicationContext);
-    PushNotifications.RequestNotificationPermission(this);
+    protected override void OnCreate(Bundle? savedInstanceState)
+    {
+        PushNotifications.Android.SetNotificationCustomizer(new MyNotificationCustomizer());
+        base.OnCreate(savedInstanceState);
+        PushNotifications.Start(this);
+    }
+
+    protected override void OnNewIntent(Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        Intent = intent;
+        // Required for background taps (app in background, user taps notification).
+        PushNotifications.Android.HandleNotificationOpened(intent);
+    }
 }
 ```
 
-Register listeners and request iOS permission from your shared UI layer (e.g. `App.xaml.cs`):
-```csharp
-PushNotifications.SetForegroundListener(data => /* ... */);
-PushNotifications.SetOpenedListener(data => /* ... */);
+**Shared page (e.g. `MainPage.xaml.cs`)**
 
-// iOS permission request from shared UI
-PushNotifications.RequestNotificationPermission(callback: granted => { });
+Register all listeners here, once the MAUI Shell is ready:
+
+```csharp
+public MainPage()
+{
+    InitializeComponent();
+
+    PushNotifications.SetForegroundListener(data => /* ... */);
+    PushNotifications.SetOpenedListener(data =>
+    {
+        // Navigate here — Shell is guaranteed to be ready.
+        Shell.Current.GoToAsync("//SecondPage");
+    });
+    PushNotifications.Android.SetBackgroundListener(data => /* ... */);
+
+    // Request permission (Android 13+ and iOS).
+    PushNotifications.RequestNotificationPermission(callback: granted =>
+    {
+        if (granted) PushNotifications.SetNotificationsEnabled(true);
+    });
+}
 ```
 
 ---
@@ -119,10 +171,14 @@ PushNotifications.RequestNotificationPermission(callback: granted => { });
 ### Avalonia
 
 **`Platforms/iOS/AppDelegate.cs`**
+
+`CustomizeAppBuilder` does not receive launch options, so cold-start taps (app fully terminated) are **not supported** via `HandleLaunchOptions` in Avalonia iOS. All other scenarios (foreground, background tap) work normally — register listeners from your main view.
+
 ```csharp
+using Avalonia;
+using Avalonia.iOS;
 using AppAmbit;
 using AppAmbit.PushNotifications;
-using Avalonia.iOS;
 
 [Register("AppDelegate")]
 public partial class AppDelegate : AvaloniaAppDelegate<App>
@@ -136,15 +192,18 @@ public partial class AppDelegate : AvaloniaAppDelegate<App>
 }
 ```
 
-> `HandleLaunchOptions` is not available here because `CustomizeAppBuilder` does not receive launch options. Cold-start taps are delivered to your opened listener on the next foreground.
-
 **`Platforms/Android/MainActivity.cs`**
+
 ```csharp
+using Android.App;
+using Android.Content.PM;
+using Avalonia;
+using Avalonia.Android;
 using AppAmbit;
 using AppAmbit.PushNotifications;
-using Avalonia.Android;
 
-[Activity(MainLauncher = true, LaunchMode = LaunchMode.SingleTop, ...)]
+[Activity(MainLauncher = true, LaunchMode = LaunchMode.SingleTop,
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
 public class MainActivity : AvaloniaMainActivity<App>
 {
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
@@ -163,7 +222,8 @@ public class MainActivity : AvaloniaMainActivity<App>
 }
 ```
 
-Register listeners and request permission from your main view (e.g. `MainView.axaml.cs`):
+**Main view (e.g. `MainView.axaml.cs`)**
+
 ```csharp
 public MainView()
 {
@@ -173,7 +233,6 @@ public MainView()
     PushNotifications.SetOpenedListener(data => /* ... */);
     PushNotifications.Android.SetBackgroundListener(data => /* ... */);
 
-    // Request permission via IPermissionListener (works on both Android and iOS)
     PushNotifications.RequestNotificationPermission(new PermissionListener(granted =>
     {
         if (granted) PushNotifications.SetNotificationsEnabled(true);
@@ -193,6 +252,9 @@ class PermissionListener : PushNotifications.IPermissionListener
 ### Native .NET iOS
 
 **`AppDelegate.cs`**
+
+Register listeners **before** calling `Start` so the SDK can dispatch cold-start payloads immediately. Call `HandleLaunchOptions` **after** `Start` to handle taps on notifications received while the app was fully terminated.
+
 ```csharp
 using AppAmbit;
 using AppAmbit.PushNotifications;
@@ -200,48 +262,102 @@ using AppAmbit.PushNotifications;
 [Register("AppDelegate")]
 public class AppDelegate : UIApplicationDelegate
 {
-    public override bool FinishedLaunching(UIApplication app, NSDictionary options)
+    public override UIWindow? Window { get; set; }
+
+    public override bool FinishedLaunching(UIApplication application, NSDictionary launchOptions)
     {
+        // 1. Register listeners first so the SDK can dispatch cold-start immediately.
+        PushNotifications.SetForegroundListener(data =>
+            Console.WriteLine($"[Foreground] {data}"));
+
+        PushNotifications.SetOpenedListener(data =>
+        {
+            Console.WriteLine($"[Opened] {data}");
+            // Navigate on main thread:
+            Foundation.NSThread.MainThread.BeginInvokeOnMainThread(() => { /* navigate */ });
+        });
+
+        // 2. Init the AppAmbit core SDK.
         AppAmbitSdk.Start("<YOUR-APPKEY>");
 
-        PushNotifications.SetForegroundListener(data => /* ... */);
-        PushNotifications.SetOpenedListener(data => /* ... */);
-
+        // 3. Start push — registers the native notification delegate.
         PushNotifications.Start();
-        PushNotifications.HandleLaunchOptions(options);
 
-        PushNotifications.RequestNotificationPermission(callback: granted => { });
+        // 4. Deliver cold-start tap if the user launched the app by tapping a notification.
+        PushNotifications.HandleLaunchOptions(launchOptions);
+
+        // 5. Request system permission.
+        PushNotifications.RequestNotificationPermission(callback: granted =>
+        {
+            if (granted) PushNotifications.SetNotificationsEnabled(true);
+        });
+
+        Window = new UIWindow(UIScreen.MainScreen.Bounds);
+        Window.RootViewController = new MainViewController();
+        Window.MakeKeyAndVisible();
         return true;
     }
 }
 ```
+
+**Notification scenarios covered:**
+
+| Scenario | How it works |
+|---|---|
+| App in **foreground**, notification arrives | `SetForegroundListener` fires immediately. |
+| App in **background**, user taps notification | `SetOpenedListener` fires via the notification delegate. |
+| App **fully terminated**, user taps notification | `HandleLaunchOptions` buffers the payload; `SetOpenedListener` fires immediately after `Start`. |
 
 ---
 
 ### Native .NET Android
 
 **`MainActivity.cs`**
+
+Register listeners and call `Start` from `OnCreate`. Android delivers cold-start taps via the initial `Intent`, and background taps via `OnNewIntent`.
+
 ```csharp
 using AppAmbit;
 using AppAmbit.PushNotifications;
 
-[Activity(MainLauncher = true)]
-public class MainActivity : AppCompatActivity
+[Activity(MainLauncher = true, LaunchMode = LaunchMode.SingleTop)]
+public class MainActivity : Activity
 {
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
+
         AppAmbitSdk.Start("<YOUR-APPKEY>");
 
+        // Register listeners before Start so the SDK can dispatch the cold-start intent.
         PushNotifications.SetForegroundListener(data => /* ... */);
         PushNotifications.SetOpenedListener(data => /* ... */);
         PushNotifications.Android.SetBackgroundListener(data => /* ... */);
+        PushNotifications.Android.SetNotificationCustomizer(new MyNotificationCustomizer());
 
-        PushNotifications.Start(ApplicationContext);
+        PushNotifications.Start(this);
+
+        // Request Android 13+ notification permission.
         PushNotifications.RequestNotificationPermission(this);
+    }
+
+    protected override void OnNewIntent(Android.Content.Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        Intent = intent;
+        // Required for background taps (app in background, user taps notification).
+        PushNotifications.Android.HandleNotificationOpened(intent);
     }
 }
 ```
+
+**Notification scenarios covered:**
+
+| Scenario | How it works |
+|---|---|
+| App in **foreground**, notification arrives | `SetForegroundListener` fires immediately. |
+| App in **background**, user taps notification | `OnNewIntent` → `HandleNotificationOpened` → `SetOpenedListener` fires. |
+| App **fully terminated**, user taps notification | `OnCreate` → `PushNotifications.Start(this)` reads the launch `Intent` → `SetOpenedListener` fires. |
 
 ---
 
