@@ -15,7 +15,16 @@ public record PushNotificationData(
     string? ImageUrl,
     IDictionary<string, string>? Data,
     AndroidPushData? Android = null,
-    IosPushData? Ios = null);
+    IosPushData? Ios = null)
+{
+    public override string ToString()
+    {
+        var dataStr = Data is { Count: > 0 }
+            ? "{" + string.Join(", ", Data.Select(kv => $"{kv.Key}={kv.Value}")) + "}"
+            : "{}";
+        return $"PushNotificationData {{ Title={Title}, Body={Body}, ImageUrl={ImageUrl}, Data={dataStr}, Android={Android}, Ios={Ios} }}";
+    }
+}
 
 public record AndroidPushData(
     string? Color,
