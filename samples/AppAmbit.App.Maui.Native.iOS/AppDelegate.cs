@@ -28,8 +28,9 @@ public class AppDelegate : UIApplicationDelegate
         });
 
         AppAmbit.RemoteConfig.Enable();
-        AppAmbitSdk.Start("<YOUR-APPKEY>");
+        AppAmbitSdk.Start("fafe9c5f-526b-4fa7-9732-a39e0346f469");
         PushNotifications.Start();
+        PushNotifications.HandleLaunchOptions(launchOptions);
 
         Window = new UIWindow(UIScreen.MainScreen.Bounds);
         Window.RootViewController = new MainTabBarController();
