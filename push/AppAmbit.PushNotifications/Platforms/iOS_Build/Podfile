@@ -3,7 +3,11 @@ use_frameworks!
 install! 'cocoapods', :integrate_targets => false
 
 target 'AppAmbitPushNotificationsBuild' do
-    pod 'AppAmbitPushNotifications', '0.2.0'
+    pod 'AppAmbitPushNotifications', '~> 1.0'
+end
+
+target 'AppAmbitPushNotificationsExtensionBuild' do
+    pod 'AppAmbitPushNotificationsExtension', '~> 1.0'
 end
 
 post_install do |installer|

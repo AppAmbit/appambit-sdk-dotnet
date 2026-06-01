@@ -1,4 +1,5 @@
-﻿using Android.App;
+using Android.App;
+using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using AppAmbit.PushNotifications;
@@ -12,10 +13,21 @@ public class MainActivity : MauiAppCompatActivity
 {
     protected override void OnCreate(Bundle? savedInstanceState)
     {
-        base.OnCreate(savedInstanceState);
+        // SetOpenedListener is intentionally NOT registered here.
+        // Registering it before MAUI/Shell is ready would consume the cold-start intent
+        // before MainPage can register the listener that actually navigates.
+        // MainPage registers all three listeners (foreground, opened, background).
 
-        // Start push SDK but don't enable notifications automatically
-        // User will enable them manually through the UI
+        PushNotifications.Android.SetNotificationCustomizer(new AppAmbitNotificationCustomizer());
+
+        base.OnCreate(savedInstanceState);
         PushNotifications.Start(this);
+    }
+
+    protected override void OnNewIntent(Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        Intent = intent;
+        PushNotifications.Android.HandleNotificationOpened(intent);
     }
 }

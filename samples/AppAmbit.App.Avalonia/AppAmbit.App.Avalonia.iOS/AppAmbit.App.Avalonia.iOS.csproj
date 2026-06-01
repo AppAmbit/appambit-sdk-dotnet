@@ -24,6 +24,9 @@
     <ProjectReference Include="..\AppAmbit.App.Avalonia\AppAmbit.App.Avalonia.csproj" />
   <!-- Use the Base SDK directly -->
   <ProjectReference Include="..\..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
+  <ProjectReference Include="..\..\AppAmbit.App.Avalonia.NotificationExtension\AppAmbit.App.Avalonia.NotificationExtension.csproj">
+    <IsAppExtension>true</IsAppExtension>
+  </ProjectReference>
   </ItemGroup>
 
   <!-- LOCAL USAGE ONLY: Manual linking of native targets. Remove this when using NuGet/CocoaPods. -->

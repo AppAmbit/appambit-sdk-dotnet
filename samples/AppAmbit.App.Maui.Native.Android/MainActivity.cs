@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
+using Android.Content.PM;
+using Android.Util;
 using Android.Views;
 using Android.Widget;
 using AppAmbit.PushNotifications;
@@ -13,7 +16,7 @@ using AppAmbitTestingAppAndroid.Adapters;
 
 namespace AppAmbitTestingAppAndroid;
 
-[Activity(Label = "@string/app_name", MainLauncher = true, Theme = "@android:style/Theme.Material.Light.NoActionBar")]
+[Activity(Label = "@string/app_name", MainLauncher = true, LaunchMode = LaunchMode.SingleTop, Theme = "@android:style/Theme.Material.Light.NoActionBar")]
 public class MainActivity : Activity
 {
     FrameLayout? _container;
@@ -39,10 +42,27 @@ public class MainActivity : Activity
         //Uncomment the line for automatic session management
         //Analytics.EnableManualSession();
         AppAmbit.RemoteConfig.Enable();
-        AppAmbitSdk.Start("<YOUR-APPKEY>");
+        AppAmbitSdk.Start("<YOUR_APPKEY>");
+
+        PushNotifications.SetForegroundListener(data =>
+        {
+            LogPushPayload("Foreground", data);
+        });
+
+        PushNotifications.SetOpenedListener(data =>
+        {
+            LogPushPayload("Opened", data);
+            RunOnUiThread(() => StartActivity(new Intent(this, typeof(SecondActivity))));
+        });
+
+        PushNotifications.Android.SetBackgroundListener(data =>
+        {
+            LogPushPayload("Background", data);
+        });
+
+        PushNotifications.Android.SetNotificationCustomizer(new SimpleNotificationCustomizer());
 
         PushNotifications.Start(this);
-        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
 
         SetContentView(L("activity_main"));
 
@@ -75,6 +95,13 @@ public class MainActivity : Activity
     {
         base.OnResume();
         RefreshPushToggle();
+    }
+
+    protected override void OnNewIntent(Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        Intent = intent;
+        PushNotifications.Android.HandleNotificationOpened(intent);
     }
 
     void ShowView(View v)
@@ -293,7 +320,7 @@ public class MainActivity : Activity
         if (_btnPushNotifications == null)
             return;
 
-        _hasNotificationPermission = PushNotifications.HasSystemPermission();
+        _hasNotificationPermission = PushNotifications.HasNotificationPermission();
         _notificationsEnabled = PushNotifications.IsNotificationsEnabled();
         UpdatePushButtonText();
     }
@@ -308,6 +335,23 @@ public class MainActivity : Activity
             : _notificationsEnabled
                 ? "Disable Notifications"
                 : "Enable Notifications";
+    }
+
+    void LogPushPayload(string source, PushNotificationData data)
+    {
+        string payload;
+        try
+        {
+            payload = JsonSerializer.Serialize(data);
+        }
+        catch (Exception ex)
+        {
+            payload = $"{{\"serialize_error\":\"{ex.Message}\",\"title\":\"{data.Title}\",\"body\":\"{data.Body}\"}}";
+        }
+
+        var message = $"[AppAmbit][{source}] payload={payload}";
+        System.Diagnostics.Debug.WriteLine(message);
+        Log.Debug("AppAmbitPushDebug", message);
     }
 
     void UpdateRemoteConfigUI(View v)
@@ -346,18 +390,10 @@ public class MainActivity : Activity
     {
         public void Customize(object context, object builder, PushNotificationData notification)
         {
-            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
-
-            if (notification.Data is System.Collections.IDictionary dict)
+            System.Diagnostics.Debug.WriteLine($"[Customizer] {notification.Title}");
+            if (builder is AndroidX.Core.App.NotificationCompat.Builder b)
             {
-                foreach (var key in dict.Keys)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
-                }
-            }
-            else if (notification.Data != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
+                b.SetContentTitle($"Custom {notification.Title}");
             }
         }
     }

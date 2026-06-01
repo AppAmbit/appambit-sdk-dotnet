@@ -13,6 +13,7 @@ namespace AppAmbitTestingAppAvalonia.Android;
     Theme = "@style/MyTheme.NoActionBar",
     Icon = "@drawable/icon",
     MainLauncher = true,
+    LaunchMode = LaunchMode.SingleTop,
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
 public class MainActivity : AvaloniaMainActivity<App>
 {
@@ -20,7 +21,14 @@ public class MainActivity : AvaloniaMainActivity<App>
     {
         AppAmbitSdk.Start("<YOUR_APPKEY>");
         PushNotifications.Start(this);
-        
+
         return base.CustomizeAppBuilder(builder);
+    }
+
+    protected override void OnNewIntent(global::Android.Content.Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        Intent = intent;
+        PushNotifications.Android.HandleNotificationOpened(intent);
     }
 }

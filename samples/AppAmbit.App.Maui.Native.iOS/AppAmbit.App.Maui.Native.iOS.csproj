@@ -33,6 +33,9 @@
     <!-- Native iOS apps should reference AppAmbit Core, not AppAmbit.Maui -->
     <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
     <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
+    <ProjectReference Include="..\AppAmbit.App.Maui.NotificationExtension\AppAmbit.App.Maui.NotificationExtension.csproj">
+      <IsAppExtension>true</IsAppExtension>
+    </ProjectReference>
   </ItemGroup>
 
   <!-- Import AppAmbit.PushNotifications targets for development (with ProjectReference) -->
