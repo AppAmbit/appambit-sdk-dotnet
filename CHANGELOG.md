@@ -1,3 +1,17 @@
+## Version 4.0.0
+
+### AppAmbit Push Notifications
+
+* **[Feature]** Added full iOS Push Notifications support for MAUI and Avalonia SDKs, using native `.xcframework` bundles and a companion Notification Service Extension.
+* **[Breaking changes]** Scoped Android-only APIs under `PushNotifications.Android` namespace: `SetBackgroundListener`, `SetNotificationCustomizer`, `HandleNotificationOpened`.
+* **[Fix]** Fixed notification data conversion issue on Android and Avalonia iOS.
+* **[Fix]** Fixed bug where tapped (opened) notifications were not delivered correctly in native .NET apps.
+* **[Fix]** Fixed consumer update problem at SDK startup when push token was present.
+
+### AppAmbit
+
+* **[Fix]** Fixed consumer update issue causing duplicate or missed token syncs on startup.
+
 ## Version 3.1.0
 
 ### AppAmbit
