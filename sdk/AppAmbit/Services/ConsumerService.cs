@@ -1,4 +1,4 @@
-﻿using AppAmbit;
+using AppAmbit;
 using AppAmbit.Models.App;
 using AppAmbit.Models.Responses;
 using AppAmbit.Services.Endpoints;
@@ -165,10 +165,6 @@ internal class ConsumerService
                 return;
             }
 
-            // Update storage with new values
-            await _storageService.SetPushDeviceToken(normalizedToken);
-            await _storageService.SetPushEnabled(normalizedEnabled);
-
             if (!await NetConnectivity.HasInternetAsync())
             {
                 Debug.WriteLine("[ConsumerService] No internet connection, backend update deferred.");
@@ -198,6 +194,10 @@ internal class ConsumerService
 
             if (response != null && response.ErrorType == ApiErrorType.None)
             {
+                // Update storage only after a successful API call so deduplication
+                // reflects the actual backend state, not a failed/skipped attempt.
+                await _storageService.SetPushDeviceToken(normalizedToken);
+                await _storageService.SetPushEnabled(normalizedEnabled);
                 Debug.WriteLine("[ConsumerService] Consumer push state updated successfully.");
             }
             else if (response != null && response.ErrorType == ApiErrorType.NetworkUnavailable)

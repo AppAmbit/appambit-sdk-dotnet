@@ -10,6 +10,6 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        AppAmbitSdk.Start("<YOUR-APPKEY>");
+        AppAmbitSdk.Start("<YOUR_APPKEY>");
     }
 }

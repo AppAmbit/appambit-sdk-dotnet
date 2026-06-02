@@ -108,6 +108,13 @@ internal static partial class NativePlatforms
     {
         var cm = (CManager?)context.GetSystemService(AContext.ConnectivityService);
         if (cm is null) return;
+
+        // Android fires OnAvailable immediately for already-connected networks when the
+        // callback is registered. Skip that spurious call only when internet is already
+        // present; if there's no internet at startup, the first OnAvailable is a real
+        // restore event and must not be skipped.
+        _firstConnectivityEvent = HasInternetNow(cm);
+
         try
         {
             var request = new NRequest.Builder().AddCapability(NCapability.Internet).Build();
@@ -121,6 +128,32 @@ internal static partial class NativePlatforms
         catch
         {
             Debug.WriteLine("Error in TryRegisterNetworkCallback");
+        }
+    }
+
+    private static bool HasInternetNow(CManager cm)
+    {
+        try
+        {
+            if (OperatingSystem.IsAndroidVersionAtLeast(23))
+            {
+                var net = cm.ActiveNetwork;
+                if (net == null) return false;
+                var caps = cm.GetNetworkCapabilities(net);
+                return caps != null &&
+                       (caps.HasTransport(TransportType.Wifi) ||
+                        caps.HasTransport(TransportType.Cellular) ||
+                        caps.HasTransport(TransportType.Ethernet) ||
+                        caps.HasTransport(TransportType.Bluetooth));
+            }
+#pragma warning disable 618
+            var info = cm.ActiveNetworkInfo;
+            return info?.IsConnectedOrConnecting == true;
+#pragma warning restore 618
+        }
+        catch
+        {
+            return false;
         }
     }
 

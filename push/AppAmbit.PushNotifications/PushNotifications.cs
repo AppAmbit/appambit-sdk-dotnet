@@ -1,12 +1,48 @@
 #if ANDROID
 using Android.Content;
+using AndroidApp = global::Android.App;
 #endif
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.Versioning;
 
 namespace AppAmbit.PushNotifications;
 
-public record PushNotificationData(string Title, string Body, string Color, string SmallIconName, object Data);
+public record PushNotificationData(
+    string? Title,
+    string? Body,
+    string? ImageUrl,
+    IDictionary<string, string>? Data,
+    AndroidPushData? Android = null,
+    IosPushData? Ios = null)
+{
+    public override string ToString()
+    {
+        var dataStr = Data is { Count: > 0 }
+            ? "{" + string.Join(", ", Data.Select(kv => $"{kv.Key}={kv.Value}")) + "}"
+            : "{}";
+        return $"PushNotificationData {{ Title={Title}, Body={Body}, ImageUrl={ImageUrl}, Data={dataStr}, Android={Android}, Ios={Ios} }}";
+    }
+}
+
+public record AndroidPushData(
+    string? Color,
+    string? SmallIconName,
+    string? Ticker = null,
+    bool? Sticky = null,
+    string? Visibility = null,
+    string? ChannelId = null,
+    string? Priority = null,
+    string? Tag = null,
+    string? Sound = null,
+    string? ClickAction = null);
+
+public record IosPushData(
+    string? Sound = null,
+    int? Badge = null,
+    string? ThreadId = null,
+    string? Category = null);
 
 /// <summary>
 /// Cross-platform facade for AppAmbit push notifications.
@@ -19,42 +55,14 @@ public static class PushNotifications
     {
         if (!AppAmbitSdk.IsInitialized)
         {
-            Debug.WriteLine($"[{LogTag}] ERROR: AppAmbit SDK has not been started. Please call AppAmbit.Start() before starting the Push SDK.");
+            Debug.WriteLine($"[{LogTag}] ERROR: AppAmbit SDK has not been started.");
             return;
         }
 
-        Debug.WriteLine($"[{LogTag}] Starting Push SDK and binding to AppAmbit Core.");
-
 #if ANDROID
-        if (platformContext is Android.App.Activity activity)
-        {
-            PushNotificationsAndroid.Init(activity);
-            PushNotificationsAndroid.Start(activity);
-        }
-        else if (platformContext is Android.Content.Context androidContext)
-        {
-            PushNotificationsAndroid.Start(androidContext);
-        }
-        else
-        {
-             // Try to start without context if already initialized
-             PushNotificationsAndroid.Start(null!); 
-        }
+        PushNotificationsAndroid.Start(platformContext as Context);
 #elif IOS
-        // Auto-detect debug mode inside native if needed, or pass it if exposed.
-        // For now, we respect the user preference: autoRequestPermissions defaults to false.
         PushNotificationsIos.Start();
-        
-        // Sync logic
-        if (PushNotificationsIos.IsNotificationsEnabled())
-        {
-            var token = PushNotificationsIos.GetCurrentToken();
-            if (!string.IsNullOrEmpty(token))
-            {
-                Debug.WriteLine($"[{LogTag}] Push SDK started. Syncing current token with backend.");
-                _ = System.Threading.Tasks.Task.Run(() => AppAmbitSdk.UpdateConsumerAsync(token, true));
-            }
-        }
 #else
         NotSupported();
 #endif
@@ -64,7 +72,7 @@ public static class PushNotifications
     {
         if (!AppAmbitSdk.IsInitialized)
         {
-            Debug.WriteLine($"[{LogTag}] ERROR: AppAmbit SDK is not initialized. Cannot set notification status.");
+            Debug.WriteLine($"[{LogTag}] ERROR: AppAmbit SDK is not initialized.");
             return;
         }
 
@@ -89,12 +97,12 @@ public static class PushNotifications
 #endif
     }
 
-    public static bool HasSystemPermission(object? platformContext = null)
+    public static bool HasNotificationPermission(object? platformContext = null)
     {
 #if ANDROID
-        return PushNotificationsAndroid.HasSystemPermission();
+        return PushNotificationsAndroid.HasNotificationPermission();
 #elif IOS
-        return PushNotificationsIos.HasSystemPermission();
+        return PushNotificationsIos.HasNotificationPermission();
 #else
         NotSupported();
         return false;
@@ -104,67 +112,70 @@ public static class PushNotifications
     public static void RequestNotificationPermission(object? platformContext = null, Action<bool>? callback = null)
     {
 #if ANDROID
-        // Check if platformContext is actually an IPermissionListener (overload resolution fix)
         if (platformContext is IPermissionListener listener)
-        {
-            Debug.WriteLine($"[{LogTag}] RequestNotificationPermission: platformContext is IPermissionListener. Routing correctly.");
             PushNotificationsAndroid.RequestNotificationPermission(listener);
-        }
-        else if (platformContext is Android.App.Activity activity)
-        {
-             PushNotificationsAndroid.RequestNotificationPermission(activity, null); 
-        }
+        else if (platformContext is AndroidApp.Activity activity)
+            PushNotificationsAndroid.RequestNotificationPermission(activity, null);
         else
-        {
-             PushNotificationsAndroid.RequestNotificationPermission(null);
-        }
+            PushNotificationsAndroid.RequestNotificationPermission(null);
 #elif IOS
-        Debug.WriteLine($"[{LogTag}] RequestNotificationPermission generic called. (Reflection Fix Applied) platformContext={platformContext}, callback={callback}");
-
-        // Handle case where overloaded resolution picked this method instead of the IPermissionListener one
-        // (common in shared projects targeting netstandard/net8.0 where #if IOS methods are hidden)
-        
-        // 1. Try Direct Interface Cast
         if (platformContext is IPermissionListener listener)
+            PushNotificationsIos.RequestNotificationPermission(granted => listener.OnPermissionResult(granted));
+        else if (platformContext != null)
         {
-             Debug.WriteLine($"[{LogTag}] platformContext IS IPermissionListener. Adapting to callback.");
-             PushNotificationsIos.RequestNotificationPermission(granted => listener.OnPermissionResult(granted));
-        }
-        // 2. Try Reflection (Duck Typing) - in case of type mismatch/context issues
-        else if (platformContext != null) 
-        {
-             Debug.WriteLine($"[{LogTag}] platformContext is NOT IPermissionListener (Type: {platformContext.GetType().FullName}). Trying reflection...");
-             var method = platformContext.GetType().GetMethod("OnPermissionResult");
-             if (method != null)
-             {
-                 Debug.WriteLine($"[{LogTag}] Found OnPermissionResult method via reflection. Adapting.");
-                 PushNotificationsIos.RequestNotificationPermission(granted => 
-                 {
-                     try 
-                     {
-                        method.Invoke(platformContext, new object[] { granted });
-                     }
-                     catch(Exception ex)
-                     {
-                        Debug.WriteLine($"[{LogTag}] Reflection invocation failed: {ex}");
-                     }
-                 });
-             }
-             else
-             {
-                 Debug.WriteLine($"[{LogTag}] No OnPermissionResult method found. Fallback to callback arg.");
-                 PushNotificationsIos.RequestNotificationPermission(callback);
-             }
+            var method = platformContext.GetType().GetMethod("OnPermissionResult");
+            if (method != null)
+                PushNotificationsIos.RequestNotificationPermission(granted =>
+                {
+                    try { method.Invoke(platformContext, new object[] { granted }); }
+                    catch (Exception ex) { Debug.WriteLine($"[{LogTag}] Reflection invocation failed: {ex}"); }
+                });
+            else
+                PushNotificationsIos.RequestNotificationPermission(callback);
         }
         else
-        {
-             Debug.WriteLine($"[{LogTag}] platformContext is null. Using callback directly.");
-             PushNotificationsIos.RequestNotificationPermission(callback);
-        }
+            PushNotificationsIos.RequestNotificationPermission(callback);
 #else
         NotSupported();
 #endif
     }
+
+    // ── Cross-platform listeners ───────────────────────────────────────────
+
+    public static void SetForegroundListener(Action<PushNotificationData> listener)
+    {
+#if ANDROID
+        PushNotificationsAndroid.SetForegroundListener(listener);
+#elif IOS
+        PushNotificationsIos.SetForegroundListener(listener);
+#else
+        NotSupported();
+#endif
+    }
+
+    public static void SetOpenedListener(Action<PushNotificationData> listener)
+    {
+#if ANDROID
+        PushNotificationsAndroid.SetOpenedListener(listener);
+#elif IOS
+        PushNotificationsIos.SetOpenedListener(listener);
+#else
+        NotSupported();
+#endif
+    }
+
+#if IOS
+    /// <summary>
+    /// Delivers a cold-start launch notification (app launched by tapping a notification
+    /// while fully terminated) to the opened listener. Call from the iOS AppDelegate's
+    /// <c>FinishedLaunching</c>, passing its launch options. iOS hands a cold-start tap to
+    /// the launch options rather than the notification-center delegate, so this covers that gap.
+    /// </summary>
+    public static void HandleLaunchOptions(Foundation.NSDictionary? launchOptions)
+        => PushNotificationsIos.HandleColdStartLaunch(launchOptions);
+#endif
+
+    // ── Interfaces ────────────────────────────────────────────────────────
 
     public interface IPermissionListener
     {
@@ -176,44 +187,62 @@ public static class PushNotifications
         void Customize(object context, object builder, PushNotificationData notification);
     }
 
+    // ── Platform-specific overloads ───────────────────────────────────────
+
 #if ANDROID
     public static void RequestNotificationPermission(IPermissionListener? listener)
-    {
-        PushNotificationsAndroid.RequestNotificationPermission(listener);
-    }
+        => PushNotificationsAndroid.RequestNotificationPermission(listener);
 
-    public static void RequestNotificationPermission(Android.App.Activity activity, IPermissionListener? listener)
-    {
-        PushNotificationsAndroid.RequestNotificationPermission(activity, listener);
-    }
+    public static void RequestNotificationPermission(AndroidApp.Activity activity, IPermissionListener? listener)
+        => PushNotificationsAndroid.RequestNotificationPermission(activity, listener);
 
-    public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
-    {
-        PushNotificationsAndroid.SetNotificationCustomizer(customizer);
-    }
 #elif IOS
     public static void RequestNotificationPermission(IPermissionListener? listener)
-    {
-        PushNotificationsIos.RequestNotificationPermission(granted => listener?.OnPermissionResult(granted));
-    }
+        => PushNotificationsIos.RequestNotificationPermission(granted => listener?.OnPermissionResult(granted));
 
-    public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
-    {
-        PushNotificationsIos.SetNotificationCustomizer(customizer);
-    }
 #else
-    public static void RequestNotificationPermission(IPermissionListener? listener)
+    public static void RequestNotificationPermission(IPermissionListener? listener) => NotSupported();
+#endif
+
+    // ── Android-only ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Android-specific push notification extensions.
+    /// </summary>
+    public static class Android
     {
-        NotSupported();
+        /// <summary>
+        /// Registers a listener that fires when a push notification arrives while the app is in the background.
+        /// Only available on Android — on iOS, background notifications are handled by the Notification Service Extension.
+        /// </summary>
+        [SupportedOSPlatform("android")]
+        public static void SetBackgroundListener(Action<PushNotificationData> listener)
+        {
+#if ANDROID
+            PushNotificationsAndroid.SetBackgroundListener(listener);
+#endif
+        }
+
+        /// <summary>
+        /// Registers a customizer that mutates the <c>NotificationCompat.Builder</c> before the system posts the notification.
+        /// Only available on Android — on iOS, equivalent mutation is performed in the Notification Service Extension.
+        /// </summary>
+        [SupportedOSPlatform("android")]
+        public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
+        {
+#if ANDROID
+            PushNotificationsAndroid.SetNotificationCustomizer(customizer);
+#endif
+        }
+
+#if ANDROID
+        public static void HandleNotificationOpened(global::Android.Content.Intent? intent)
+            => PushNotificationsAndroid.TryHandleOpenedIntent(intent);
+#endif
     }
 
-    public static void SetNotificationCustomizer(INotificationCustomizer? customizer)
-    {
-        NotSupported();
-    }
-#endif
-    private static void NotSupported()
-    {
+    // ─────────────────────────────────────────────────────────────────────
+
+    private static void NotSupported() =>
         Debug.WriteLine($"[{LogTag}] Push Notifications are not supported on this platform.");
-    }
 }

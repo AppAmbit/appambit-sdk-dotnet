@@ -12,10 +12,15 @@ public class AppDelegate : MauiUIApplicationDelegate
     public override bool FinishedLaunching(UIApplication app, NSDictionary options)
     {
         var result = base.FinishedLaunching(app, options);
-        
+
         // Start push and wire token updates to AppAmbit (same pattern as Android)
         PushNotifications.Start(null);
-        
+
+        // Cold-start tap: when the app is fully terminated, iOS delivers the payload in the
+        // launch options instead of the notification-center delegate. Hand it to the SDK so
+        // it is buffered and delivered to the opened listener once that listener registers.
+        PushNotifications.HandleLaunchOptions(options);
+
         return result;
     }
 

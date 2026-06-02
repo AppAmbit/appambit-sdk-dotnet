@@ -1,8 +1,11 @@
 #!/bin/bash
 # ============================================================
-# setup_ios.sh — AppAmbit iOS Framework Bootstrap
-# Run this ONCE after cloning to build the native iOS
-# frameworks required by AppAmbit.PushNotifications.
+# setup_ios.sh — AppAmbit iOS Framework Bootstrap (optional)
+#
+# The AppAmbit.PushNotifications.targets file now runs
+# pod install + xcodebuild automatically during `dotnet build`.
+# Use this script only if you need to pre-build the frameworks
+# manually before the first dotnet build.
 #
 # Usage (from repo root):
 #   ./setup_ios.sh
@@ -30,7 +33,7 @@ echo "CocoaPods: $(pod --version)"
 echo ""
 echo "Running pod install..."
 cd "$IOS_BUILD_DIR"
-pod install --silent
+pod install --repo-update --silent
 echo "Pods installed"
 
 # ── 3. Common xcodebuild args ───────────────────────────────
@@ -64,6 +67,7 @@ build_framework() {
 echo ""
 echo "🔨 Building for iOS Simulator..."
 build_framework "AppAmbitPushNotifications" "iOS Simulator" "iphonesimulator"
+build_framework "AppAmbitPushNotificationsExtension" "iOS Simulator" "iphonesimulator"
 build_framework "AppAmbitSdk"              "iOS Simulator" "iphonesimulator"
 echo "Simulator frameworks built"
 
@@ -71,6 +75,7 @@ echo "Simulator frameworks built"
 echo ""
 echo "🔨 Building for iOS Device..."
 build_framework "AppAmbitPushNotifications" "iOS" "iphoneos"
+build_framework "AppAmbitPushNotificationsExtension" "iOS" "iphoneos"
 build_framework "AppAmbitSdk"              "iOS" "iphoneos"
 echo "Device frameworks built"
 
@@ -80,8 +85,10 @@ echo "🔍 Verifying..."
 ALL_OK=true
 for FW in \
   "$BUILD_DIR/Debug-iphonesimulator/AppAmbitPushNotifications.framework" \
+  "$BUILD_DIR/Debug-iphonesimulator/AppAmbitPushNotificationsExtension.framework" \
   "$BUILD_DIR/Debug-iphonesimulator/AppAmbit.framework" \
   "$BUILD_DIR/Debug-iphoneos/AppAmbitPushNotifications.framework" \
+  "$BUILD_DIR/Debug-iphoneos/AppAmbitPushNotificationsExtension.framework" \
   "$BUILD_DIR/Debug-iphoneos/AppAmbit.framework"
 do
   if [ -d "$FW" ]; then

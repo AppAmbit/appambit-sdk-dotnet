@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using System.Collections.Generic;
 using AppAmbitAvalonia;
+using AppAmbit.PushNotifications;
 using System.Threading.Tasks;
 using System.Linq;
 
@@ -24,13 +25,35 @@ public partial class MainView : UserControl
 
         try
         {
-            
+            PushNotifications.SetForegroundListener(data =>
+                Console.WriteLine($"[AppAmbitAvalonia][Foreground] {data.Title} — {data.Body}"));
+
+            PushNotifications.SetOpenedListener(data =>
+            {
+                Console.WriteLine($"[AppAmbitAvalonia][Opened] {data.Title} — {data.Body}");
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    var root = this.GetVisualRoot();
+                    object previousContent = this;
+                    if (root is Window w)
+                    {
+                        previousContent = w.Content ?? this;
+                        w.Content = new SecondView(previousContent);
+                        return;
+                    }
+                    if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.ISingleViewApplicationLifetime sv)
+                        sv.MainView = new SecondView(previousContent);
+                });
+            });
+
+            PushNotifications.Android.SetBackgroundListener(data =>
+                Console.WriteLine($"[AppAmbitAvalonia][Background] {data.Title} — {data.Body}"));
+
+            PushNotifications.Android.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+
         txtChangeUserId.Text = Guid.NewGuid().ToString();
         txtChangeUserEmail.Text = "test@gmail.com";
         txtCustomLogError.Text = "Test Log Message";
-
-        // Configure notification customizer
-        AppAmbit.PushNotifications.PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
 
         // Initial state update
         UpdateNotificationButtonState();
@@ -176,8 +199,8 @@ public partial class MainView : UserControl
         Console.WriteLine($"[AppAmbit][Debug] OnPushNotificationsClicked start _isUpdatingPushButton={_isUpdatingPushButton} _notificationsEnabled={_notificationsEnabled}");
         try
         {
-            _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasSystemPermission();
-            Console.WriteLine($"[AppAmbit][Debug] HasSystemPermission={_hasNotificationPermission}");
+            _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasNotificationPermission();
+            Console.WriteLine($"[AppAmbit][Debug] HasNotificationPermission={_hasNotificationPermission}");
 
             if (!_hasNotificationPermission)
             {
@@ -238,7 +261,7 @@ public partial class MainView : UserControl
 
     private void UpdateNotificationButtonState()
     {
-        _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasSystemPermission();
+        _hasNotificationPermission = AppAmbit.PushNotifications.PushNotifications.HasNotificationPermission();
         Console.WriteLine($"[AppAmbit][Debug] UpdateNotificationButtonState hasPermission={_hasNotificationPermission}");
 
         if (!_hasNotificationPermission)
@@ -264,23 +287,13 @@ public partial class MainView : UserControl
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
     }
 
-    private sealed class SimpleNotificationCustomizer : AppAmbit.PushNotifications.PushNotifications.INotificationCustomizer
+    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
     {
-        public void Customize(object context, object builder, AppAmbit.PushNotifications.PushNotificationData notification)
+        public void Customize(object context, object builder, PushNotificationData notification)
         {
-            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
-
-            if (notification.Data is System.Collections.IDictionary dict)
-            {
-                foreach (var key in dict.Keys)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
-                }
-            }
-            else if (notification.Data != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
-            }
+            Console.WriteLine($"[AppAmbitAvalonia][Customizer] {notification.Title}");
+            dynamic b = builder;
+            b.SetContentTitle($"Custom {notification.Title}");
         }
     }
 

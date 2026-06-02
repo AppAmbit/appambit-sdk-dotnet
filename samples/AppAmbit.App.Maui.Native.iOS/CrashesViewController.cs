@@ -115,9 +115,6 @@ UIButton MakeButton(string title)
         base.ViewDidLoad();
         View.BackgroundColor = BackgroundCompat();
 
-        // Configure notification customizer
-        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
-
         var scroll = new UIScrollView { TranslatesAutoresizingMaskIntoConstraints = false };
         var container = new UIView { TranslatesAutoresizingMaskIntoConstraints = false };
         var stack = new UIStackView
@@ -283,7 +280,7 @@ UIButton MakeButton(string title)
         {
             if (!_hasNotificationPermission)
             {
-                bool nativePerm = PushNotifications.HasSystemPermission();
+                bool nativePerm = PushNotifications.HasNotificationPermission();
                 if (nativePerm) _hasNotificationPermission = true;
             }
 
@@ -342,7 +339,7 @@ UIButton MakeButton(string title)
     {
         if (!_hasNotificationPermission)
         {
-            bool nativePerm = PushNotifications.HasSystemPermission();
+            bool nativePerm = PushNotifications.HasNotificationPermission();
             if (nativePerm) _hasNotificationPermission = true;
         }
 
@@ -382,25 +379,5 @@ UIButton MakeButton(string title)
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
-    }
-
-    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
-    {
-        public void Customize(object context, object builder, PushNotificationData notification)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
-
-            if (notification.Data is System.Collections.IDictionary dict)
-            {
-                foreach (var key in dict.Keys)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
-                }
-            }
-            else if (notification.Data != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
-            }
-        }
     }
 }

@@ -64,9 +64,50 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         this.BindingContext = this;
         UserId = Guid.NewGuid().ToString();
-        
-        // Configure notification customizer
-        PushNotifications.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+
+        PushNotifications.SetForegroundListener(data =>
+            Console.WriteLine($"[AppAmbitMaui] Foreground push: {data.Title}"));
+
+        PushNotifications.SetOpenedListener(data =>
+        {
+            Console.WriteLine($"[AppAmbitMaui] Opened push: {data.Title}");
+            MainThread.BeginInvokeOnMainThread(async () =>
+                await Shell.Current.Navigation.PushModalAsync(new SecondPage()));
+        });
+
+        PushNotifications.Android.SetBackgroundListener(data =>
+            Console.WriteLine($"[AppAmbitMaui] Background push: {data.Title}"));
+
+        PushNotifications.Android.SetNotificationCustomizer(new SimpleNotificationCustomizer());
+    }
+
+    // The SDK already applies title/body/icon/color/sound/tag/ticker/sticky/visibility/
+    // channelId/priority/image from the backend payload. This customizer demonstrates
+    // ADDITIONAL changes on top — things the SDK does not do for you, like adding action
+    // buttons, group keys, RemoteViews, or reading custom `data` keys.
+    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
+    {
+        public void Customize(object context, object builder, PushNotificationData notification)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[AppAmbitMaui][Customizer] title='{notification.Title}' " +
+                $"ticker='{notification.Android?.Ticker}' sticky={notification.Android?.Sticky} " +
+                $"visibility='{notification.Android?.Visibility}' priority='{notification.Android?.Priority}' " +
+                $"channel='{notification.Android?.ChannelId}' clickAction='{notification.Android?.ClickAction}' " +
+                $"data={{{string.Join(", ", notification.Data ?? new Dictionary<string, string>())}}}");
+
+            dynamic b = builder;
+
+            // Example additive change 1: append a marker the SDK didn't add.
+            b.SetSubText("via AppAmbit");
+
+            // Example additive change 2: read a custom `group_key` from the data payload
+            // and group related notifications together — the SDK doesn't do grouping.
+            if (notification.Data is { } data && data.TryGetValue("group_key", out var groupKey))
+            {
+                b.SetGroup(groupKey);
+            }
+        }
     }
 
     private async void OnGenerateLogsForBatch(object? sender, EventArgs e)
@@ -180,7 +221,7 @@ public partial class MainPage : ContentPage
         _isUpdatingPushButton = true;
         try
         {
-            _hasNotificationPermission = PushNotifications.HasSystemPermission();
+            _hasNotificationPermission = PushNotifications.HasNotificationPermission();
 
             if (!_hasNotificationPermission)
             {
@@ -241,7 +282,7 @@ public partial class MainPage : ContentPage
 
     private void UpdateNotificationButtonState()
     {
-        _hasNotificationPermission = PushNotifications.HasSystemPermission();
+        _hasNotificationPermission = PushNotifications.HasNotificationPermission();
         
         if (!_hasNotificationPermission)
         {
@@ -263,26 +304,6 @@ public partial class MainPage : ContentPage
         }
 
         public void OnPermissionResult(bool isGranted) => _onResult(isGranted);
-    }
-
-    private sealed class SimpleNotificationCustomizer : PushNotifications.INotificationCustomizer
-    {
-        public void Customize(object context, object builder, PushNotificationData notification)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Customizer] Title: {notification.Title}, Body: {notification.Body}");
-            
-            if (notification.Data is System.Collections.IDictionary dict)
-            {
-                foreach (var key in dict.Keys)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Customizer] Data[{key}] = {dict[key]}");
-                }
-            }
-            else if (notification.Data != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Customizer] Data (raw): {notification.Data}");
-            }
-        }
     }
 
     private async void OnTestErrorLogClicked(object sender, EventArgs e)

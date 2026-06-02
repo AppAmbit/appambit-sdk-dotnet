@@ -59,7 +59,7 @@ Add the package to your project:
 ```bash
 dotnet add package com.AppAmbit.Sdk
 # or specify version
-dotnet add package com.AppAmbit.Sdk --version 3.1.0
+dotnet add package com.AppAmbit.Sdk --version 4.0.0
 ```
 
 Or, using Visual Studio:
