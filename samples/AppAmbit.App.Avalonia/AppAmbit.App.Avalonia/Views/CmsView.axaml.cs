@@ -14,7 +14,7 @@ namespace AppAmbitTestingAppAvalonia.Views;
 
 public partial class CmsView : UserControl
 {
-    private const string Collection = "tech_inventory";
+    private const string Collection = "blog_extended";
 
     private readonly List<(string Label, Func<AppAmbit.ICmsQueryBuilder<CmsExampleModel>> Build)> _filters;
 
@@ -24,59 +24,28 @@ public partial class CmsView : UserControl
 
         _filters = new()
         {
-            // Equality
-            ("Equals: item_sku = TEC-02",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("item_sku", "TEC-02")),
-            ("Not Equals: item_sku ≠ TEC-02",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).NotEquals("item_sku", "TEC-02")),
-            ("In List: category = Cat 1",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).InList("category", new[] { "Cat 1" })),
-            ("Boolean: in_stock = true",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("in_stock", "true")),
-
-            // Text matching
-            ("Contains: product_name contains 'Pro'",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Contains("product_name", "Pro")),
-            ("Starts With: item_sku starts with 'TEC'",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).StartsWith("item_sku", "TEC")),
-
-            // List membership
-            ("In List: item_sku in [TEC-01, TEC-02]",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
-            ("Not In List: item_sku not in [TEC-01, TEC-02]",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).NotInList("item_sku", new[] { "TEC-01", "TEC-02" })),
-
-            // Numeric comparisons
-            ("Greater Than: price > 500",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GreaterThan("price", 500)),
-            ("Greater Or Equal: price >= 500",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GreaterThanOrEqual("price", 500)),
-            ("Less Than: price < 500",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).LessThan("price", 500)),
-            ("Less Or Equal: price <= 500",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).LessThanOrEqual("price", 500)),
-
-            // Sorting
-            ("Order By product_name ASC",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByAscending("product_name")),
-            ("Order By product_name DESC",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByDescending("product_name")),
-            ("Order By price ASC",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByAscending("price")),
-            ("Order By price DESC",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByDescending("price")),
-
-            // Pagination
-            ("Pagination: Page 1, 2 per page",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
-            ("Pagination: Page 2, 2 per page",
-                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
+            ("Title = T20",                  () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("title", "T20")),
+            ("Title ≠ T20",                  () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).NotEquals("title", "T20")),
+            ("Is Published = true",          () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("is_published", "true")),
+            ("Is Published = false",         () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("is_published", "false")),
+            ("Title contains 't1'",          () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Contains("title", "t1")),
+            ("Title starts with 't'",        () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).StartsWith("title", "t")),
+            ("Category IN [science, tech]",  () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).InList("category", new[] { "science", "tech" })),
+            ("Category NOT IN [tech, news]", () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).NotInList("category", new[] { "tech", "news" })),
+            ("Views > 1000",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GreaterThan("views_count", 1000)),
+            ("Views ≥ 555",                  () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GreaterThanOrEqual("views_count", 555)),
+            ("Views < 15000",                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).LessThan("views_count", 15000)),
+            ("Views ≤ 15000",                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).LessThanOrEqual("views_count", 15000)),
+            ("Sort Title ↑",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByAscending("title")),
+            ("Sort Title ↓",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByDescending("title")),
+            ("Sort Views ↑",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByAscending("views_count")),
+            ("Sort Views ↓",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByDescending("views_count")),
+            ("Page 1 (2 per page)",          () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
+            ("Page 2 (2 per page)",          () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
         };
 
         FilterPicker.ItemsSource = _filters.Select(f => f.Label).ToList();
     }
-
-    // ── Event handlers ──────────────────────────────────────────────────────────
 
     private async void OnFetchAllClicked(object? sender, RoutedEventArgs e)
     {
@@ -97,16 +66,10 @@ public partial class CmsView : UserControl
     {
         var term = SearchBox.Text?.Trim();
         if (!string.IsNullOrWhiteSpace(term))
-        {
             await LoadResults(AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Search(term));
-        }
         else
-        {
             await LoadResults(AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection));
-        }
     }
-
-    // ── Core logic ───────────────────────────────────────────────────────────────
 
     private async Task LoadResults(AppAmbit.ICmsQueryBuilder<CmsExampleModel> query)
     {
@@ -145,35 +108,30 @@ public partial class CmsView : UserControl
     }
 }
 
-// ── Value converters ─────────────────────────────────────────────────────────────
-
-/// <summary>Converts bool InStock → badge background color.</summary>
-public sealed class BooleanToStockColorConverter : Avalonia.Data.Converters.IValueConverter
+public sealed class IsPublishedColorConverter : Avalonia.Data.Converters.IValueConverter
 {
-    public static readonly BooleanToStockColorConverter Instance = new();
+    public static readonly IsPublishedColorConverter Instance = new();
 
     public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
         => value is true
-            ? new SolidColorBrush(Color.Parse("#16A34A"))  // green-600
-            : new SolidColorBrush(Color.Parse("#DC2626")); // red-600
+            ? new SolidColorBrush(Color.Parse("#16A34A"))
+            : new SolidColorBrush(Color.Parse("#DC2626"));
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
         => throw new NotSupportedException();
 }
 
-/// <summary>Converts bool InStock → "In Stock" / "Out of Stock" label.</summary>
-public sealed class BooleanToStockLabelConverter : Avalonia.Data.Converters.IValueConverter
+public sealed class IsPublishedLabelConverter : Avalonia.Data.Converters.IValueConverter
 {
-    public static readonly BooleanToStockLabelConverter Instance = new();
+    public static readonly IsPublishedLabelConverter Instance = new();
 
     public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
-        => value is true ? "In Stock" : "Out of Stock";
+        => value is true ? "✓ Published" : "✕ Draft";
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
         => throw new NotSupportedException();
 }
 
-/// <summary>Converts List&lt;string&gt; → comma-separated string.</summary>
 public sealed class ListToStringConverter : Avalonia.Data.Converters.IValueConverter
 {
     public static readonly ListToStringConverter Instance = new();

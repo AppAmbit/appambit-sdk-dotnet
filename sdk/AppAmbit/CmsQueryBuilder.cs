@@ -1,29 +1,29 @@
-using AppAmbit.Models.Cms;
-using AppAmbit.Services;
 using AppAmbit.Services.Endpoints;
 using AppAmbit.Services.Interfaces;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
-using System.Text;
 
 namespace AppAmbit;
 
 public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
 {
+    // Single-value query params (sort, q, page, per_page) — last write wins so chained
+    // calls like .OrderByAscending(...).OrderByDescending(...) behave intuitively.
+    private const string ParamSort    = "sort";
+    private const string ParamSearch  = "q";
+    private const string ParamPage    = "page";
+    private const string ParamPerPage = "per_page";
+
     private readonly string _contentType;
     private static IAPIService? _apiService => Cms.ApiService;
-    private static IStorageService? _storageService => Cms.StorageService;
 
-    private readonly StringBuilder _sqlClause = new();
-    private readonly List<string> _selectionArgs = new();
-    private string? _orderByClause;
-    private bool _isPaginated;
-    private int _page = 1;
-    private int _perPage = 20;
-
-    private int PaginationLimit  => _isPaginated ? _perPage : 0;
-    private int PaginationOffset => _isPaginated ? (_page - 1) * _perPage : 0;
+    // filter[...] params can repeat (multiple distinct filters), kept in insertion order.
+    private readonly List<(string Key, string Value)> _filterParams = new();
+    // Single-value params keyed by name; later sets overwrite.
+    private readonly Dictionary<string, string> _singleParams = new();
+    private bool _isSearch;
+    private bool _userSpecifiedPaging;
 
     private static readonly JsonSerializerSettings _deserializeSettings = new()
     {
@@ -31,248 +31,189 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
         NullValueHandling = NullValueHandling.Ignore
     };
 
+    private static readonly JsonSerializer _jsonSerializer = JsonSerializer.Create(_deserializeSettings);
+
     internal CmsQueryBuilder(string contentType)
     {
         _contentType = contentType;
     }
 
-
     public ICmsQueryBuilder<T> Search(string query)
     {
         var trimmed = query?.Trim() ?? "";
         if (!string.IsNullOrEmpty(trimmed))
-            AppendClause("e.value LIKE ?", $"%{trimmed}%");
+        {
+            _isSearch = true;
+            _singleParams[ParamSearch] = trimmed;
+        }
         return this;
     }
 
-    public ICmsQueryBuilder<T> Equals(string field, string value)          => AddCondition(field, "=",    value);
-    public ICmsQueryBuilder<T> NotEquals(string field, string value)       => AddCondition(field, "!=",   value);
-    public ICmsQueryBuilder<T> Contains(string field, string value)        => AddCondition(field, "LIKE", $"%{value}%");
-    public ICmsQueryBuilder<T> StartsWith(string field, string value)      => AddCondition(field, "LIKE", $"{value}%");
+    public ICmsQueryBuilder<T> Equals(string field, string value)
+        => AddFilter($"filter[{field}]", value);
 
-    public ICmsQueryBuilder<T> GreaterThan(string field, object value)        => AddNumericCondition(field, ">",  value);
-    public ICmsQueryBuilder<T> GreaterThanOrEqual(string field, object value) => AddNumericCondition(field, ">=", value);
-    public ICmsQueryBuilder<T> LessThan(string field, object value)           => AddNumericCondition(field, "<",  value);
-    public ICmsQueryBuilder<T> LessThanOrEqual(string field, object value)    => AddNumericCondition(field, "<=", value);
+    public ICmsQueryBuilder<T> NotEquals(string field, string value)
+        => AddFilter($"filter[{field}][neq]", value);
 
-    public ICmsQueryBuilder<T> InList(string field, IEnumerable<string> values)    => AddListCondition(field, exists: true,  values);
-    public ICmsQueryBuilder<T> NotInList(string field, IEnumerable<string> values) => AddListCondition(field, exists: false, values);
+    public ICmsQueryBuilder<T> Contains(string field, string value)
+        => AddFilter($"filter[{field}][contains]", value);
 
-    public ICmsQueryBuilder<T> OrderByAscending(string field)  => SetOrderBy(field, "ASC");
-    public ICmsQueryBuilder<T> OrderByDescending(string field) => SetOrderBy(field, "DESC");
+    public ICmsQueryBuilder<T> StartsWith(string field, string value)
+        => AddFilter($"filter[{field}][starts_with]", value);
 
-    public ICmsQueryBuilder<T> GetPage(int page)       { _isPaginated = true; _page    = page;    return this; }
-    public ICmsQueryBuilder<T> GetPerPage(int perPage) { _isPaginated = true; _perPage = perPage; return this; }
+    public ICmsQueryBuilder<T> GreaterThan(string field, object value)
+        => AddFilter($"filter[{field}][gt]", value?.ToString() ?? "");
 
+    public ICmsQueryBuilder<T> GreaterThanOrEqual(string field, object value)
+        => AddFilter($"filter[{field}][gte]", value?.ToString() ?? "");
 
-    public async Task<List<T>> GetListAsync()
+    public ICmsQueryBuilder<T> LessThan(string field, object value)
+        => AddFilter($"filter[{field}][lt]", value?.ToString() ?? "");
+
+    public ICmsQueryBuilder<T> LessThanOrEqual(string field, object value)
+        => AddFilter($"filter[{field}][lte]", value?.ToString() ?? "");
+
+    public ICmsQueryBuilder<T> InList(string field, IEnumerable<string> values)
+        => AddFilter($"filter[{field}][in]", string.Join(",", values));
+
+    public ICmsQueryBuilder<T> NotInList(string field, IEnumerable<string> values)
+        => AddFilter($"filter[{field}][nin]", string.Join(",", values));
+
+    public ICmsQueryBuilder<T> OrderByAscending(string field)
     {
-        if (_apiService == null || _storageService == null)
-            return [];
+        _singleParams[ParamSort] = field;
+        return this;
+    }
 
-        if (_isPaginated && (_page < 1 || _perPage < 1))
-            return [];
+    public ICmsQueryBuilder<T> OrderByDescending(string field)
+    {
+        _singleParams[ParamSort] = $"-{field}";
+        return this;
+    }
 
-        var cacheKey = BuildCacheKey();
-        if (Cms.QueryCache.TryGetValue(cacheKey, out var cachedResult))
+    public ICmsQueryBuilder<T> GetPage(int page)
+    {
+        _userSpecifiedPaging = true;
+        _singleParams[ParamPage] = page.ToString();
+        return this;
+    }
+
+    public ICmsQueryBuilder<T> GetPerPage(int perPage)
+    {
+        _userSpecifiedPaging = true;
+        _singleParams[ParamPerPage] = perPage.ToString();
+        return this;
+    }
+
+    private ICmsQueryBuilder<T> AddFilter(string key, string value)
+    {
+        _filterParams.Add((key, value));
+        return this;
+    }
+
+    public async Task<List<T>> GetListAsync(CancellationToken cancellationToken = default)
+    {
+        if (_apiService == null)
+            throw new InvalidOperationException(
+                $"[AppAmbit.Cms] SDK not initialized — call AppAmbitSdk.Start() before using Cms.Content('{_contentType}').");
+
+        // If the caller didn't paginate, auto-fetch every page using meta.last_page.
+        // Otherwise honor exactly what they asked for and return one page.
+        if (_userSpecifiedPaging || _isSearch)
+            return await FetchSinglePageAsync(cancellationToken).ConfigureAwait(false);
+
+        return await FetchAllPagesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<List<T>> FetchSinglePageAsync(CancellationToken cancellationToken)
+    {
+        var json = await ExecuteAsync(BuildParams(pageOverride: null, perPageOverride: null), cancellationToken)
+            .ConfigureAwait(false);
+        return ExtractItems(json);
+    }
+
+    private async Task<List<T>> FetchAllPagesAsync(CancellationToken cancellationToken)
+    {
+        const int pageSize = 100; // max allowed by server per AppAmbit_CMS_API_Documentation.md
+
+        var firstJson = await ExecuteAsync(BuildParams(pageOverride: 1, perPageOverride: pageSize), cancellationToken)
+            .ConfigureAwait(false);
+        var items = ExtractItems(firstJson);
+
+        var lastPage = firstJson?.SelectToken("meta.last_page")?.Value<int>() ?? 1;
+        for (var p = 2; p <= lastPage; p++)
         {
-            Debug.WriteLine($"[AppAmbit.Cms] Query cache hit: {cacheKey}");
-            return (List<T>)cachedResult;
+            cancellationToken.ThrowIfCancellationRequested();
+            var pageJson = await ExecuteAsync(BuildParams(pageOverride: p, perPageOverride: pageSize), cancellationToken)
+                .ConfigureAwait(false);
+            items.AddRange(ExtractItems(pageJson));
         }
 
-        bool alreadyFetched;
-        lock (Cms.FetchedContentTypes)
-        {
-            alreadyFetched = Cms.FetchedContentTypes.Contains(_contentType);
-            if (!alreadyFetched) Cms.FetchedContentTypes.Add(_contentType);
-        }
+        return items;
+    }
 
-        List<T> result;
+    private List<(string Key, string Value)> BuildParams(int? pageOverride, int? perPageOverride)
+    {
+        // Order: page/per_page first (matches server-side expectations and CDN cache keying),
+        // then sort/q, then filter[...] params.
+        var result = new List<(string Key, string Value)>();
 
-        if (alreadyFetched)
-        {
-            result = await QueryLocalAsync().ConfigureAwait(false);
-        }
-        else
-        {
-            var cached = await QueryLocalAsync().ConfigureAwait(false);
+        if (pageOverride.HasValue)
+            result.Add((ParamPage, pageOverride.Value.ToString()));
+        else if (_singleParams.TryGetValue(ParamPage, out var p))
+            result.Add((ParamPage, p));
 
-            if (cached == null || cached.Count == 0)
-            {
-                await SyncRemoteAsync().ConfigureAwait(false);
-                result = await QueryLocalAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                _ = Task.Run(RefreshCacheInBackgroundAsync);
-                result = cached;
-            }
-        }
+        if (perPageOverride.HasValue)
+            result.Add((ParamPerPage, perPageOverride.Value.ToString()));
+        else if (_singleParams.TryGetValue(ParamPerPage, out var pp))
+            result.Add((ParamPerPage, pp));
 
-        Cms.QueryCache.TryAdd(cacheKey, result);
-        Debug.WriteLine($"[AppAmbit.Cms] Query cached: {cacheKey} ({result.Count} items)");
+        if (_singleParams.TryGetValue(ParamSort, out var sort))
+            result.Add((ParamSort, sort));
 
+        if (_singleParams.TryGetValue(ParamSearch, out var q))
+            result.Add((ParamSearch, q));
+
+        result.AddRange(_filterParams);
         return result;
     }
 
-    private string BuildCacheKey()
+    private async Task<JObject?> ExecuteAsync(
+        IList<(string Key, string Value)> queryParams,
+        CancellationToken cancellationToken)
     {
-        return $"{_contentType}|{_sqlClause}|{string.Join(",", _selectionArgs)}|{_orderByClause ?? ""}|{PaginationLimit},{PaginationOffset}";
-    }
+        var endpoint = new CmsEndpoint(_contentType, queryParams, _isSearch);
+        var result = await _apiService!.ExecuteRequest<JObject>(endpoint, cancellationToken).ConfigureAwait(false);
 
-    private void AppendClause(string fragment, string arg)
-    {
-        if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
-        _sqlClause.Append(fragment);
-        _selectionArgs.Add(arg);
-    }
-
-    private static string NormalizeBool(string value) =>
-        value.Equals("true",  StringComparison.OrdinalIgnoreCase) ? "1" :
-        value.Equals("false", StringComparison.OrdinalIgnoreCase) ? "0" : value;
-
-    private ICmsQueryBuilder<T> AddCondition(string field, string op, string value)
-    {
-        if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
-        _sqlClause.Append($"CAST(json_extract(e.value, '$.{field}') AS TEXT) {op} ?");
-        _selectionArgs.Add(NormalizeBool(value));
-        return this;
-    }
-
-    private ICmsQueryBuilder<T> AddNumericCondition(string field, string op, object value)
-    {
-        if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
-        _sqlClause.Append($"CAST(json_extract(e.value, '$.{field}') AS REAL) {op} ?");
-        _selectionArgs.Add(value?.ToString() ?? "0");
-        return this;
-    }
-
-    private ICmsQueryBuilder<T> AddListCondition(string field, bool exists, IEnumerable<string> values)
-    {
-        var list = values.Select(NormalizeBool).ToList();
-        if (_sqlClause.Length > 0) _sqlClause.Append(" AND ");
-        _sqlClause.Append(StorageService.BuildListClause(field, exists, list.Count));
-        _selectionArgs.AddRange(list);
-        return this;
-    }
-
-    private ICmsQueryBuilder<T> SetOrderBy(string field, string direction)
-    {
-        _orderByClause =
-            $"CAST(json_extract(e.value, '$.{field}') AS REAL) {direction}, " +
-            $"CAST(json_extract(e.value, '$.{field}') AS TEXT) COLLATE NOCASE {direction}";
-        return this;
-    }
-
-    private Task<List<T>> QueryLocalAsync() =>
-        QueryLocalAsync(PaginationLimit, PaginationOffset);
-
-    private async Task<List<T>> QueryLocalAsync(int limit, int offset)
-    {
-        try
+        if (result == null || result.ErrorType != Enums.ApiErrorType.None)
         {
-            var dataJsonList = await _storageService!.QueryCmsDataAsync(
-                _contentType,
-                _sqlClause.Length > 0 ? _sqlClause.ToString() : null,
-                _selectionArgs.Count > 0 ? _selectionArgs.ToArray() : null,
-                _orderByClause,
-                limit,
-                offset).ConfigureAwait(false);
-
-            var items = new List<T>();
-            foreach (var json in dataJsonList)
-            {
-                try
-                {
-                    var item = JsonConvert.DeserializeObject<T>(json, _deserializeSettings);
-                    if (item != null) items.Add(item);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[AppAmbit.Cms] Skipped item — deserialization failed: {ex.Message}");
-                }
-            }
-            return items;
+            var errorType = result?.ErrorType ?? Enums.ApiErrorType.Unknown;
+            var detail    = string.IsNullOrWhiteSpace(result?.Message) ? errorType.ToString() : result.Message;
+            throw new HttpRequestException(
+                $"[AppAmbit.Cms] Failed to fetch '{_contentType}': {detail}.");
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[AppAmbit.Cms] QueryLocalCache failed: {ex.Message}");
+
+        return result.Data;
+    }
+
+    private List<T> ExtractItems(JObject? json)
+    {
+        if (json?["data"] is not JArray dataArray)
             return [];
-        }
-    }
 
-    private async Task SyncRemoteAsync()
-    {
-        try
+        var items = new List<T>();
+        foreach (var token in dataArray)
         {
-            var remoteJson = await FetchAllRemoteDataAsync().ConfigureAwait(false);
-            if (remoteJson != null)
-                await _storageService!.UpsertCmsEntryIfChangedAsync(_contentType, remoteJson).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[AppAmbit.Cms] Sync failed: {ex.Message}");
-        }
-    }
-
-    private async Task RefreshCacheInBackgroundAsync()
-    {
-        var sem = Cms.GetRefreshLock(_contentType);
-        if (!await sem.WaitAsync(0).ConfigureAwait(false)) return;
-
-        try
-        {
-            var remoteJson = await FetchAllRemoteDataAsync().ConfigureAwait(false);
-            if (remoteJson != null)
-                await _storageService!.UpsertCmsEntryIfChangedAsync(_contentType, remoteJson).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[AppAmbit.Cms] Background refresh failed: {ex.Message}");
-        }
-        finally
-        {
-            sem.Release();
-        }
-    }
-
-
-    private async Task<string?> FetchAllRemoteDataAsync()
-    {
-        try
-        {
-            const int fetchPageSize = 20;
-
-            var firstResult = await _apiService!
-                .ExecuteRequest<JObject>(new CmsEndpoint(_contentType, 1, fetchPageSize))
-                .ConfigureAwait(false);
-
-            if (firstResult?.Data == null) return null;
-
-            var firstJson = firstResult.Data;
-            if (!firstJson.ContainsKey("data")) return firstJson.ToString();
-
-            var allData = firstJson["data"] as JArray ?? [];
-
-            var lastPage = firstJson.SelectToken("meta.last_page")?.Value<int>() ?? 1;
-
-            for (int p = 2; p <= lastPage; p++)
+            try
             {
-                var next = await _apiService!
-                    .ExecuteRequest<JObject>(new CmsEndpoint(_contentType, p, fetchPageSize))
-                    .ConfigureAwait(false);
-
-                if (next?.Data?["data"] is JArray nextData)
-                    foreach (var item in nextData) allData.Add(item);
+                var item = token.ToObject<T>(_jsonSerializer);
+                if (item != null) items.Add(item);
             }
-
-            firstJson["data"] = allData;
-            return firstJson.ToString(Formatting.None);
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[AppAmbit.Cms] Skipped item — deserialization failed: {ex.Message}");
+            }
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[AppAmbit.Cms] FetchAllRemoteData failed: {ex.Message}");
-            return null;
-        }
+        return items;
     }
 }

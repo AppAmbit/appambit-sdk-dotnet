@@ -176,7 +176,7 @@ public static class AppAmbitSdk
             ConsumerService.Initialize(storageService, appInfoService, apiService);
             RemoteConfig.Initialize(storageService, appInfoService, apiService);
             BreadcrumbManager.Initialize(apiService!, storageService!);
-            Cms.Initialize(apiService, storageService);
+            Cms.Initialize(apiService);
 
             _servicesReady = true;
             Debug.WriteLine("[AppAmbitSdk] Services initialized successfully.");

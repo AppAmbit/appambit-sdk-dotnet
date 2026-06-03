@@ -19,14 +19,14 @@ internal static class ImageUtils
     internal static async Task LoadAsync(IEnumerable<CmsExampleModel> items)
     {
         var tasks = items
-            .Where(i => !string.IsNullOrWhiteSpace(i.ProductImageUrl))
+            .Where(i => !string.IsNullOrWhiteSpace(i.FeaturedImageUrl))
             .Select(async item =>
             {
                 try
                 {
-                    var bytes = await _http.GetByteArrayAsync(item.ProductImageUrl!);
+                    var bytes = await _http.GetByteArrayAsync(item.FeaturedImageUrl!);
                     using var ms = new MemoryStream(bytes);
-                    item.ProductBitmap = new Bitmap(ms);
+                    item.FeaturedImageBitmap = new Bitmap(ms);
                 }
                 catch { }
             });

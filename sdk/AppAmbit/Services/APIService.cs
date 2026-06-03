@@ -18,7 +18,7 @@ public class APIService : IAPIService
     private string? _token;
     private Task<ApiErrorType>? currentTokenRenewalTask;
 
-    public async Task<ApiResult<T>?> ExecuteRequest<T>(IEndpoint endpoint) where T : notnull
+    public async Task<ApiResult<T>?> ExecuteRequest<T>(IEndpoint endpoint, CancellationToken cancellationToken = default) where T : notnull
     {
         if (!await HasInternetConnectionAsync())
         {
@@ -28,23 +28,27 @@ public class APIService : IAPIService
 
         try
         {
-            var httpResponse = await RequestHttp(endpoint);
+            var httpResponse = await RequestHttp(endpoint, cancellationToken);
+            var json = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
 
             if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                return ApiResult<T>.Fail(ApiErrorType.NotFound, "Resource not found");
+                return ApiResult<T>.Fail(ApiErrorType.NotFound, TryExtractServerError(json) ?? "Resource not found");
             }
 
-            CheckStatusCodeFrom(httpResponse.StatusCode);
+            CheckStatusCodeFrom(httpResponse.StatusCode, json);
 
-            var json = await httpResponse.Content.ReadAsStringAsync();
             var parsed = TryDeserializeJson<T>(json);
             return ApiResult<T>.Success(parsed);
         }
         catch (UnauthorizedException)
         {
-            if (endpoint is RegisterEndpoint || endpoint is TokenEndpoint)
+            // CMS uses X-App-Key, not Bearer token — do not trigger token renewal.
+            if (endpoint is RegisterEndpoint || endpoint is TokenEndpoint || endpoint is CmsEndpoint)
             {
+                if (endpoint is CmsEndpoint)
+                    return ApiResult<T>.Fail(ApiErrorType.Unauthorized, "Unauthorized");
+
                 Debug.WriteLine("[APIService] Token renew endpoint also failed. Session and Token must be cleared");
                 ClearToken();
                 return default;
@@ -74,12 +78,16 @@ public class APIService : IAPIService
             }
 
             Debug.WriteLine("[APIService] Retrying request after token renewal");
-            return await ExecuteRequest<T>(endpoint);
+            return await ExecuteRequest<T>(endpoint, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[APIService] Exception during request: {ex}");
-            return ApiResult<T>.Fail(ApiErrorType.Unknown, "Unexpected error during request");
+            return ApiResult<T>.Fail(ApiErrorType.Unknown, ex.Message);
         }
     }
 
@@ -154,11 +162,21 @@ public class APIService : IAPIService
         _token = null;
     }
 
-    private async Task<HttpResponseMessage> RequestHttp(IEndpoint endpoint)
+    private async Task<HttpResponseMessage> RequestHttp(IEndpoint endpoint, CancellationToken cancellationToken)
     {
         HttpClient httpClient;
 
-        var handler = new HttpClientHandler();
+        // CMS uses bracket-syntax query params (filter[field][op]=value). On iOS
+        // (NSUrlSessionHandler) and Android (AndroidMessageHandler/OkHttp), the
+        // platform-native handlers re-encode `[` `]` to `%5B`/`%5D`, which the
+        // server treats as a different (un-parsed) parameter name and silently
+        // returns the unfiltered set. Use the managed SocketsHttpHandler for CMS
+        // so DangerousDisablePathAndQueryCanonicalization actually preserves the
+        // literal brackets on the wire.
+        HttpMessageHandler handler = endpoint is CmsEndpoint
+            ? new SocketsHttpHandler()
+            : new HttpClientHandler();
+
         var loggingHandler = new LoggingHandler(handler);
         httpClient = new HttpClient(loggingHandler)
         {
@@ -168,17 +186,17 @@ public class APIService : IAPIService
         httpClient.DefaultRequestHeaders
             .Accept
             .Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            
-        httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue 
-        { 
-            NoCache = true 
+
+        httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue
+        {
+            NoCache = true
         };
 
-        var responseMessage = await HttpResponseMessage(endpoint, httpClient);
+        var responseMessage = await HttpResponseMessage(endpoint, httpClient, cancellationToken);
         return responseMessage;
     }
 
-    private void CheckStatusCodeFrom(HttpStatusCode code)
+    private void CheckStatusCodeFrom(HttpStatusCode code, string body)
     {
         int statusCode = (int)code;
 
@@ -192,7 +210,26 @@ public class APIService : IAPIService
             throw new UnauthorizedException();
         }
 
-        throw new HttpRequestException($"HTTP error {statusCode}: {code}");
+        var serverMessage = TryExtractServerError(body);
+        var detail = string.IsNullOrWhiteSpace(serverMessage) ? code.ToString() : serverMessage;
+        throw new HttpRequestException($"HTTP {statusCode}: {detail}");
+    }
+
+    private static string? TryExtractServerError(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return null;
+        try
+        {
+            var token = Newtonsoft.Json.Linq.JToken.Parse(body);
+            var msg  = token.SelectToken("error.message")?.ToString();
+            var code = token.SelectToken("error.code")?.ToString();
+            if (string.IsNullOrWhiteSpace(msg) && string.IsNullOrWhiteSpace(code)) return null;
+            return string.IsNullOrWhiteSpace(code) ? msg : $"[{code}] {msg}";
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private bool IsSuccessStatusCode(int statusCode)
@@ -227,13 +264,13 @@ public class APIService : IAPIService
             throw new JsonException(exceptionMessage);
         }
     }
-    private async Task<HttpResponseMessage> HttpResponseMessage(IEndpoint endpoint, HttpClient client)
+    private async Task<HttpResponseMessage> HttpResponseMessage(IEndpoint endpoint, HttpClient client, CancellationToken cancellationToken)
     {
         client.Timeout = TimeSpan.FromSeconds(10);
         AddAuthorizationHeaderIfNeeded(client, endpoint);
 
         var fullUrl = endpoint.BaseUrl + endpoint.Url;
-        return await GetHttpResponseMessage(endpoint, client, fullUrl, endpoint.Payload);
+        return await GetHttpResponseMessage(endpoint, client, fullUrl, endpoint.Payload, cancellationToken);
     }
 
     private void AddAuthorizationHeaderIfNeeded(HttpClient client, IEndpoint endpoint)
@@ -243,6 +280,10 @@ public class APIService : IAPIService
             var appKey = AppAmbitSdk.AppKey;
             if (!string.IsNullOrEmpty(appKey))
                 client.DefaultRequestHeaders.TryAddWithoutValidation("X-App-Key", appKey);
+            client.DefaultRequestHeaders.CacheControl = null;
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "AppAmbit-SDK-DotNet/4.0");
             return;
         }
 
@@ -333,7 +374,7 @@ private string SerializeStringPayload(object payload)
         return url + "?" + serializedParameters;
     }
 
-    private async Task<HttpResponseMessage> GetHttpResponseMessage(IEndpoint endpoint, HttpClient client, string url, object payload)
+    private async Task<HttpResponseMessage> GetHttpResponseMessage(IEndpoint endpoint, HttpClient client, string url, object payload, CancellationToken cancellationToken)
     {
         HttpResponseMessage result;
         try
@@ -341,28 +382,43 @@ private string SerializeStringPayload(object payload)
             switch (endpoint.Method)
             {
                 case HttpMethodEnum.Get:
-                    result = await client.GetAsync(SerializedGetURL(url, payload));
+                    var getUrl = SerializedGetURL(url, payload);
+                    var getUri = new Uri(getUrl, new UriCreationOptions { DangerousDisablePathAndQueryCanonicalization = true });
+                    var getMsg = new HttpRequestMessage(HttpMethod.Get, getUri);
+                    if (endpoint is CmsEndpoint)
+                    {
+                        // Force HTTP/1.1: GetComponents() throws on DangerousDisable URIs, which breaks
+                        // HTTP/2 :path construction and causes bracket encoding. HTTP/1.1 uses PathAndQuery
+                        // directly, which preserves literal brackets needed by the server's filter parser.
+                        getMsg.Version = System.Net.HttpVersion.Version11;
+                        getMsg.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    }
+                    result = await client.SendAsync(getMsg, cancellationToken);
                     break;
                 case HttpMethodEnum.Post:
                     var payloadJson = await SerializePayload(payload, endpoint);
-                    result = await client.PostAsync(url, payloadJson);
+                    result = await client.PostAsync(url, payloadJson, cancellationToken);
                     break;
                 case HttpMethodEnum.Patch:
                     var requestMessage = new HttpRequestMessage(new HttpMethod("PATCH"), url)
                     {
                         Content = await SerializePayload(payload)
                     };
-                    result = await client.SendAsync(requestMessage);
+                    result = await client.SendAsync(requestMessage, cancellationToken);
                     break;
                 case HttpMethodEnum.Put:
-                    result = await client.PutAsync(url, await SerializePayload(payload));
+                    result = await client.PutAsync(url, await SerializePayload(payload), cancellationToken);
                     break;
                 case HttpMethodEnum.Delete:
-                    result = await client.DeleteAsync(url);
+                    result = await client.DeleteAsync(url, cancellationToken);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (TaskCanceledException)
         {
