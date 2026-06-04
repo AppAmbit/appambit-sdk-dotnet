@@ -134,9 +134,7 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
 
     private async Task<List<T>> FetchAllPagesAsync(CancellationToken cancellationToken)
     {
-        const int pageSize = 100; // max allowed by server per AppAmbit_CMS_API_Documentation.md
-
-        var firstJson = await ExecuteAsync(BuildParams(pageOverride: 1, perPageOverride: pageSize), cancellationToken)
+        var firstJson = await ExecuteAsync(BuildParams(pageOverride: 1, perPageOverride: null), cancellationToken)
             .ConfigureAwait(false);
         var items = ExtractItems(firstJson);
 
@@ -144,7 +142,7 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
         for (var p = 2; p <= lastPage; p++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var pageJson = await ExecuteAsync(BuildParams(pageOverride: p, perPageOverride: pageSize), cancellationToken)
+            var pageJson = await ExecuteAsync(BuildParams(pageOverride: p, perPageOverride: null), cancellationToken)
                 .ConfigureAwait(false);
             items.AddRange(ExtractItems(pageJson));
         }
