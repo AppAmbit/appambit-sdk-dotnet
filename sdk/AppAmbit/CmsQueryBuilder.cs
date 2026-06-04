@@ -23,7 +23,6 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
     // Single-value params keyed by name; later sets overwrite.
     private readonly Dictionary<string, string> _singleParams = new();
     private bool _isSearch;
-    private bool _userSpecifiedPaging;
 
     private static readonly JsonSerializerSettings _deserializeSettings = new()
     {
@@ -93,14 +92,12 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
 
     public ICmsQueryBuilder<T> GetPage(int page)
     {
-        _userSpecifiedPaging = true;
         _singleParams[ParamPage] = page.ToString();
         return this;
     }
 
     public ICmsQueryBuilder<T> GetPerPage(int perPage)
     {
-        _userSpecifiedPaging = true;
         _singleParams[ParamPerPage] = perPage.ToString();
         return this;
     }
@@ -117,53 +114,20 @@ public class CmsQueryBuilder<T> : ICmsQueryBuilder<T> where T : class
             throw new InvalidOperationException(
                 $"[AppAmbit.Cms] SDK not initialized — call AppAmbitSdk.Start() before using Cms.Content('{_contentType}').");
 
-        // If the caller didn't paginate, auto-fetch every page using meta.last_page.
-        // Otherwise honor exactly what they asked for and return one page.
-        if (_userSpecifiedPaging || _isSearch)
-            return await FetchSinglePageAsync(cancellationToken).ConfigureAwait(false);
-
-        return await FetchAllPagesAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task<List<T>> FetchSinglePageAsync(CancellationToken cancellationToken)
-    {
-        var json = await ExecuteAsync(BuildParams(pageOverride: null, perPageOverride: null), cancellationToken)
-            .ConfigureAwait(false);
+        var json = await ExecuteAsync(BuildParams(), cancellationToken).ConfigureAwait(false);
         return ExtractItems(json);
     }
 
-    private async Task<List<T>> FetchAllPagesAsync(CancellationToken cancellationToken)
-    {
-        var firstJson = await ExecuteAsync(BuildParams(pageOverride: 1, perPageOverride: null), cancellationToken)
-            .ConfigureAwait(false);
-        var items = ExtractItems(firstJson);
-
-        var lastPage = firstJson?.SelectToken("meta.last_page")?.Value<int>() ?? 1;
-        for (var p = 2; p <= lastPage; p++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var pageJson = await ExecuteAsync(BuildParams(pageOverride: p, perPageOverride: null), cancellationToken)
-                .ConfigureAwait(false);
-            items.AddRange(ExtractItems(pageJson));
-        }
-
-        return items;
-    }
-
-    private List<(string Key, string Value)> BuildParams(int? pageOverride, int? perPageOverride)
+    private List<(string Key, string Value)> BuildParams()
     {
         // Order: page/per_page first (matches server-side expectations and CDN cache keying),
         // then sort/q, then filter[...] params.
         var result = new List<(string Key, string Value)>();
 
-        if (pageOverride.HasValue)
-            result.Add((ParamPage, pageOverride.Value.ToString()));
-        else if (_singleParams.TryGetValue(ParamPage, out var p))
+        if (_singleParams.TryGetValue(ParamPage, out var p))
             result.Add((ParamPage, p));
 
-        if (perPageOverride.HasValue)
-            result.Add((ParamPerPage, perPageOverride.Value.ToString()));
-        else if (_singleParams.TryGetValue(ParamPerPage, out var pp))
+        if (_singleParams.TryGetValue(ParamPerPage, out var pp))
             result.Add((ParamPerPage, pp));
 
         if (_singleParams.TryGetValue(ParamSort, out var sort))
