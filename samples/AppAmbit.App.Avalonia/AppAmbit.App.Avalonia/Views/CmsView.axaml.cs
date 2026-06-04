@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using AppAmbitAvalonia;
 using AppAmbitTestingAppAvalonia.Models;
-using AppAmbitTestingAppAvalonia.Utils;
 using Avalonia.Controls;
+using Avalonia.Data.Converters;
 using Avalonia.Interactivity;
-using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 
 namespace AppAmbitTestingAppAvalonia.Views;
@@ -24,32 +27,32 @@ public partial class CmsView : UserControl
 
         _filters = new()
         {
-            ("Title = T20",                  () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("title", "T20")),
-            ("Title ≠ T20",                  () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).NotEquals("title", "T20")),
-            ("Is Published = true",          () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("is_published", "true")),
-            ("Is Published = false",         () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Equals("is_published", "false")),
-            ("Title contains 't1'",          () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Contains("title", "t1")),
-            ("Title starts with 't'",        () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).StartsWith("title", "t")),
-            ("Category IN [science, tech]",  () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).InList("category", new[] { "science", "tech" })),
-            ("Category NOT IN [tech, news]", () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).NotInList("category", new[] { "tech", "news" })),
-            ("Views > 1000",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GreaterThan("views_count", 1000)),
-            ("Views ≥ 555",                  () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GreaterThanOrEqual("views_count", 555)),
-            ("Views < 15000",                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).LessThan("views_count", 15000)),
-            ("Views ≤ 15000",                () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).LessThanOrEqual("views_count", 15000)),
-            ("Sort Title ↑",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByAscending("title")),
-            ("Sort Title ↓",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByDescending("title")),
-            ("Sort Views ↑",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByAscending("views_count")),
-            ("Sort Views ↓",                 () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).OrderByDescending("views_count")),
-            ("Page 1 (2 per page)",          () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
-            ("Page 2 (2 per page)",          () => AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
+            ("Title = T20",                  () => Cms.Content<CmsExampleModel>(Collection).Equals("title", "T20")),
+            ("Title ≠ T20",                  () => Cms.Content<CmsExampleModel>(Collection).NotEquals("title", "T20")),
+            ("Is Published = true",          () => Cms.Content<CmsExampleModel>(Collection).Equals("is_published", "true")),
+            ("Is Published = false",         () => Cms.Content<CmsExampleModel>(Collection).Equals("is_published", "false")),
+            ("Title contains 't1'",          () => Cms.Content<CmsExampleModel>(Collection).Contains("title", "t1")),
+            ("Title starts with 't'",        () => Cms.Content<CmsExampleModel>(Collection).StartsWith("title", "t")),
+            ("Category IN [science, tech]",  () => Cms.Content<CmsExampleModel>(Collection).InList("category", new[] { "science", "tech" })),
+            ("Category NOT IN [tech, news]", () => Cms.Content<CmsExampleModel>(Collection).NotInList("category", new[] { "tech", "news" })),
+            ("Views > 1000",                 () => Cms.Content<CmsExampleModel>(Collection).GreaterThan("views_count", 1000)),
+            ("Views ≥ 555",                  () => Cms.Content<CmsExampleModel>(Collection).GreaterThanOrEqual("views_count", 555)),
+            ("Views < 15000",                () => Cms.Content<CmsExampleModel>(Collection).LessThan("views_count", 15000)),
+            ("Views ≤ 15000",                () => Cms.Content<CmsExampleModel>(Collection).LessThanOrEqual("views_count", 15000)),
+            ("Sort Title ↑",                 () => Cms.Content<CmsExampleModel>(Collection).OrderByAscending("title")),
+            ("Sort Title ↓",                 () => Cms.Content<CmsExampleModel>(Collection).OrderByDescending("title")),
+            ("Sort Views ↑",                 () => Cms.Content<CmsExampleModel>(Collection).OrderByAscending("views_count")),
+            ("Sort Views ↓",                 () => Cms.Content<CmsExampleModel>(Collection).OrderByDescending("views_count")),
+            ("Page 1 (2 per page)",          () => Cms.Content<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
+            ("Page 2 (2 per page)",          () => Cms.Content<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
         };
 
         FilterPicker.ItemsSource = _filters.Select(f => f.Label).ToList();
     }
 
-    private async void OnFetchAllClicked(object? sender, RoutedEventArgs e)
+    private async void OnFetchListClicked(object? sender, RoutedEventArgs e)
     {
-        await LoadResults(AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection));
+        await LoadResults(Cms.Content<CmsExampleModel>(Collection));
     }
 
     private async void OnApplyFilterClicked(object? sender, RoutedEventArgs e)
@@ -59,36 +62,33 @@ public partial class CmsView : UserControl
             await AlertWindow.ShowAlert("Please select a filter first.");
             return;
         }
-        await LoadResults(_filters[FilterPicker.SelectedIndex].Build());
+        var query = _filters[FilterPicker.SelectedIndex].Build();
+        await LoadResults(query);
     }
 
     private async void OnSearchClicked(object? sender, RoutedEventArgs e)
     {
-        var term = SearchBox.Text?.Trim();
+        var term = SearchEntry.Text?.Trim();
         if (!string.IsNullOrWhiteSpace(term))
-            await LoadResults(AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection).Search(term));
-        else
-            await LoadResults(AppAmbitAvalonia.Cms.Content<CmsExampleModel>(Collection));
+            await LoadResults(Cms.Content<CmsExampleModel>(Collection).Search(term));
     }
 
     private async Task LoadResults(AppAmbit.ICmsQueryBuilder<CmsExampleModel> query)
     {
         SetLoading(true);
-
         try
         {
             var items = await query.GetListAsync();
-            await ImageUtils.LoadAsync(items);
 
             Dispatcher.UIThread.Post(() =>
             {
+                ResultsList.ItemsSource = null;
                 ResultsList.ItemsSource = items;
-                EmptyLabel.IsVisible = items.Count == 0;
             });
         }
         catch (Exception ex)
         {
-            await AlertWindow.ShowAlert($"Error loading CMS data: {ex.Message}");
+            await AlertWindow.ShowAlert($"Error: {ex.Message}");
         }
         finally
         {
@@ -96,49 +96,57 @@ public partial class CmsView : UserControl
         }
     }
 
-    private void SetLoading(bool loading)
+    private void SetLoading(bool isLoading)
     {
         Dispatcher.UIThread.Post(() =>
         {
-            LoadingBar.IsVisible = loading;
-            BtnFetchAll.IsEnabled = !loading;
-            BtnApplyFilter.IsEnabled = !loading;
-            BtnSearch.IsEnabled = !loading;
+            LoadingBar.IsVisible = isLoading;
         });
     }
 }
 
-public sealed class IsPublishedColorConverter : Avalonia.Data.Converters.IValueConverter
-{
-    public static readonly IsPublishedColorConverter Instance = new();
-
-    public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
-        => value is true
-            ? new SolidColorBrush(Color.Parse("#16A34A"))
-            : new SolidColorBrush(Color.Parse("#DC2626"));
-
-    public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
-        => throw new NotSupportedException();
-}
-
-public sealed class IsPublishedLabelConverter : Avalonia.Data.Converters.IValueConverter
-{
-    public static readonly IsPublishedLabelConverter Instance = new();
-
-    public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
-        => value is true ? "✓ Published" : "✕ Draft";
-
-    public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
-        => throw new NotSupportedException();
-}
-
-public sealed class ListToStringConverter : Avalonia.Data.Converters.IValueConverter
+public sealed class ListToStringConverter : IValueConverter
 {
     public static readonly ListToStringConverter Instance = new();
 
-    public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         => value is IEnumerable<string> list ? string.Join(", ", list) : string.Empty;
 
-    public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public sealed class UrlToBitmapConverter : IValueConverter
+{
+    private static readonly HttpClient _http = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Bitmap?> _cache = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not string url || string.IsNullOrWhiteSpace(url))
+            return null;
+
+        if (_cache.TryGetValue(url, out var cached))
+            return cached;
+
+        _ = LoadAndCacheAsync(url);
+        return null;
+    }
+
+    private static async Task LoadAndCacheAsync(string url)
+    {
+        try
+        {
+            var bytes = await _http.GetByteArrayAsync(url);
+            using var ms = new MemoryStream(bytes);
+            _cache[url] = new Bitmap(ms);
+        }
+        catch
+        {
+            _cache[url] = null;
+        }
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }

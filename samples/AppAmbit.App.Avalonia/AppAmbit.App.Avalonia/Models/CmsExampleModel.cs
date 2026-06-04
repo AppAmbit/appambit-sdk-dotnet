@@ -1,4 +1,3 @@
-using Avalonia.Media.Imaging;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
@@ -23,8 +22,6 @@ public class CmsExampleModel
 
     [JsonProperty("featured_image")]
     public string? FeaturedImageUrl { get; set; }
-
-    public Bitmap? FeaturedImageBitmap { get; set; }
 
     [JsonProperty("views_count")]
     public double? ViewsCount { get; set; }

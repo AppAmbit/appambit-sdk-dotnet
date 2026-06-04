@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,23 +13,26 @@ internal static class ImageUtils
 {
     private static readonly HttpClient _http = new();
 
-    /// <summary>
-    /// Downloads and decodes images for all items in parallel, populating
-    /// <see cref="CmsExampleModel.ProductBitmap"/>. Items without a URL are skipped.
-    /// </summary>
+    internal static readonly ConcurrentDictionary<string, Bitmap?> BitmapCache = new();
+
     internal static async Task LoadAsync(IEnumerable<CmsExampleModel> items)
     {
         var tasks = items
             .Where(i => !string.IsNullOrWhiteSpace(i.FeaturedImageUrl))
             .Select(async item =>
             {
+                var url = item.FeaturedImageUrl!;
+                if (BitmapCache.ContainsKey(url)) return;
                 try
                 {
-                    var bytes = await _http.GetByteArrayAsync(item.FeaturedImageUrl!);
+                    var bytes = await _http.GetByteArrayAsync(url);
                     using var ms = new MemoryStream(bytes);
-                    item.FeaturedImageBitmap = new Bitmap(ms);
+                    BitmapCache[url] = new Bitmap(ms);
                 }
-                catch { }
+                catch
+                {
+                    BitmapCache[url] = null;
+                }
             });
 
         await Task.WhenAll(tasks);
