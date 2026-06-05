@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AppAmbit;
@@ -20,5 +21,5 @@ public interface ICmsQueryBuilder<T> where T : class
     ICmsQueryBuilder<T> OrderByDescending(string field);
     ICmsQueryBuilder<T> GetPage(int page);
     ICmsQueryBuilder<T> GetPerPage(int perPage);
-    Task<List<T>> GetListAsync();
+    Task<List<T>> GetListAsync(CancellationToken cancellationToken = default);
 }

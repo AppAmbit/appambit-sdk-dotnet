@@ -1,14 +1,12 @@
 using AppAmbit;
 using AppAmbitTestingApp.Models;
 
-
 namespace AppAmbitTestingApp;
 
 public partial class CmsPage : ContentPage
 {
-    private const string Collection = "tech_inventory";
+    private const string Collection = "blog_extended";
 
-    // Filter definitions: label shown in Picker → factory that builds the query
     private readonly List<(string Label, Func<ICmsQueryBuilder<CmsExampleModel>> Build)> _filters;
 
     public CmsPage()
@@ -17,53 +15,24 @@ public partial class CmsPage : ContentPage
 
         _filters = new()
         {
-            // Equality
-            ("Equals: item_sku = TEC-02",
-                () => Cms.Content<CmsExampleModel>(Collection).Equals("item_sku", "TEC-02")),
-            ("Not Equals: item_sku ≠ TEC-02",
-                () => Cms.Content<CmsExampleModel>(Collection).NotEquals("item_sku", "TEC-02")),
-            ("In List: category = Cat 1",
-                () => Cms.Content<CmsExampleModel>(Collection).InList("category", new[] { "Cat 1" })),
-            ("Boolean: in_stock = true",
-                () => Cms.Content<CmsExampleModel>(Collection).Equals("in_stock", "true")),
-
-            // Text matching
-            ("Contains: product_name contains 'Pro'",
-                () => Cms.Content<CmsExampleModel>(Collection).Contains("product_name", "Pro")),
-            ("Starts With: item_sku starts with 'TEC'",
-                () => Cms.Content<CmsExampleModel>(Collection).StartsWith("item_sku", "TEC")),
-
-            // List membership
-            ("In List: item_sku in [TEC-01, TEC-02]",
-                () => Cms.Content<CmsExampleModel>(Collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
-            ("Not In List: item_sku not in [TEC-01, TEC-02]",
-                () => Cms.Content<CmsExampleModel>(Collection).NotInList("item_sku", new[] { "TEC-01", "TEC-02" })),
-
-            // Numeric comparisons
-            ("Greater Than: price > 500",
-                () => Cms.Content<CmsExampleModel>(Collection).GreaterThan("price", 500)),
-            ("Greater Or Equal: price >= 500",
-                () => Cms.Content<CmsExampleModel>(Collection).GreaterThanOrEqual("price", 500)),
-            ("Less Than: price < 500",
-                () => Cms.Content<CmsExampleModel>(Collection).LessThan("price", 500)),
-            ("Less Or Equal: price <= 500",
-                () => Cms.Content<CmsExampleModel>(Collection).LessThanOrEqual("price", 500)),
-
-            // Sorting
-            ("Order By product_name ASC",
-                () => Cms.Content<CmsExampleModel>(Collection).OrderByAscending("product_name")),
-            ("Order By product_name DESC",
-                () => Cms.Content<CmsExampleModel>(Collection).OrderByDescending("product_name")),
-            ("Order By price ASC",
-                () => Cms.Content<CmsExampleModel>(Collection).OrderByAscending("price")),
-            ("Order By price DESC",
-                () => Cms.Content<CmsExampleModel>(Collection).OrderByDescending("price")),
-
-            // Pagination
-            ("Pagination: Page 1, 2 per page",
-                () => Cms.Content<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
-            ("Pagination: Page 2, 2 per page",
-                () => Cms.Content<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
+            ("Title = T20",                  () => Cms.Content<CmsExampleModel>(Collection).Equals("title", "T20")),
+            ("Title ≠ T20",                  () => Cms.Content<CmsExampleModel>(Collection).NotEquals("title", "T20")),
+            ("Is Published = true",          () => Cms.Content<CmsExampleModel>(Collection).Equals("is_published", "true")),
+            ("Is Published = false",         () => Cms.Content<CmsExampleModel>(Collection).Equals("is_published", "false")),
+            ("Title contains 't1'",          () => Cms.Content<CmsExampleModel>(Collection).Contains("title", "t1")),
+            ("Title starts with 't'",        () => Cms.Content<CmsExampleModel>(Collection).StartsWith("title", "t")),
+            ("Category IN [science, tech]",  () => Cms.Content<CmsExampleModel>(Collection).InList("category", new[] { "science", "tech" })),
+            ("Category NOT IN [tech, news]", () => Cms.Content<CmsExampleModel>(Collection).NotInList("category", new[] { "tech", "news" })),
+            ("Views > 1000",                 () => Cms.Content<CmsExampleModel>(Collection).GreaterThan("views_count", 1000)),
+            ("Views ≥ 555",                  () => Cms.Content<CmsExampleModel>(Collection).GreaterThanOrEqual("views_count", 555)),
+            ("Views < 15000",                () => Cms.Content<CmsExampleModel>(Collection).LessThan("views_count", 15000)),
+            ("Views ≤ 15000",                () => Cms.Content<CmsExampleModel>(Collection).LessThanOrEqual("views_count", 15000)),
+            ("Sort Title ↑",                 () => Cms.Content<CmsExampleModel>(Collection).OrderByAscending("title")),
+            ("Sort Title ↓",                 () => Cms.Content<CmsExampleModel>(Collection).OrderByDescending("title")),
+            ("Sort Views ↑",                 () => Cms.Content<CmsExampleModel>(Collection).OrderByAscending("views_count")),
+            ("Sort Views ↓",                 () => Cms.Content<CmsExampleModel>(Collection).OrderByDescending("views_count")),
+            ("Page 1 (2 per page)",          () => Cms.Content<CmsExampleModel>(Collection).GetPage(1).GetPerPage(2)),
+            ("Page 2 (2 per page)",          () => Cms.Content<CmsExampleModel>(Collection).GetPage(2).GetPerPage(2)),
         };
 
         FilterPicker.ItemsSource = _filters.Select(f => f.Label).ToList();
@@ -74,7 +43,6 @@ public partial class CmsPage : ContentPage
         await LoadResults(Cms.Content<CmsExampleModel>(Collection));
     }
 
-    // Apply selected filter from Picker
     private async void OnApplyFilterClicked(object sender, EventArgs e)
     {
         if (FilterPicker.SelectedIndex < 0)
@@ -86,7 +54,6 @@ public partial class CmsPage : ContentPage
         await LoadResults(query);
     }
 
-    // Full-text search
     private async void OnSearchClicked(object sender, EventArgs e)
     {
         var term = SearchEntry.Text?.Trim();

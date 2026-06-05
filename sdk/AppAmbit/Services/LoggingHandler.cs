@@ -29,6 +29,10 @@ public class LoggingHandler : DelegatingHandler
     {
         try
         {
+            Debug.WriteLine($"[APIService] --> {request.Method} {request.RequestUri?.AbsoluteUri} (HTTP/{request.Version})");
+            foreach (var h in request.Headers)
+                Debug.WriteLine($"[APIService]    {h.Key}: {string.Join(", ", h.Value)}");
+
             if (request.Content != null)
             {
                 var reqBody = await request.Content.ReadAsStringAsync(cancellationToken);
@@ -37,6 +41,10 @@ public class LoggingHandler : DelegatingHandler
 
             var response = await base.SendAsync(request, cancellationToken);
             await CalculateRequestSize(request);
+
+            var xCache = response.Headers.TryGetValues("X-Cache", out var xcValues) ? string.Join(",", xcValues) : "n/a";
+            var cfId   = response.Headers.TryGetValues("X-Amz-Cf-Id", out var cfValues) ? string.Join(",", cfValues) : "n/a";
+            Debug.WriteLine($"[APIService] <-- {(int)response.StatusCode} | X-Cache: {xCache} | CF-Id: {cfId}");
 
             if (response.Content != null)
             {

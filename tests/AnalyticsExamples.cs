@@ -261,7 +261,7 @@ public class AnalyticsExamples : IDisposable
 
         public int RequestCount { get; private set; }
 
-        public Task<ApiResult<T>?> ExecuteRequest<T>(IEndpoint endpoint) where T : notnull
+        public Task<ApiResult<T>?> ExecuteRequest<T>(IEndpoint endpoint, CancellationToken cancellationToken = default) where T : notnull
         {
             RequestCount++;
             return Task.FromResult<ApiResult<T>?>(new ApiResult<T>(default, _error));

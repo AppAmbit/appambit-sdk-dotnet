@@ -19,7 +19,7 @@ public class CmsViewController : UIViewController
     private UILabel _emptyLabel = null!;
 
     private CmsTableViewSource _source = null!;
-    private const string CollectionName = "tech_inventory";
+    private const string CollectionName = "blog_extended";
 
     private List<(string Label, Func<ICmsQueryBuilder<CmsExampleModel>> Build)> _cmsFilters = new();
     private int _selectedFilterIndex = -1;
@@ -38,35 +38,24 @@ public class CmsViewController : UIViewController
     {
         _cmsFilters = new()
         {
-            // Equality
-            ("Equals: item_sku = TEC-02", () => Cms.Content<CmsExampleModel>(CollectionName).Equals("item_sku", "TEC-02")),
-            ("Not Equals: item_sku ≠ TEC-02", () => Cms.Content<CmsExampleModel>(CollectionName).NotEquals("item_sku", "TEC-02")),
-            ("In List: category = Cat 1", () => Cms.Content<CmsExampleModel>(CollectionName).InList("category", new[] { "Cat 1" })),
-            ("Boolean: in_stock = true", () => Cms.Content<CmsExampleModel>(CollectionName).Equals("in_stock", "true")),
-
-            // Text matching
-            ("Contains: product_name contains 'Pro'", () => Cms.Content<CmsExampleModel>(CollectionName).Contains("product_name", "Pro")),
-            ("Starts With: item_sku starts with 'TEC'", () => Cms.Content<CmsExampleModel>(CollectionName).StartsWith("item_sku", "TEC")),
-
-            // List membership
-            ("In List: item_sku in [TEC-01, TEC-02]", () => Cms.Content<CmsExampleModel>(CollectionName).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
-            ("Not In List: item_sku not in [TEC-01, TEC-02]", () => Cms.Content<CmsExampleModel>(CollectionName).NotInList("item_sku", new[] { "TEC-01", "TEC-02" })),
-
-            // Numeric comparisons
-            ("Greater Than: price > 500", () => Cms.Content<CmsExampleModel>(CollectionName).GreaterThan("price", 500)),
-            ("Greater Or Equal: price >= 500", () => Cms.Content<CmsExampleModel>(CollectionName).GreaterThanOrEqual("price", 500)),
-            ("Less Than: price < 500", () => Cms.Content<CmsExampleModel>(CollectionName).LessThan("price", 500)),
-            ("Less Or Equal: price <= 500", () => Cms.Content<CmsExampleModel>(CollectionName).LessThanOrEqual("price", 500)),
-
-            // Sorting
-            ("Order By product_name ASC", () => Cms.Content<CmsExampleModel>(CollectionName).OrderByAscending("product_name")),
-            ("Order By product_name DESC", () => Cms.Content<CmsExampleModel>(CollectionName).OrderByDescending("product_name")),
-            ("Order By price ASC", () => Cms.Content<CmsExampleModel>(CollectionName).OrderByAscending("price")),
-            ("Order By price DESC", () => Cms.Content<CmsExampleModel>(CollectionName).OrderByDescending("price")),
-
-            // Pagination
-            ("Pagination: Page 1, 2 per page", () => Cms.Content<CmsExampleModel>(CollectionName).GetPage(1).GetPerPage(2)),
-            ("Pagination: Page 2, 2 per page", () => Cms.Content<CmsExampleModel>(CollectionName).GetPage(2).GetPerPage(2)),
+            ("Title = T20",                  () => Cms.Content<CmsExampleModel>(CollectionName).Equals("title", "T20")),
+            ("Title ≠ T20",                  () => Cms.Content<CmsExampleModel>(CollectionName).NotEquals("title", "T20")),
+            ("Is Published = true",          () => Cms.Content<CmsExampleModel>(CollectionName).Equals("is_published", "true")),
+            ("Is Published = false",         () => Cms.Content<CmsExampleModel>(CollectionName).Equals("is_published", "false")),
+            ("Title contains 't1'",          () => Cms.Content<CmsExampleModel>(CollectionName).Contains("title", "t1")),
+            ("Title starts with 't'",        () => Cms.Content<CmsExampleModel>(CollectionName).StartsWith("title", "t")),
+            ("Category IN [science, tech]",  () => Cms.Content<CmsExampleModel>(CollectionName).InList("category", new[] { "science", "tech" })),
+            ("Category NOT IN [tech, news]", () => Cms.Content<CmsExampleModel>(CollectionName).NotInList("category", new[] { "tech", "news" })),
+            ("Views > 1000",                 () => Cms.Content<CmsExampleModel>(CollectionName).GreaterThan("views_count", 1000)),
+            ("Views ≥ 555",                  () => Cms.Content<CmsExampleModel>(CollectionName).GreaterThanOrEqual("views_count", 555)),
+            ("Views < 15000",                () => Cms.Content<CmsExampleModel>(CollectionName).LessThan("views_count", 15000)),
+            ("Views ≤ 15000",                () => Cms.Content<CmsExampleModel>(CollectionName).LessThanOrEqual("views_count", 15000)),
+            ("Sort Title ↑",                 () => Cms.Content<CmsExampleModel>(CollectionName).OrderByAscending("title")),
+            ("Sort Title ↓",                 () => Cms.Content<CmsExampleModel>(CollectionName).OrderByDescending("title")),
+            ("Sort Views ↑",                 () => Cms.Content<CmsExampleModel>(CollectionName).OrderByAscending("views_count")),
+            ("Sort Views ↓",                 () => Cms.Content<CmsExampleModel>(CollectionName).OrderByDescending("views_count")),
+            ("Page 1 (2 per page)",          () => Cms.Content<CmsExampleModel>(CollectionName).GetPage(1).GetPerPage(2)),
+            ("Page 2 (2 per page)",          () => Cms.Content<CmsExampleModel>(CollectionName).GetPage(2).GetPerPage(2)),
         };
     }
 
@@ -314,15 +303,15 @@ public class CmsCell : UITableViewCell
 {
     public static readonly NSString Key = new NSString(nameof(CmsCell));
 
-    private UIImageView _imgProduct = null!;
+    private UIImageView _imgFeatured = null!;
     private UIView _card = null!;
-    private UILabel _lblProduct = null!;
+    private UILabel _lblTitle = null!;
+    private UILabel _lblAuthor = null!;
+    private UILabel _lblBody = null!;
+    private UILabel _lblStats = null!;
     private UILabel _lblCategory = null!;
-    private UILabel _lblDesc = null!;
-    private UILabel _lblPrice = null!;
-    private UILabel _lblSkuLine = null!;
-    private UILabel _lblSupport = null!;
-    private UILabel _lblIdAndDates = null!;
+    private UILabel _lblPublished = null!;
+    private UILabel _lblPublishedAt = null!;
 
     [Export("initWithStyle:reuseIdentifier:")]
     public CmsCell(UITableViewCellStyle style, NSString reuseIdentifier) : base(style, reuseIdentifier)
@@ -342,27 +331,25 @@ public class CmsCell : UITableViewCell
         card.Layer.ShadowRadius = 4;
         _card = card;
 
-        _imgProduct = new UIImageView
+        _imgFeatured = new UIImageView
         {
             ContentMode = UIViewContentMode.ScaleAspectFill,
             ClipsToBounds = true,
             BackgroundColor = UIColor.SystemGray5,
             TranslatesAutoresizingMaskIntoConstraints = false
         };
-        _imgProduct.Layer.CornerRadius = 8;
+        _imgFeatured.Layer.CornerRadius = 8;
 
-        _lblProduct = new UILabel { Font = UIFont.BoldSystemFontOfSize(16), TranslatesAutoresizingMaskIntoConstraints = false };
-        _lblCategory = new UILabel { Font = UIFont.BoldSystemFontOfSize(11), TextColor = UIColor.SystemBlue, TranslatesAutoresizingMaskIntoConstraints = false, TextAlignment = UITextAlignment.Right };
-        _lblDesc = new UILabel { Font = UIFont.SystemFontOfSize(12), TextColor = UIColor.DarkGray, Lines = 2, TranslatesAutoresizingMaskIntoConstraints = false };
-
-        _lblPrice = new UILabel { Font = UIFont.BoldSystemFontOfSize(13), TextColor = UIColor.SystemGreen, TranslatesAutoresizingMaskIntoConstraints = false };
-        _lblSkuLine = new UILabel { Font = UIFont.SystemFontOfSize(12), TextColor = UIColor.Gray, TranslatesAutoresizingMaskIntoConstraints = false };
-
-        _lblSupport = new UILabel { Font = UIFont.SystemFontOfSize(11), TextColor = UIColor.LightGray, TranslatesAutoresizingMaskIntoConstraints = false };
-        _lblIdAndDates = new UILabel { Font = UIFont.SystemFontOfSize(10), TextColor = UIColor.LightGray, Lines = 2, TranslatesAutoresizingMaskIntoConstraints = false, LineBreakMode = UILineBreakMode.MiddleTruncation };
+        _lblTitle     = new UILabel { Font = UIFont.BoldSystemFontOfSize(16), TranslatesAutoresizingMaskIntoConstraints = false };
+        _lblAuthor    = new UILabel { Font = UIFont.SystemFontOfSize(11), TextColor = UIColor.SystemGray, TranslatesAutoresizingMaskIntoConstraints = false, TextAlignment = UITextAlignment.Right };
+        _lblBody      = new UILabel { Font = UIFont.SystemFontOfSize(13), TextColor = UIColor.DarkGray, Lines = 3, TranslatesAutoresizingMaskIntoConstraints = false };
+        _lblStats     = new UILabel { Font = UIFont.SystemFontOfSize(12), TextColor = UIColor.SystemGray, TranslatesAutoresizingMaskIntoConstraints = false };
+        _lblCategory  = new UILabel { Font = UIFont.BoldSystemFontOfSize(11), TextColor = UIColor.SystemBlue, TranslatesAutoresizingMaskIntoConstraints = false };
+        _lblPublished = new UILabel { Font = UIFont.BoldSystemFontOfSize(11), TranslatesAutoresizingMaskIntoConstraints = false };
+        _lblPublishedAt = new UILabel { Font = UIFont.SystemFontOfSize(11), TextColor = UIColor.SystemGray, TranslatesAutoresizingMaskIntoConstraints = false, TextAlignment = UITextAlignment.Right };
 
         ContentView.AddSubview(card);
-        card.AddSubviews(_imgProduct, _lblProduct, _lblCategory, _lblDesc, _lblPrice, _lblSkuLine, _lblSupport, _lblIdAndDates);
+        card.AddSubviews(_imgFeatured, _lblTitle, _lblAuthor, _lblBody, _lblStats, _lblCategory, _lblPublished, _lblPublishedAt);
 
         NSLayoutConstraint.ActivateConstraints(new[]
         {
@@ -372,54 +359,60 @@ public class CmsCell : UITableViewCell
             card.TrailingAnchor.ConstraintEqualTo(ContentView.TrailingAnchor, -16),
             card.BottomAnchor.ConstraintEqualTo(ContentView.BottomAnchor, -6),
 
-            // Thumbnail 80x80 left-aligned
-            _imgProduct.TopAnchor.ConstraintEqualTo(card.TopAnchor, 12),
-            _imgProduct.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
-            _imgProduct.WidthAnchor.ConstraintEqualTo(80),
-            _imgProduct.HeightAnchor.ConstraintEqualTo(80),
+            // Featured image: full width, 160pt tall
+            _imgFeatured.TopAnchor.ConstraintEqualTo(card.TopAnchor, 12),
+            _imgFeatured.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
+            _imgFeatured.TrailingAnchor.ConstraintEqualTo(card.TrailingAnchor, -12),
+            _imgFeatured.HeightAnchor.ConstraintEqualTo(160),
 
-            // Product name + category right of image
-            _lblProduct.TopAnchor.ConstraintEqualTo(card.TopAnchor, 12),
-            _lblProduct.LeadingAnchor.ConstraintEqualTo(_imgProduct.TrailingAnchor, 16),
-            _lblProduct.TrailingAnchor.ConstraintLessThanOrEqualTo(_lblCategory.LeadingAnchor, -8),
+            // Title + Author
+            _lblTitle.TopAnchor.ConstraintEqualTo(_imgFeatured.BottomAnchor, 10),
+            _lblTitle.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
+            _lblTitle.TrailingAnchor.ConstraintLessThanOrEqualTo(_lblAuthor.LeadingAnchor, -8),
 
-            _lblCategory.CenterYAnchor.ConstraintEqualTo(_lblProduct.CenterYAnchor),
+            _lblAuthor.CenterYAnchor.ConstraintEqualTo(_lblTitle.CenterYAnchor),
+            _lblAuthor.TrailingAnchor.ConstraintEqualTo(card.TrailingAnchor, -12),
+
+            // Body
+            _lblBody.TopAnchor.ConstraintEqualTo(_lblTitle.BottomAnchor, 6),
+            _lblBody.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
+            _lblBody.TrailingAnchor.ConstraintEqualTo(card.TrailingAnchor, -12),
+
+            // Stats (likes, rating, reading time)
+            _lblStats.TopAnchor.ConstraintEqualTo(_lblBody.BottomAnchor, 6),
+            _lblStats.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
+            _lblStats.TrailingAnchor.ConstraintEqualTo(card.TrailingAnchor, -12),
+
+            // Categories
+            _lblCategory.TopAnchor.ConstraintEqualTo(_lblStats.BottomAnchor, 4),
+            _lblCategory.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
             _lblCategory.TrailingAnchor.ConstraintEqualTo(card.TrailingAnchor, -12),
 
-            _lblDesc.TopAnchor.ConstraintEqualTo(_lblProduct.BottomAnchor, 4),
-            _lblDesc.LeadingAnchor.ConstraintEqualTo(_imgProduct.TrailingAnchor, 16),
-            _lblDesc.TrailingAnchor.ConstraintEqualTo(card.TrailingAnchor, -12),
+            // Published status + date
+            _lblPublished.TopAnchor.ConstraintEqualTo(_lblCategory.BottomAnchor, 6),
+            _lblPublished.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
 
-            // SKU + Price below image row
-            _lblSkuLine.TopAnchor.ConstraintEqualTo(_imgProduct.BottomAnchor, 8),
-            _lblSkuLine.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
-
-            _lblPrice.CenterYAnchor.ConstraintEqualTo(_lblSkuLine.CenterYAnchor),
-            _lblPrice.LeadingAnchor.ConstraintEqualTo(_lblSkuLine.TrailingAnchor, 16),
-
-            _lblSupport.TopAnchor.ConstraintEqualTo(_lblSkuLine.BottomAnchor, 4),
-            _lblSupport.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
-
-            _lblIdAndDates.TopAnchor.ConstraintEqualTo(_lblSupport.BottomAnchor, 4),
-            _lblIdAndDates.LeadingAnchor.ConstraintEqualTo(card.LeadingAnchor, 12),
-            _lblIdAndDates.TrailingAnchor.ConstraintEqualTo(card.TrailingAnchor, -12),
-            _lblIdAndDates.BottomAnchor.ConstraintEqualTo(card.BottomAnchor, -12),
+            _lblPublishedAt.CenterYAnchor.ConstraintEqualTo(_lblPublished.CenterYAnchor),
+            _lblPublishedAt.TrailingAnchor.ConstraintEqualTo(card.TrailingAnchor, -12),
+            _lblPublishedAt.BottomAnchor.ConstraintEqualTo(card.BottomAnchor, -12),
         });
     }
 
     public void Bind(CmsExampleModel item)
     {
-        _lblProduct.Text = item.ProductName;
-        _lblCategory.Text = item.Category?.Count > 0 ? $"🏷️ {string.Join(", ", item.Category)}" : "";
-        _lblDesc.Text = item.Description;
-        _lblSkuLine.Text = $"{item.ItemSku}    Stock: {item.InStock}";
-        _lblPrice.Text = $"${item.Price:F2}";
-        _lblSupport.Text = $"📧 {item.SupportEmail}";
-        _lblIdAndDates.Text = $"ID: {item.Id}\nCr: {item.CreatedAt:dd/MM/yyyy}    Pub: {item.PublishedAt:dd/MM/yyyy}    Upd: {item.UpdatedAt:dd/MM/yyyy}";
+        _lblTitle.Text       = item.Title;
+        _lblAuthor.Text      = !string.IsNullOrWhiteSpace(item.AuthorEmail) ? $"✍️ {item.AuthorEmail}" : "";
+        _lblBody.Text        = item.Body;
+        _lblStats.Text       = $"👁️ {item.ViewsCount:N0} views" +
+                               (!string.IsNullOrWhiteSpace(item.EventDate) ? $"   📅 {item.EventDate}" : "");
+        _lblCategory.Text    = item.Category?.Count > 0 ? string.Join(", ", item.Category) : "";
+        _lblPublished.Text   = item.IsPublished == true ? "✓ Published" : "✕ Draft";
+        _lblPublished.TextColor = item.IsPublished == true ? UIColor.SystemGreen : UIColor.SystemOrange;
+        _lblPublishedAt.Text = !string.IsNullOrWhiteSpace(item.PublishedAt) ? $"🗓 {item.PublishedAt}" : "";
 
-        if (!string.IsNullOrWhiteSpace(item.ProductImageUrl))
-            ImageUtils.LoadAsync(item.ProductImageUrl!, _imgProduct, item.Id ?? item.ProductImageUrl!);
+        if (!string.IsNullOrWhiteSpace(item.FeaturedImageUrl))
+            ImageUtils.LoadAsync(item.FeaturedImageUrl!, _imgFeatured, item.Id ?? item.FeaturedImageUrl!);
         else
-            _imgProduct.Image = null;
+            _imgFeatured.Image = null;
     }
 }
