@@ -421,39 +421,28 @@ public class MainActivity : Activity
         recycler.SetLayoutManager(new AndroidX.RecyclerView.Widget.LinearLayoutManager(this));
         recycler.SetAdapter(adapter);
 
-        const string collection = "tech_inventory";
+        const string collection = "blog_extended";
 
         _cmsFilters = new()
         {
-            // Equality
-            ("Equals: item_sku = TEC-02", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Equals("item_sku", "TEC-02")),
-            ("Not Equals: item_sku ≠ TEC-02", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).NotEquals("item_sku", "TEC-02")),
-            ("In List: category = Cat 1", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).InList("category", new[] { "Cat 1" })),
-            ("Boolean: in_stock = true", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Equals("in_stock", "true")),
-
-            // Text matching
-            ("Contains: product_name contains 'Pro'", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Contains("product_name", "Pro")),
-            ("Starts With: item_sku starts with 'TEC'", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).StartsWith("item_sku", "TEC")),
-
-            // List membership
-            ("In List: item_sku in [TEC-01, TEC-02]", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).InList("item_sku", new[] { "TEC-01", "TEC-02" })),
-            ("Not In List: item_sku not in [TEC-01, TEC-02]", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).NotInList("item_sku", new[] { "TEC-01", "TEC-02" })),
-
-            // Numeric comparisons
-            ("Greater Than: price > 500", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GreaterThan("price", 500)),
-            ("Greater Or Equal: price >= 500", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GreaterThanOrEqual("price", 500)),
-            ("Less Than: price < 500", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).LessThan("price", 500)),
-            ("Less Or Equal: price <= 500", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).LessThanOrEqual("price", 500)),
-
-            // Sorting
-            ("Order By product_name ASC", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByAscending("product_name")),
-            ("Order By product_name DESC", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByDescending("product_name")),
-            ("Order By price ASC", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByAscending("price")),
-            ("Order By price DESC", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByDescending("price")),
-
-            // Pagination
-            ("Pagination: Page 1, 2 per page", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(1).GetPerPage(2)),
-            ("Pagination: Page 2, 2 per page", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(2).GetPerPage(2)),
+            ("Title = T20",                  () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Equals("title", "T20")),
+            ("Title ≠ T20",                  () => AppAmbit.Cms.Content<CmsExampleModel>(collection).NotEquals("title", "T20")),
+            ("Is Published = true",          () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Equals("is_published", "true")),
+            ("Is Published = false",         () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Equals("is_published", "false")),
+            ("Title contains 't1'",          () => AppAmbit.Cms.Content<CmsExampleModel>(collection).Contains("title", "t1")),
+            ("Title starts with 't'",        () => AppAmbit.Cms.Content<CmsExampleModel>(collection).StartsWith("title", "t")),
+            ("Category IN [science, tech]",  () => AppAmbit.Cms.Content<CmsExampleModel>(collection).InList("category", new[] { "science", "tech" })),
+            ("Category NOT IN [tech, news]", () => AppAmbit.Cms.Content<CmsExampleModel>(collection).NotInList("category", new[] { "tech", "news" })),
+            ("Views > 1000",                 () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GreaterThan("views_count", 1000)),
+            ("Views ≥ 555",                  () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GreaterThanOrEqual("views_count", 555)),
+            ("Views < 15000",                () => AppAmbit.Cms.Content<CmsExampleModel>(collection).LessThan("views_count", 15000)),
+            ("Views ≤ 15000",                () => AppAmbit.Cms.Content<CmsExampleModel>(collection).LessThanOrEqual("views_count", 15000)),
+            ("Sort Title ↑",                 () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByAscending("title")),
+            ("Sort Title ↓",                 () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByDescending("title")),
+            ("Sort Views ↑",                 () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByAscending("views_count")),
+            ("Sort Views ↓",                 () => AppAmbit.Cms.Content<CmsExampleModel>(collection).OrderByDescending("views_count")),
+            ("Page 1 (2 per page)",          () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(1).GetPerPage(2)),
+            ("Page 2 (2 per page)",          () => AppAmbit.Cms.Content<CmsExampleModel>(collection).GetPage(2).GetPerPage(2)),
         };
 
         var filterNames = _cmsFilters.Select(f => f.Label).ToList();

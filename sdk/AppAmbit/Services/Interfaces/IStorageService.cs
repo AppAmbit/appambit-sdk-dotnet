@@ -1,6 +1,5 @@
 using AppAmbit.Models.Analytics;
 using AppAmbit.Models.Breadcrumbs;
-using AppAmbit.Models.Cms;
 using AppAmbit.Models.Logs;
 using AppAmbit.Models.RemoteConfigs;
 
@@ -84,12 +83,4 @@ public interface IStorageService
     Task<String?> GetConfig(String key);
     #endregion
 
-    #region CMS
-    Task<CmsCacheEntity?> GetCmsEntryAsync(string contentType);
-    Task UpsertCmsEntryAsync(CmsCacheEntity entry);
-    Task UpsertCmsEntryIfChangedAsync(string contentType, string remoteJson);
-    Task DeleteCmsEntryAsync(string contentType);
-    Task DeleteAllCmsEntriesAsync();
-    Task<List<string>> QueryCmsDataAsync(string contentType, string? filterClause, string[]? selectionArgs, string? orderBy, int limit, int offset);
-    #endregion
 }

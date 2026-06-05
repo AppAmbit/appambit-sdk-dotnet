@@ -1,6 +1,5 @@
 using AppAmbit.Models.Analytics;
 using AppAmbit.Models.Breadcrumbs;
-using AppAmbit.Models.Cms;
 using AppAmbit.Models.Logs;
 using AppAmbit.Models.RemoteConfigs;
 using AppAmbit.Models.Responses;
@@ -57,13 +56,4 @@ internal abstract class BaseFakeStorageService : IStorageService
     // Remote Configs
     public virtual Task AddConfigsAsync(List<RemoteConfigEntity> configs) => Task.CompletedTask;
     public virtual Task<string?> GetConfig(string key) => Task.FromResult<string?>(null);
-
-    // CMS
-    public virtual Task<CmsCacheEntity?> GetCmsEntryAsync(string contentType) => Task.FromResult<CmsCacheEntity?>(null);
-    public virtual Task UpsertCmsEntryAsync(CmsCacheEntity entry) => Task.CompletedTask;
-    public virtual Task UpsertCmsEntryIfChangedAsync(string contentType, string remoteJson) => Task.CompletedTask;
-    public virtual Task DeleteCmsEntryAsync(string contentType) => Task.CompletedTask;
-    public virtual Task DeleteAllCmsEntriesAsync() => Task.CompletedTask;
-    public virtual Task<List<string>> QueryCmsDataAsync(string contentType, string? filterClause, string[]? selectionArgs, string? orderBy, int limit, int offset) 
-        => Task.FromResult(new List<string>());
 }

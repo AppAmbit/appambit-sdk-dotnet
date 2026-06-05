@@ -8,183 +8,138 @@
              x:Class="AppAmbitTestingAppAvalonia.Views.CmsView">
 
   <UserControl.Resources>
-    <views:BooleanToStockColorConverter x:Key="StockColorConverter" />
-    <views:BooleanToStockLabelConverter x:Key="StockLabelConverter" />
     <views:ListToStringConverter x:Key="ListToStringConverter" />
+    <views:UrlToBitmapConverter x:Key="UrlToBitmapConverter" />
   </UserControl.Resources>
 
-  <Grid RowDefinitions="Auto,Auto,Auto,*">
+  <Grid RowDefinitions="Auto,*">
 
-    <!-- Header -->
-    <TextBlock Grid.Row="0"
-               Text="CMS Query Builder"
-               FontSize="20"
-               FontWeight="Bold"
-               HorizontalAlignment="Center"
-               Margin="12,16,12,8" />
+    <!-- Controls -->
+    <StackPanel Grid.Row="0" Margin="16" Spacing="10">
 
-    <!-- Filter row (first, like MAUI) -->
-    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="12,0,12,8">
-      <ComboBox x:Name="FilterPicker"
-                Grid.Column="0"
-                Margin="0,0,8,0"
-                HorizontalAlignment="Stretch"
-                PlaceholderText="Select a filter..." />
-      <Button x:Name="BtnApplyFilter"
-              Grid.Column="1"
-              Content="Apply"
-              Click="OnApplyFilterClicked"
-              MinWidth="90" />
-    </Grid>
+      <TextBlock Text="CMS Query Builder"
+                 FontSize="20"
+                 FontWeight="Bold"
+                 HorizontalAlignment="Center" />
 
-    <!-- Search row -->
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="12,0,12,8">
-      <TextBox x:Name="SearchBox"
-               Grid.Column="0"
-               Watermark="Search term..."
-               Margin="0,0,8,0"
-               VerticalAlignment="Center" />
-      <Button x:Name="BtnSearch"
-              Grid.Column="1"
-              Content="Search"
-              Click="OnSearchClicked"
-              MinWidth="90" />
-    </Grid>
+      <!-- Filter Picker + Apply -->
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <ComboBox x:Name="FilterPicker"
+                  Grid.Column="0"
+                  HorizontalAlignment="Stretch"
+                  PlaceholderText="Select a filter..." />
+        <Button Grid.Column="1"
+                Content="Apply"
+                Click="OnApplyFilterClicked"
+                MinWidth="80" />
+      </Grid>
 
-    <!-- Results area -->
-    <Grid Grid.Row="3" RowDefinitions="Auto,Auto,*">
+      <!-- Search -->
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox x:Name="SearchEntry"
+                 Grid.Column="0"
+                 Watermark="Search term..."
+                 VerticalAlignment="Center" />
+        <Button Grid.Column="1"
+                Content="Search"
+                Click="OnSearchClicked"
+                MinWidth="80" />
+      </Grid>
 
-      <!-- Get All List button -->
-      <Button Grid.Row="0"
-              x:Name="BtnFetchAll"
-              Content="Get All List"
+      <!-- Get All -->
+      <Button Content="Get All List"
               HorizontalAlignment="Stretch"
-              Margin="12,0,12,8"
-              Click="OnFetchAllClicked" />
+              Click="OnFetchListClicked" />
 
-      <!-- Loading indicator -->
-      <ProgressBar Grid.Row="1"
-                   x:Name="LoadingBar"
-                   IsIndeterminate="True"
-                   IsVisible="False"
-                   Margin="12,0,12,4"
-                   Height="3" />
+    </StackPanel>
 
-      <!-- Items list -->
-      <ScrollViewer Grid.Row="2">
-        <StackPanel Margin="12,0,12,12" Spacing="8">
+    <ProgressBar x:Name="LoadingBar"
+                 Grid.Row="1"
+                 IsIndeterminate="True"
+                 IsVisible="False"
+                 VerticalAlignment="Top"
+                 Height="3"
+                 Margin="16,0,16,4" />
 
-          <!-- Empty state label -->
-          <TextBlock x:Name="EmptyLabel"
-                     Text="No items found. Cache may be empty — try again in a few seconds."
-                     IsVisible="False"
-                     TextWrapping="Wrap"
-                     Foreground="#6B7280"
-                     FontSize="14"
-                     Margin="0,8,0,0" />
+    <!-- Results -->
+    <ScrollViewer Grid.Row="1" Margin="0,10,0,0">
+      <ItemsControl x:Name="ResultsList" Margin="16,0,16,16">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:CmsExampleModel">
+            <Border Background="White"
+                    BorderBrush="#E0E0E0"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="12"
+                    Margin="0,6,0,0">
+              <StackPanel Spacing="8">
 
-          <!-- Results -->
-          <ItemsControl x:Name="ResultsList">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="models:CmsExampleModel">
-                <Border Background="White"
-                        BorderBrush="#E5E7EB"
-                        BorderThickness="1"
-                        CornerRadius="12"
-                        Padding="12"
-                        Margin="0,3,0,3">
-                  <Grid ColumnDefinitions="80,*" ColumnSpacing="14">
-
-                    <!-- Image (80x80, matching MAUI) -->
-                    <Border Grid.Column="0"
-                            Width="80" Height="80"
-                            Background="#ECEFF1"
-                            CornerRadius="8"
-                            ClipToBounds="True"
-                            VerticalAlignment="Top">
-                      <Image Source="{Binding ProductBitmap}"
-                             Stretch="UniformToFill" />
-                    </Border>
-
-                    <StackPanel Grid.Column="1" Spacing="4">
-
-                      <!-- Header: Name + Category badge -->
-                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <TextBlock Grid.Column="0"
-                                   Text="{Binding ProductName}"
-                                   FontWeight="Bold"
-                                   FontSize="16"
-                                   TextTrimming="CharacterEllipsis"
-                                   VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding Category, Converter={StaticResource ListToStringConverter}, StringFormat='🏷️ {0}'}"
-                                   Foreground="#1976D2"
-                                   FontWeight="Bold"
-                                   FontSize="11"
-                                   VerticalAlignment="Center" />
-                      </Grid>
-
-                      <!-- Description -->
-                      <TextBlock Text="{Binding Description}"
-                                 Foreground="#757575"
-                                 FontSize="13"
-                                 MaxLines="2"
-                                 TextWrapping="Wrap"
-                                 TextTrimming="CharacterEllipsis" />
-
-                      <!-- Meta: SKU + Price + Stock -->
-                      <WrapPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding ItemSku}"
-                                   Foreground="#9E9E9E"
-                                   FontSize="12"
-                                   Margin="0,0,12,0" />
-                        <TextBlock Text="{Binding Price, StringFormat='${0:N2}'}"
-                                   Foreground="#4CAF50"
-                                   FontWeight="Bold"
-                                   FontSize="13"
-                                   Margin="0,0,12,0" />
-                        <TextBlock Text="{Binding InStock, Converter={StaticResource StockLabelConverter}}"
-                                   Foreground="#607D8B"
-                                   FontSize="12" />
-                      </WrapPanel>
-
-                      <!-- Support Email -->
-                      <TextBlock Text="{Binding SupportEmail, StringFormat='📧 {0}'}"
-                                 Foreground="#757575"
-                                 FontSize="11"
-                                 TextTrimming="CharacterEllipsis" />
-
-                      <!-- Separator -->
-                      <Border Height="1" Background="#EEEEEE" Margin="0,4" />
-
-                      <!-- ID -->
-                      <TextBlock Text="{Binding Id, StringFormat='ID: {0}'}"
-                                 Foreground="#BDBDBD"
-                                 FontSize="10"
-                                 TextTrimming="CharacterEllipsis" />
-
-                      <!-- Dates Grid -->
-                      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="2">
-                        <TextBlock Grid.Row="0" Grid.Column="0"
-                                   Text="{Binding CreatedAt, StringFormat='Cr: {0:dd/MM/yyyy}'}"
-                                   Foreground="#9E9E9E" FontSize="10" />
-                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                   Text="{Binding PublishedAt, StringFormat='Pub: {0:dd/MM/yyyy}'}"
-                                   Foreground="#9E9E9E" FontSize="10" />
-                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                   Text="{Binding UpdatedAt, StringFormat='Upd: {0:dd/MM/yyyy}'}"
-                                   Foreground="#9E9E9E" FontSize="10" />
-                      </Grid>
-
-                    </StackPanel>
-                  </Grid>
+                <!-- Featured image -->
+                <Border Height="180"
+                        Background="#ECEFF1"
+                        CornerRadius="10"
+                        ClipToBounds="True">
+                  <Image Source="{Binding FeaturedImageUrl, Converter={StaticResource UrlToBitmapConverter}}"
+                         Stretch="UniformToFill" />
                 </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
 
-        </StackPanel>
-      </ScrollViewer>
-    </Grid>
+                <!-- Title -->
+                <TextBlock Text="{Binding Title}"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           TextTrimming="CharacterEllipsis" />
+
+                <!-- Body excerpt -->
+                <TextBlock Text="{Binding Body}"
+                           Foreground="#757575"
+                           FontSize="13"
+                           MaxLines="3"
+                           TextWrapping="Wrap"
+                           TextTrimming="CharacterEllipsis" />
+
+                <!-- Stats row -->
+                <WrapPanel Orientation="Horizontal">
+                  <TextBlock Text="{Binding ViewsCount, StringFormat='👁️ {0:N0}'}"
+                             Foreground="#607D8B"
+                             FontSize="12"
+                             Margin="0,0,16,0" />
+                  <TextBlock Text="{Binding EventDate, StringFormat='📅 {0}'}"
+                             Foreground="#607D8B"
+                             FontSize="12"
+                             Margin="0,0,16,0" />
+                  <TextBlock Text="{Binding AuthorEmail, StringFormat='✍️ {0}'}"
+                             Foreground="#9E9E9E"
+                             FontSize="11"
+                             TextTrimming="CharacterEllipsis" />
+                </WrapPanel>
+
+                <!-- Category -->
+                <TextBlock Text="{Binding Category, Converter={StaticResource ListToStringConverter}}"
+                           Foreground="#1976D2"
+                           FontWeight="Bold"
+                           FontSize="11" />
+
+                <Border Height="1" Background="#EEEEEE" Margin="0,2" />
+
+                <!-- Published status + date -->
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <TextBlock Grid.Column="0"
+                             Text="{Binding IsPublished, StringFormat='Published: {0}'}"
+                             Foreground="#9E9E9E"
+                             FontSize="11" />
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding PublishedAt, StringFormat='🗓 {0}'}"
+                             Foreground="#9E9E9E"
+                             FontSize="11"
+                             HorizontalAlignment="Right" />
+                </Grid>
+
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
   </Grid>
 </UserControl>

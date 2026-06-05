@@ -5,7 +5,7 @@ namespace AppAmbit.Services.Interfaces;
 
 public interface IAPIService
 {
-    Task<ApiResult<T>?> ExecuteRequest<T>(IEndpoint endpoint) where T : notnull;
+    Task<ApiResult<T>?> ExecuteRequest<T>(IEndpoint endpoint, CancellationToken cancellationToken = default) where T : notnull;
 
     void SetToken(string? token);
 

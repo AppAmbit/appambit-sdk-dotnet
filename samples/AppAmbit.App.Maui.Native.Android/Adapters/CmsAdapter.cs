@@ -24,10 +24,7 @@ public class CmsAdapter : RecyclerView.Adapter
     public override void OnBindViewHolder(RecyclerView.ViewHolder holder, int position)
     {
         if (holder is CmsViewHolder vh)
-        {
-            var item = _items[position];
-            vh.Bind(item);
-        }
+            vh.Bind(_items[position]);
     }
 
     public override RecyclerView.ViewHolder OnCreateViewHolder(ViewGroup parent, int viewType)
@@ -40,55 +37,49 @@ public class CmsAdapter : RecyclerView.Adapter
 
     private class CmsViewHolder : RecyclerView.ViewHolder
     {
-        private readonly ImageView _ivProduct;
-        private readonly TextView _tvProductName;
+        private readonly ImageView _ivFeaturedImage;
+        private readonly TextView _tvTitle;
+        private readonly TextView _tvAuthor;
+        private readonly TextView _tvBody;
+        private readonly TextView _tvLikes;
+        private readonly TextView _tvRating;
+        private readonly TextView _tvReadingTime;
         private readonly TextView _tvCategory;
-        private readonly TextView _tvDescription;
-        private readonly TextView _tvSku;
-        private readonly TextView _tvPrice;
-        private readonly TextView _tvStock;
-        private readonly TextView _tvSupport;
-        private readonly TextView _tvId;
-        private readonly TextView _tvCreatedAt;
+        private readonly TextView _tvIsPublished;
         private readonly TextView _tvPublishedAt;
-        private readonly TextView _tvUpdatedAt;
 
         public CmsViewHolder(View itemView) : base(itemView)
         {
             var ctx = itemView.Context!;
             int GetId(string name) => ctx.Resources!.GetIdentifier(name, "id", ctx.PackageName);
 
-            _ivProduct = itemView.FindViewById<ImageView>(GetId("iv_product"))!;
-            _tvProductName = itemView.FindViewById<TextView>(GetId("tv_product_name"))!;
-            _tvCategory = itemView.FindViewById<TextView>(GetId("tv_category"))!;
-            _tvDescription = itemView.FindViewById<TextView>(GetId("tv_description"))!;
-            _tvSku = itemView.FindViewById<TextView>(GetId("tv_sku"))!;
-            _tvPrice = itemView.FindViewById<TextView>(GetId("tv_price"))!;
-            _tvStock = itemView.FindViewById<TextView>(GetId("tv_stock"))!;
-            _tvSupport = itemView.FindViewById<TextView>(GetId("tv_support"))!;
-            _tvId = itemView.FindViewById<TextView>(GetId("tv_id"))!;
-            _tvCreatedAt = itemView.FindViewById<TextView>(GetId("tv_created_at"))!;
-            _tvPublishedAt = itemView.FindViewById<TextView>(GetId("tv_published_at"))!;
-            _tvUpdatedAt = itemView.FindViewById<TextView>(GetId("tv_updated_at"))!;
+            _ivFeaturedImage = itemView.FindViewById<ImageView>(GetId("iv_featured_image"))!;
+            _tvTitle         = itemView.FindViewById<TextView>(GetId("tv_title"))!;
+            _tvAuthor        = itemView.FindViewById<TextView>(GetId("tv_author"))!;
+            _tvBody          = itemView.FindViewById<TextView>(GetId("tv_body"))!;
+            _tvLikes         = itemView.FindViewById<TextView>(GetId("tv_likes"))!;
+            _tvRating        = itemView.FindViewById<TextView>(GetId("tv_rating"))!;
+            _tvReadingTime   = itemView.FindViewById<TextView>(GetId("tv_reading_time"))!;
+            _tvCategory      = itemView.FindViewById<TextView>(GetId("tv_category"))!;
+            _tvIsPublished   = itemView.FindViewById<TextView>(GetId("tv_is_published"))!;
+            _tvPublishedAt   = itemView.FindViewById<TextView>(GetId("tv_published_at"))!;
         }
 
         public void Bind(CmsExampleModel item)
         {
-            _tvProductName.Text = item.ProductName;
-            _tvCategory.Text = item.Category?.Count > 0 ? $"🏷️ {string.Join(", ", item.Category)}" : "";
-            _tvDescription.Text = item.Description;
-            _tvSku.Text = item.ItemSku;
-            _tvPrice.Text = $"${item.Price:F2}";
-            _tvStock.Text = $"Stock: {item.InStock}";
-            _tvSupport.Text = $"📧 {item.SupportEmail}";
-            _tvId.Text = $"ID: {item.Id}";
-            _tvCreatedAt.Text = $"Cr: {item.CreatedAt:dd/MM/yyyy}";
-            _tvPublishedAt.Text = $"Pub: {item.PublishedAt:dd/MM/yyyy}";
-            _tvUpdatedAt.Text = $"Upd: {item.UpdatedAt:dd/MM/yyyy}";
+            _tvTitle.Text       = item.Title;
+            _tvAuthor.Text      = !string.IsNullOrWhiteSpace(item.AuthorEmail) ? $"✍️ {item.AuthorEmail}" : "";
+            _tvBody.Text        = item.Body;
+            _tvLikes.Text       = $"👁️ {item.ViewsCount:N0}";
+            _tvRating.Text      = !string.IsNullOrWhiteSpace(item.EventDate) ? $"📅 {item.EventDate}" : "";
+            _tvReadingTime.Text = "";
+            _tvCategory.Text    = item.Category?.Count > 0 ? string.Join(", ", item.Category) : "";
+            _tvIsPublished.Text = item.IsPublished == true ? "✓ Published" : "✕ Draft";
+            _tvPublishedAt.Text = !string.IsNullOrWhiteSpace(item.PublishedAt) ? $"🗓 {item.PublishedAt}" : "";
 
-            _ivProduct.SetImageDrawable(null);
-            if (!string.IsNullOrWhiteSpace(item.ProductImageUrl))
-                ImageUtils.LoadAsync(item.ProductImageUrl!, _ivProduct, item.Id ?? item.ProductImageUrl!);
+            _ivFeaturedImage.SetImageDrawable(null);
+            if (!string.IsNullOrWhiteSpace(item.FeaturedImageUrl))
+                ImageUtils.LoadAsync(item.FeaturedImageUrl!, _ivFeaturedImage, item.Id ?? item.FeaturedImageUrl!);
         }
     }
 }
