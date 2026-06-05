@@ -11,21 +11,21 @@
         <ShellContent Title="Crashes"
                       ContentTemplate="{DataTemplate local:MainPage}"
                       Route="MainPage" />
-    
+
         <ShellContent Title="Analytics"
                       ContentTemplate="{DataTemplate local:AnalyticsPage}"
                       Route="Analytics Page" />
 
-        <ShellContent Title="Load"
-              ContentTemplate="{DataTemplate local:LoadPage}"
-              Route="LoadPage" />
-
-        <ShellContent Title="RemoteConfig"
+        <ShellContent Title="Config"
               ContentTemplate="{DataTemplate local:RemoteConfigPage}"
               Route="RemoteConfigPage" />
 
         <ShellContent Title="CMS"
               ContentTemplate="{DataTemplate local:CmsPage}"
               Route="CmsPage" />
+
+        <ShellContent Title="Database"
+              ContentTemplate="{DataTemplate local:DatabasePage}"
+              Route="DatabasePage" />
     </TabBar>
 </Shell>

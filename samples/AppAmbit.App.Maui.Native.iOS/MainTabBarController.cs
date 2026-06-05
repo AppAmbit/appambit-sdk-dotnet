@@ -48,6 +48,13 @@ public class MainTabBarController : UITabBarController
              ? new UITabBarItem("CMS", imgCms, 3)
              : new UITabBarItem("CMS", null, 3);
 
-        ViewControllers = new UIViewController[] { crashesNav, analyticsNav, configNav, cmsNav };
+        var database = new DatabaseViewController();
+        var databaseNav = new UINavigationController(database);
+        var imgDb = SysImg("externaldrive");
+        databaseNav.TabBarItem = imgDb != null
+             ? new UITabBarItem("DB", imgDb, 4)
+             : new UITabBarItem("DB", null, 4);
+
+        ViewControllers = new UIViewController[] { crashesNav, analyticsNav, configNav, cmsNav, databaseNav };
     }
 }

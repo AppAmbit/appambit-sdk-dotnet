@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="700"
+             x:Class="AppAmbitTestingAppAvalonia.Views.DatabaseView">
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- Controls -->
+    <StackPanel Grid.Row="0" Margin="16" Spacing="10">
+
+      <TextBlock Text="Database"
+                 FontSize="20"
+                 FontWeight="Bold"
+                 HorizontalAlignment="Center" />
+
+      <!-- SQL editor -->
+      <TextBox x:Name="EditSql"
+               Text="SELECT * FROM tasks LIMIT 10"
+               FontFamily="Courier New,Consolas,monospace"
+               FontSize="13"
+               AcceptsReturn="True"
+               Height="70"
+               Watermark="SELECT * FROM tasks LIMIT 10" />
+
+      <!-- Function picker + Run -->
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <ComboBox x:Name="FunctionPicker"
+                  Grid.Column="0"
+                  HorizontalAlignment="Stretch"
+                  PlaceholderText="Select a function..." />
+        <Button Grid.Column="1"
+                Content="▶ Run"
+                Click="OnRunClicked"
+                MinWidth="80" />
+      </Grid>
+
+      <!-- Status bar -->
+      <Border x:Name="StatusBorder"
+              CornerRadius="6"
+              Padding="10,6"
+              IsVisible="False">
+        <TextBlock x:Name="TxtStatus"
+                   FontSize="12"
+                   TextWrapping="Wrap" />
+      </Border>
+
+      <!-- Loading bar -->
+      <ProgressBar x:Name="LoadingBar"
+                   IsIndeterminate="True"
+                   IsVisible="False"
+                   Height="3" />
+
+    </StackPanel>
+
+    <!-- Results -->
+    <ScrollViewer Grid.Row="1" Margin="0,0,0,0">
+      <ItemsControl x:Name="ResultsList" Margin="16,0,16,16">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Background="White"
+                    BorderBrush="#E0E0E0"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10,8"
+                    Margin="0,3,0,0">
+              <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                            VerticalScrollBarVisibility="Disabled">
+                <TextBlock Text="{Binding}"
+                           FontFamily="Courier New,Consolas,monospace"
+                           FontSize="12"
+                           Foreground="#212121" />
+              </ScrollViewer>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+  </Grid>
+</UserControl>

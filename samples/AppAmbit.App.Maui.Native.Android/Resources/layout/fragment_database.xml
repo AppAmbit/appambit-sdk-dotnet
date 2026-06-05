@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="12dp"
+    android:background="@color/app_surface">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Database"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:gravity="center"
+        android:layout_marginBottom="10dp" />
+
+    <!-- SQL input -->
+    <EditText
+        android:id="@+id/edit_sql"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="SELECT * FROM tasks LIMIT 10"
+        android:text="SELECT * FROM tasks LIMIT 10"
+        android:fontFamily="monospace"
+        android:textSize="12sp"
+        android:minLines="2"
+        android:maxLines="4"
+        android:background="@drawable/bg_input"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Spinner + Run button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="6dp">
+
+        <Spinner
+            android:id="@+id/spin_db_functions"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center_vertical" />
+
+        <Button
+            android:id="@+id/btn_db_run"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▶ Run"
+            android:layout_marginStart="6dp" />
+    </LinearLayout>
+
+    <!-- Status bar -->
+    <TextView
+        android:id="@+id/txt_db_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:textSize="12sp"
+        android:visibility="gone"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Loading indicator -->
+    <ProgressBar
+        android:id="@+id/progress_db_loading"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:visibility="gone"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Results RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_db_results"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp" />
+
+</LinearLayout>
