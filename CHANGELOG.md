@@ -1,3 +1,11 @@
+## Version 4.0.1
+
+### AppAmbit
+
+* **[Refactor]** Removed CMS response caching and pagination logic, more reliable content fetching.
+
+---
+
 ## Version 4.0.0
 
 ### AppAmbit Push Notifications
