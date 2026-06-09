@@ -38,8 +38,13 @@ public sealed class DbQueryBuilder<T> where T : new()
 
     public DbQueryBuilder<T> Where(string column, object? value)
     {
-        _whereConditions.Add($"{QuoteId(column)} = ?");
-        _whereParams.Add(value);
+        if (value is null)
+            _whereConditions.Add($"{QuoteId(column)} IS NULL");
+        else
+        {
+            _whereConditions.Add($"{QuoteId(column)} = ?");
+            _whereParams.Add(value);
+        }
         return this;
     }
 
@@ -54,8 +59,13 @@ public sealed class DbQueryBuilder<T> where T : new()
 
     public DbQueryBuilder<T> OrWhere(string column, object? value)
     {
-        _whereConditions.Add($"OR {QuoteId(column)} = ?");
-        _whereParams.Add(value);
+        if (value is null)
+            _whereConditions.Add($"OR {QuoteId(column)} IS NULL");
+        else
+        {
+            _whereConditions.Add($"OR {QuoteId(column)} = ?");
+            _whereParams.Add(value);
+        }
         return this;
     }
 
@@ -209,7 +219,7 @@ public sealed class DbQueryBuilder<T> where T : new()
         }
 
         int effectiveLimit = overrideLimit > 0 ? overrideLimit : _limitValue;
-        if (effectiveLimit > 0) sb.Append($" LIMIT {effectiveLimit}");
+        if (effectiveLimit >= 0) sb.Append($" LIMIT {effectiveLimit}");
         if (_offsetValue >= 0) sb.Append($" OFFSET {_offsetValue}");
 
         return sb.ToString();

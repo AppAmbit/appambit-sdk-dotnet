@@ -912,6 +912,93 @@ public class AppAmbitDbTests : IDisposable
             AppAmbitDb.From("tasks").Count());
     }
 
+    // ── Group 19: BUG — Limit(0) silently ignored ────────────────────────────
+    // DbQueryBuilder.cs line 212: `if (effectiveLimit > 0)` drops LIMIT 0 from SQL.
+    // This test documents the bug: Limit(0) currently emits no LIMIT clause,
+    // so the backend returns all rows instead of zero.
+
+    [Fact]
+    public async Task From_Limit_Zero_EmitsLimitClause()
+    {
+        // BUG: guard is `> 0`, so LIMIT 0 is silently dropped — this test FAILS today.
+        // Fix: change guard to `>= 0` (mirroring the already-fixed Offset(0) guard).
+        string? capturedSql = null;
+        _mockDb.Setup(s => s.QueryAsync(It.IsAny<string>(), It.IsAny<List<object?>?>(), It.IsAny<CancellationToken>()))
+            .Callback<string, List<object?>?, CancellationToken>((sql, _, _ct) => capturedSql = sql)
+            .ReturnsAsync(OkResult());
+
+        await AppAmbitDb.From("tasks").Limit(0).Get();
+
+        Assert.Contains("LIMIT 0", capturedSql);
+    }
+
+    [Fact]
+    public async Task From_Limit_Zero_SqlEndsWithLimitClause()
+    {
+        string? capturedSql = null;
+        _mockDb.Setup(s => s.QueryAsync(It.IsAny<string>(), It.IsAny<List<object?>?>(), It.IsAny<CancellationToken>()))
+            .Callback<string, List<object?>?, CancellationToken>((sql, _, _ct) => capturedSql = sql)
+            .ReturnsAsync(OkResult());
+
+        await AppAmbitDb.From("tasks").Limit(0).Get();
+
+        Assert.Contains("LIMIT 0", capturedSql);
+        Assert.NotEqual("SELECT * FROM \"tasks\"", capturedSql);
+    }
+
+    // ── Group 20: Where(column, null) auto-rewrites to IS NULL ──────────────
+    // Standard SQL: `x = NULL` → UNKNOWN → zero rows. Builder auto-rewrites to IS NULL.
+
+    [Fact]
+    public async Task Where_NullValue_GeneratesIsNull()
+    {
+        string? capturedSql = null;
+        List<object?>? capturedParams = null;
+        _mockDb.Setup(s => s.QueryAsync(It.IsAny<string>(), It.IsAny<List<object?>?>(), It.IsAny<CancellationToken>()))
+            .Callback<string, List<object?>?, CancellationToken>((sql, p, _ct) => { capturedSql = sql; capturedParams = p; })
+            .ReturnsAsync(OkResult());
+
+        await AppAmbitDb.From("tasks").Where("deleted_at", null).Get();
+
+        Assert.Contains("\"deleted_at\" IS NULL", capturedSql);
+        Assert.DoesNotContain("= ?", capturedSql);
+        Assert.Empty(capturedParams!);
+    }
+
+    [Fact]
+    public async Task OrWhere_NullValue_GeneratesOrIsNull()
+    {
+        string? capturedSql = null;
+        _mockDb.Setup(s => s.QueryAsync(It.IsAny<string>(), It.IsAny<List<object?>?>(), It.IsAny<CancellationToken>()))
+            .Callback<string, List<object?>?, CancellationToken>((sql, _, _ct) => capturedSql = sql)
+            .ReturnsAsync(OkResult());
+
+        await AppAmbitDb.From("tasks")
+            .Where("priority", "high")
+            .OrWhere("deleted_at", null)
+            .Get();
+
+        Assert.Contains("\"deleted_at\" IS NULL", capturedSql);
+    }
+
+    [Fact]
+    public async Task Where_NullValue_MixedWithNonNull_CorrectParamCount()
+    {
+        List<object?>? capturedParams = null;
+        _mockDb.Setup(s => s.QueryAsync(It.IsAny<string>(), It.IsAny<List<object?>?>(), It.IsAny<CancellationToken>()))
+            .Callback<string, List<object?>?, CancellationToken>((_, p, _ct) => capturedParams = p)
+            .ReturnsAsync(OkResult());
+
+        await AppAmbitDb.From("tasks")
+            .Where("is_completed", 0)
+            .Where("deleted_at", null)
+            .Get();
+
+        // Only one param bound: the non-null Where("is_completed", 0)
+        Assert.Single(capturedParams!);
+        Assert.Equal(0, capturedParams![0]);
+    }
+
     // ── inner test models ─────────────────────────────────────────────────────
 
     private class SimpleModel
