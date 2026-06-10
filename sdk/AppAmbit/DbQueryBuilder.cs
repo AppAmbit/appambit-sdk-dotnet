@@ -52,8 +52,21 @@ public sealed class DbQueryBuilder<T> where T : new()
     {
         if (!AllowedOperators.Contains(op))
             throw new ArgumentException($"Operator not allowed: {op}", nameof(op));
-        _whereConditions.Add($"{QuoteId(column)} {op} ?");
-        _whereParams.Add(value);
+        if (value is null)
+        {
+            var rewritten = op switch
+            {
+                "=" => "IS NULL",
+                "!=" or "<>" => "IS NOT NULL",
+                _ => throw new ArgumentException($"Operator '{op}' cannot be used with null. Use IS or IS NOT.", nameof(op))
+            };
+            _whereConditions.Add($"{QuoteId(column)} {rewritten}");
+        }
+        else
+        {
+            _whereConditions.Add($"{QuoteId(column)} {op} ?");
+            _whereParams.Add(value);
+        }
         return this;
     }
 
@@ -73,8 +86,21 @@ public sealed class DbQueryBuilder<T> where T : new()
     {
         if (!AllowedOperators.Contains(op))
             throw new ArgumentException($"Operator not allowed: {op}", nameof(op));
-        _whereConditions.Add($"OR {QuoteId(column)} {op} ?");
-        _whereParams.Add(value);
+        if (value is null)
+        {
+            var rewritten = op switch
+            {
+                "=" => "IS NULL",
+                "!=" or "<>" => "IS NOT NULL",
+                _ => throw new ArgumentException($"Operator '{op}' cannot be used with null. Use IS or IS NOT.", nameof(op))
+            };
+            _whereConditions.Add($"OR {QuoteId(column)} {rewritten}");
+        }
+        else
+        {
+            _whereConditions.Add($"OR {QuoteId(column)} {op} ?");
+            _whereParams.Add(value);
+        }
         return this;
     }
 
@@ -91,6 +117,11 @@ public sealed class DbQueryBuilder<T> where T : new()
     public DbQueryBuilder<T> WhereIn(string column, IEnumerable<object?> values)
     {
         var list = values.ToList();
+        if (list.Count == 0)
+        {
+            _whereConditions.Add("1 = 0");
+            return this;
+        }
         var placeholders = string.Join(", ", list.Select(_ => "?"));
         _whereConditions.Add($"{QuoteId(column)} IN ({placeholders})");
         _whereParams.AddRange(list);
@@ -166,6 +197,8 @@ public sealed class DbQueryBuilder<T> where T : new()
     public async Task<DbResult> Insert(Dictionary<string, object?> data, CancellationToken ct = default)
     {
         EnsureNotConsumed();
+        if (data.Count == 0)
+            throw new ArgumentException("data cannot be empty.", nameof(data));
         var cols = data.Keys.ToList();
         var colList = string.Join(", ", cols.Select(QuoteId));
         var placeholders = string.Join(", ", cols.Select(_ => "?"));
