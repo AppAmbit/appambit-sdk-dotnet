@@ -173,10 +173,10 @@ public static class AppAmbitSdk
             SessionManager.Initialize(apiService, storageService);
             Crashes.Initialize(apiService, storageService, deviceId ?? "");
             Analytics.Initialize(apiService, storageService);
-            ConsumerService.Initialize(storageService, appInfoService, apiService);
             RemoteConfig.Initialize(storageService, appInfoService, apiService);
             BreadcrumbManager.Initialize(apiService!, storageService!);
             Cms.Initialize(apiService);
+            AppAmbitDb.Initialize(new DbService(apiService));
 
             _servicesReady = true;
             Debug.WriteLine("[AppAmbitSdk] Services initialized successfully.");

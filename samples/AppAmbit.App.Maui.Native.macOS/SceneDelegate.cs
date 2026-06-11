@@ -38,13 +38,17 @@ public class SceneDelegate : UIResponder, IUIWindowSceneDelegate
             var remoteConfigNav = new UINavigationController(remoteConfigViewController);
             remoteConfigNav.TabBarItem = new UITabBarItem("Remote Config", UIImage.GetSystemImage("antenna.radiowaves.left.and.right"), 2);
 
+            var databaseNav = new UINavigationController(new DatabaseViewController());
+            databaseNav.TabBarItem = new UITabBarItem("DB", UIImage.GetSystemImage("externaldrive"), 3);
+
             var tabBarController = new UITabBarController
             {
                 ViewControllers = new UIViewController[]
                 {
                     _crashesNav,
                     _analyticsNav,
-                    remoteConfigNav
+                    remoteConfigNav,
+                    databaseNav
                 }
             };
 

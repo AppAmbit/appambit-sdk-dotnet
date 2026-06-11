@@ -36,6 +36,7 @@ Lightweight SDK for analytics, events, logging, crashes, and offline support. Si
 * Offline support with batching, retry, and queue
 * Create mutliple app profiles for staging and production
 * Lightweight, modern .NET MAUI API for iOS and Android
+* Database support with SQL, transactions, and fluent queries
 
 ---
 
@@ -61,7 +62,7 @@ Add the package to your MAUI project:
 ```bash
 dotnet add package com.AppAmbit.Sdk
 # or specify version
-dotnet add package com.AppAmbit.Sdk --version 4.0.1
+dotnet add package com.AppAmbit.Sdk --version 4.1.0
 ```
 
 Or, using Visual Studio:
@@ -126,6 +127,20 @@ public static class MauiProgram
   double maxUpload = RemoteConfig.GetDouble("max_upload");
   ```
 * **Remote Config**: dynamic configuration values fetched and applied at runtime
+
+  ```csharp
+    await AppAmbitDb.From("notes").Insert(new Dictionary<string, object?> {
+        { "title", "Shopping list" },
+        { "done", false }
+    });
+
+    var notes = await AppAmbitDb.From("notes")
+        .Where("done", false)
+        .OrderByDesc("id")
+        .Limit(10)
+        .Get();
+  ```
+* **Database**: run SQL, batched/transactional statements, and fluent queries
 
 ---
 

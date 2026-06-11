@@ -24,6 +24,7 @@ public class MainActivity : Activity
     View? _viewAnalytics;
     View? _viewRemoteConfig;
     View? _viewCms;
+    View? _viewDatabase;
     Button? _btnPushNotifications;
     bool _hasNotificationPermission;
     bool _notificationsEnabled;
@@ -73,20 +74,24 @@ public class MainActivity : Activity
         _viewAnalytics = inflater?.Inflate(L("fragment_analytics"), _container, false);
         _viewRemoteConfig = inflater?.Inflate(L("fragment_remote_config"), _container, false);
         _viewCms = inflater?.Inflate(L("fragment_cms"), _container, false);
+        _viewDatabase = inflater?.Inflate(L("fragment_database"), _container, false);
 
         WireCrashesView(_viewCrashes!);
         WireAnalyticsView(_viewAnalytics!);
         WireCmsView(_viewCms!);
+        WireDatabaseView(_viewDatabase!);
         
         var btnCrashes = FindViewById<Button>(I("btn_nav_crashes"))!;
         var btnAnalytics = FindViewById<Button>(I("btn_nav_analytics"))!;
         var btnRemoteConfig = FindViewById<Button>(I("btn_nav_remote_config"))!;
         var btnCms = FindViewById<Button>(I("btn_nav_cms"))!;
+        var btnDatabase = FindViewById<Button>(I("btn_nav_database"))!;
 
         btnCrashes.Click += (s, e) => ShowView(_viewCrashes!);
         btnAnalytics.Click += (s, e) => ShowView(_viewAnalytics!);
         btnRemoteConfig.Click += (s, e) => ShowRemoteConfigView(_viewRemoteConfig!);
         btnCms.Click += (s, e) => ShowView(_viewCms!);
+        btnDatabase.Click += (s, e) => ShowView(_viewDatabase!);
 
         ShowView(_viewCrashes!);
     }
@@ -402,6 +407,245 @@ public class MainActivity : Activity
     {
         ShowView(v);
         UpdateRemoteConfigUI(v);
+    }
+
+    void WireDatabaseView(View root)
+    {
+        T Find<T>(string id) where T : View => (T)root.FindViewById(I(id))!;
+
+        var editSql = Find<EditText>("edit_sql");
+        var spinner = Find<Spinner>("spin_db_functions");
+        var btnRun = Find<Button>("btn_db_run");
+        var txtStatus = Find<TextView>("txt_db_status");
+        var progress = Find<ProgressBar>("progress_db_loading");
+        var recycler = Find<AndroidX.RecyclerView.Widget.RecyclerView>("recycler_db_results");
+
+        var adapter = new DbRowAdapter();
+        recycler.SetLayoutManager(new AndroidX.RecyclerView.Widget.LinearLayoutManager(this));
+        recycler.SetAdapter(adapter);
+
+        var demos = new List<(string Label, Func<Task> Action)>
+        {
+            ("Raw SQL → execute(sql)",                          () => RunDbExecute(editSql, txtStatus, adapter)),
+            ("Raw SQL → execute(sql, params)",                  () => RunDbExecuteParams(txtStatus, adapter)),
+            ("Batch → batch()",                                 () => RunDbBatch(txtStatus, adapter)),
+            ("Batch → batchInTransaction()",                    () => RunDbBatchInTransaction(txtStatus, adapter)),
+            ("Fluent SELECT → select+where+orderByDesc+limit",  () => RunDbFluentSelect(txtStatus, adapter)),
+            ("Fluent SELECT → where(col,val)",                  () => RunDbWhereEquality(txtStatus, adapter)),
+            ("Fluent SELECT → whereIn()",                       () => RunDbWhereIn(txtStatus, adapter)),
+            ("Fluent SELECT → limit+offset",                    () => RunDbOffset(txtStatus, adapter)),
+            ("Fluent SELECT → first()",                         () => RunDbFirst(txtStatus, adapter)),
+            ("Fluent SELECT → count()",                         () => RunDbCount(txtStatus, adapter)),
+            ("Fluent WRITE → insert()",                         () => RunDbInsert(txtStatus, adapter)),
+            ("Fluent WRITE → update()",                         () => RunDbUpdate(txtStatus, adapter)),
+            ("Fluent WRITE → delete()",                         () => RunDbDelete(txtStatus, adapter)),
+            ("Typed Model → from(tasks, TaskModel.class)",      () => RunDbTypedModel(txtStatus, adapter)),
+            ("Preset → List tables",                            () => RunDbPresetTables(editSql, txtStatus, adapter)),
+            ("Preset → SELECT * WHERE priority='high'",         () => RunDbPresetHighPriority(editSql, txtStatus, adapter)),
+        };
+
+        var labels = demos.Select(d => d.Label).ToList();
+        var arrayAdapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerItem, labels);
+        arrayAdapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
+        spinner.Adapter = arrayAdapter;
+
+        btnRun.Click += async (s, e) =>
+        {
+            int pos = spinner.SelectedItemPosition;
+            if (pos < 0 || pos >= demos.Count) return;
+            var (label, action) = demos[pos];
+            SetDbStatus(txtStatus, $"Running: {label}", false);
+            RunOnUiThread(() => { btnRun.Enabled = false; progress.Visibility = Android.Views.ViewStates.Visible; });
+            try { await action(); }
+            catch (Exception ex) { SetDbStatus(txtStatus, $"Error: {ex.Message}", true); }
+            finally { RunOnUiThread(() => { btnRun.Enabled = true; progress.Visibility = Android.Views.ViewStates.Gone; }); }
+        };
+    }
+
+    void SetDbStatus(TextView tv, string message, bool isError)
+    {
+        RunOnUiThread(() =>
+        {
+            tv.Visibility = Android.Views.ViewStates.Visible;
+            tv.SetBackgroundColor(isError
+                ? Android.Graphics.Color.ParseColor("#FFEBEE")
+                : Android.Graphics.Color.ParseColor("#E8F5E9"));
+            tv.SetTextColor(isError
+                ? Android.Graphics.Color.ParseColor("#C62828")
+                : Android.Graphics.Color.ParseColor("#1B5E20"));
+            tv.Text = message;
+        });
+    }
+
+    void ShowDbRows(DbRowAdapter adapter, List<string> columns, List<Dictionary<string, object?>> rows)
+    {
+        RunOnUiThread(() => adapter.UpdateData(columns, rows));
+    }
+
+    // ── Raw Execute ───────────────────────────────────────────────────────────
+
+    async Task RunDbExecute(EditText editSql, TextView status, DbRowAdapter adapter)
+    {
+        var sql = editSql.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(sql)) { sql = "SELECT * FROM tasks LIMIT 10"; RunOnUiThread(() => editSql.SetText(sql, TextView.BufferType.Normal)); }
+        var result = await AppAmbit.AppAmbitDb.Execute(sql);
+        if (result.HasError) { SetDbStatus(status, $"Error: {result.Error}", true); return; }
+        SetDbStatus(status, $"execute(sql) — rows_read={result.RowsRead}  rows_written={result.RowsWritten}", false);
+        ShowDbRows(adapter, result.Columns, result.ToMaps());
+    }
+
+    async Task RunDbExecuteParams(TextView status, DbRowAdapter adapter)
+    {
+        var result = await AppAmbit.AppAmbitDb.Execute("SELECT * FROM tasks WHERE is_completed = ? LIMIT ?", 0, 10);
+        if (result.HasError) { SetDbStatus(status, $"Error: {result.Error}", true); return; }
+        SetDbStatus(status, $"execute(sql, 0, 10) — rows_read={result.RowsRead}", false);
+        ShowDbRows(adapter, result.Columns, result.ToMaps());
+    }
+
+    // ── Batch ─────────────────────────────────────────────────────────────────
+
+    async Task RunDbBatch(TextView status, DbRowAdapter adapter)
+    {
+        var results = await AppAmbit.AppAmbitDb.Batch(
+            AppAmbit.Models.Db.DbStatement.Of("INSERT INTO tasks (title, is_completed, priority, due_date) VALUES (?, ?, ?, ?)", "Buy coffee", 0, "low", "2026-06-10"),
+            AppAmbit.Models.Db.DbStatement.Of("INSERT INTO tasks (title, is_completed, priority, due_date) VALUES (?, ?, ?, ?)", "Review PR", 0, "high", "2026-06-05"),
+            AppAmbit.Models.Db.DbStatement.Of("SELECT COUNT(*) AS total FROM tasks"));
+        int written = results.Sum(r => r.RowsWritten);
+        var cols = new List<string> { "statement", "rows_written", "rows_read" };
+        var maps = results.Select((r, i) => new Dictionary<string, object?> { { "statement", i + 1 }, { "rows_written", r.RowsWritten }, { "rows_read", r.RowsRead } }).ToList();
+        SetDbStatus(status, $"batch() — {written} row(s) written, {results.Count} statements, no transaction", false);
+        ShowDbRows(adapter, cols, maps);
+    }
+
+    async Task RunDbBatchInTransaction(TextView status, DbRowAdapter adapter)
+    {
+        var results = await AppAmbit.AppAmbitDb.BatchInTransaction(
+            AppAmbit.Models.Db.DbStatement.Of("INSERT INTO tasks (title, is_completed, priority, due_date) VALUES (?, ?, ?, ?)", "Team meeting", 0, "high", "2026-06-06"),
+            AppAmbit.Models.Db.DbStatement.Of("INSERT INTO tasks (title, is_completed, priority, due_date) VALUES (?, ?, ?, ?)", "Prepare agenda", 0, "medium", "2026-06-06"));
+        int written = results.Sum(r => r.RowsWritten);
+        var cols = new List<string> { "statement", "rows_written" };
+        var maps = results.Select((r, i) => new Dictionary<string, object?> { { "statement", i + 1 }, { "rows_written", r.RowsWritten } }).ToList();
+        SetDbStatus(status, $"batchInTransaction() — {written} row(s) written, rolled back on any failure", false);
+        ShowDbRows(adapter, cols, maps);
+    }
+
+    // ── Fluent SELECT ─────────────────────────────────────────────────────────
+
+    async Task RunDbFluentSelect(TextView status, DbRowAdapter adapter)
+    {
+        var maps = await AppAmbit.AppAmbitDb.From("tasks")
+            .Select("id", "title", "priority", "due_date")
+            .Where("is_completed", "=", 0)
+            .OrderByDesc("due_date")
+            .Limit(5)
+            .Get();
+        SetDbStatus(status, maps.Count == 0 ? "No pending tasks" : $"from().select().where().orderByDesc().limit(5) — {maps.Count} row(s)", false);
+        if (maps.Count > 0) ShowDbRows(adapter, maps[0].Keys.ToList(), maps);
+    }
+
+    async Task RunDbWhereEquality(TextView status, DbRowAdapter adapter)
+    {
+        var maps = await AppAmbit.AppAmbitDb.From("tasks").Where("is_completed", 0).Get();
+        SetDbStatus(status, maps.Count == 0 ? "No pending tasks" : $"where(is_completed, 0) — {maps.Count} row(s)", false);
+        ShowDbRows(adapter, maps.Count > 0 ? maps[0].Keys.ToList() : new List<string>(), maps);
+    }
+
+    async Task RunDbWhereIn(TextView status, DbRowAdapter adapter)
+    {
+        var maps = await AppAmbit.AppAmbitDb.From("tasks")
+            .WhereIn("priority", new object?[] { "high", "medium" })
+            .OrderBy("due_date")
+            .Get();
+        SetDbStatus(status, maps.Count == 0 ? "No high/medium tasks" : $"whereIn(priority, [high,medium]) — {maps.Count} row(s)", false);
+        ShowDbRows(adapter, maps.Count > 0 ? maps[0].Keys.ToList() : new List<string>(), maps);
+    }
+
+    async Task RunDbOffset(TextView status, DbRowAdapter adapter)
+    {
+        var maps = await AppAmbit.AppAmbitDb.From("tasks").OrderBy("due_date").Limit(5).Offset(0).Get();
+        SetDbStatus(status, maps.Count == 0 ? "No tasks" : $"limit(5).offset(0) — page 1, {maps.Count} row(s)", false);
+        ShowDbRows(adapter, maps.Count > 0 ? maps[0].Keys.ToList() : new List<string>(), maps);
+    }
+
+    async Task RunDbFirst(TextView status, DbRowAdapter adapter)
+    {
+        var item = await AppAmbit.AppAmbitDb.From("tasks").Where("is_completed", "=", 0).OrderBy("due_date").First();
+        if (item == null) { SetDbStatus(status, "first() — no pending tasks", false); ShowDbRows(adapter, new List<string>(), new List<Dictionary<string, object?>>()); return; }
+        SetDbStatus(status, "first() — next task to expire", false);
+        ShowDbRows(adapter, item.Keys.ToList(), new List<Dictionary<string, object?>> { item });
+    }
+
+    async Task RunDbCount(TextView status, DbRowAdapter adapter)
+    {
+        var count = await AppAmbit.AppAmbitDb.From("tasks").Where("is_completed", 0).Count();
+        var row = new Dictionary<string, object?> { { "pending_tasks", count } };
+        SetDbStatus(status, $"count() — {count} pending task(s)", false);
+        ShowDbRows(adapter, new List<string> { "pending_tasks" }, new List<Dictionary<string, object?>> { row });
+    }
+
+    // ── Mutations ─────────────────────────────────────────────────────────────
+
+    async Task RunDbInsert(TextView status, DbRowAdapter adapter)
+    {
+        var result = await AppAmbit.AppAmbitDb.From("tasks").Insert(new Dictionary<string, object?>
+        {
+            { "title", "New task" }, { "is_completed", 0 },
+            { "priority", "medium" }, { "due_date", DateTime.UtcNow.AddDays(7).ToString("yyyy-MM-dd") }
+        });
+        SetDbStatus(status, $"insert() — rows_written={result.RowsWritten}", false);
+        ShowDbRows(adapter, ["rows_written"], [new() { { "rows_written", result.RowsWritten } }]);
+    }
+
+    async Task RunDbUpdate(TextView status, DbRowAdapter adapter)
+    {
+        var result = await AppAmbit.AppAmbitDb.From("tasks")
+            .Where("title", "New task")
+            .Update(new Dictionary<string, object?> { { "is_completed", 1 } });
+        SetDbStatus(status, $"update() — rows_written={result.RowsWritten}  (run insert first)", false);
+        ShowDbRows(adapter, ["rows_written"], [new() { { "rows_written", result.RowsWritten } }]);
+    }
+
+    async Task RunDbDelete(TextView status, DbRowAdapter adapter)
+    {
+        var result = await AppAmbit.AppAmbitDb.From("tasks").Where("is_completed", 1).Delete();
+        SetDbStatus(status, $"delete() — rows_written={result.RowsWritten}  (run update first)", false);
+        ShowDbRows(adapter, ["rows_written"], [new() { { "rows_written", result.RowsWritten } }]);
+    }
+
+    // ── Typed model ───────────────────────────────────────────────────────────
+
+    async Task RunDbTypedModel(TextView status, DbRowAdapter adapter)
+    {
+        var tasks = await AppAmbit.AppAmbitDb.From<AppAmbitTestingAppAndroid.Models.TaskModel>("tasks")
+            .Select("id", "title", "is_completed", "priority", "due_date")
+            .Limit(5)
+            .Get();
+        var cols = new List<string> { "id", "title", "isCompleted", "priority", "dueDate" };
+        var maps = tasks.Select(t => new Dictionary<string, object?> { { "id", t.Id }, { "title", t.Title }, { "isCompleted", t.IsCompleted }, { "priority", t.Priority }, { "dueDate", t.DueDate } }).ToList();
+        SetDbStatus(status, $"from<TaskModel>() — {tasks.Count} typed row(s)", false);
+        ShowDbRows(adapter, cols, maps);
+    }
+
+    // ── Presets ───────────────────────────────────────────────────────────────
+
+    async Task RunDbPresetTables(EditText editSql, TextView status, DbRowAdapter adapter)
+    {
+        const string q = "SELECT name FROM sqlite_master WHERE type = 'table'";
+        RunOnUiThread(() => editSql.SetText(q, TextView.BufferType.Normal));
+        var result = await AppAmbit.AppAmbitDb.Execute(q);
+        if (result.HasError) { SetDbStatus(status, $"Error: {result.Error}", true); return; }
+        SetDbStatus(status, $"sqlite_master tables — {result.RowsRead} row(s)", false);
+        ShowDbRows(adapter, result.Columns, result.ToMaps());
+    }
+
+    async Task RunDbPresetHighPriority(EditText editSql, TextView status, DbRowAdapter adapter)
+    {
+        const string q = "SELECT * FROM tasks WHERE priority = 'high'";
+        RunOnUiThread(() => editSql.SetText(q, TextView.BufferType.Normal));
+        var result = await AppAmbit.AppAmbitDb.Execute(q);
+        if (result.HasError) { SetDbStatus(status, $"Error: {result.Error}", true); return; }
+        SetDbStatus(status, $"tasks WHERE priority='high' — {result.RowsRead} row(s)", false);
+        ShowDbRows(adapter, result.Columns, result.ToMaps());
     }
 
     void WireCmsView(View root)

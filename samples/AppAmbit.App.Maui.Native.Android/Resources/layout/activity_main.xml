@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
-        android:weightSum="4"
+        android:weightSum="5"
         android:padding="8dp"
         android:elevation="8dp"
         android:background="@android:color/white">
@@ -53,5 +53,13 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="CMS" />
+
+        <Button
+            android:id="@+id/btn_nav_database"
+            style="@style/AppButton.Nav"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="DB" />
     </LinearLayout>
 </LinearLayout>

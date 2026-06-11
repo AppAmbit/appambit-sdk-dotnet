@@ -100,26 +100,36 @@
         <views:CmsView />
       </ScrollViewer>
 
+      <!-- Database view -->
+      <views:DatabaseView Name="DatabasePanel" IsVisible="False" />
+
     </Grid>
-    <Border Grid.Row="1" Background="Transparent" Padding="16">
-      <Border Name="BottomNav" Background="{StaticResource NavBackgroundBrush}" CornerRadius="28" Padding="8" HorizontalAlignment="Center" Width="420">
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
-          <Button Classes="bottom-nav-item" Name="NavCrashes" Click="OnNavCrashesClicked">
-            <TextBlock Text="Crashes" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
-          </Button>
+    <Border Grid.Row="1" Background="Transparent" Padding="8,12">
+      <Border Name="BottomNav" Background="{StaticResource NavBackgroundBrush}" CornerRadius="28" Padding="6,6">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Disabled">
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+            <Button Classes="bottom-nav-item" Name="NavCrashes" Click="OnNavCrashesClicked">
+              <TextBlock Text="Crashes" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
 
-          <Button Classes="bottom-nav-item" Name="NavAnalytics" Click="OnNavAnalyticsClicked">
-            <TextBlock Text="Analytics" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
-          </Button>
+            <Button Classes="bottom-nav-item" Name="NavAnalytics" Click="OnNavAnalyticsClicked">
+              <TextBlock Text="Analytics" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
 
-          <Button Classes="bottom-nav-item" Name="NavRemoteConfig" Click="OnNavRemoteConfigClicked">
-            <TextBlock Text="Remote Config" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
-          </Button>
+            <Button Classes="bottom-nav-item" Name="NavRemoteConfig" Click="OnNavRemoteConfigClicked">
+              <TextBlock Text="Config" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
 
-          <Button Classes="bottom-nav-item" Name="NavCms" Click="OnNavCmsClicked">
-            <TextBlock Text="CMS" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
-          </Button>
-        </StackPanel>
+            <Button Classes="bottom-nav-item" Name="NavCms" Click="OnNavCmsClicked">
+              <TextBlock Text="CMS" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+
+            <Button Classes="bottom-nav-item" Name="NavDatabase" Click="OnNavDatabaseClicked">
+              <TextBlock Text="DB" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
       </Border>
     </Border>
   </Grid>
