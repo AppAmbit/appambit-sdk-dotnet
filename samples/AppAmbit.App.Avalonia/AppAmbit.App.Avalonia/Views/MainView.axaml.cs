@@ -72,6 +72,8 @@ public partial class MainView : UserControl
         CrashesPanel.IsVisible = true;
         AnalyticsPanel.IsVisible = false;
         RemoteConfigPanel.IsVisible = false;
+        CmsPanel.IsVisible = false;
+        DatabasePanel.IsVisible = false;
         UpdateNotificationButtonState();
     }
 
@@ -80,6 +82,8 @@ public partial class MainView : UserControl
         CrashesPanel.IsVisible = false;
         AnalyticsPanel.IsVisible = true;
         RemoteConfigPanel.IsVisible = false;
+        CmsPanel.IsVisible = false;
+        DatabasePanel.IsVisible = false;
     }
 
     private void OnNavRemoteConfigClicked(object? sender, RoutedEventArgs e)
@@ -88,6 +92,7 @@ public partial class MainView : UserControl
         AnalyticsPanel.IsVisible = false;
         RemoteConfigPanel.IsVisible = true;
         CmsPanel.IsVisible = false;
+        DatabasePanel.IsVisible = false;
 
         UpdateRemoteConfigUI();
     }
@@ -98,6 +103,16 @@ public partial class MainView : UserControl
         AnalyticsPanel.IsVisible = false;
         RemoteConfigPanel.IsVisible = false;
         CmsPanel.IsVisible = true;
+        DatabasePanel.IsVisible = false;
+    }
+
+    private void OnNavDatabaseClicked(object? sender, RoutedEventArgs e)
+    {
+        CrashesPanel.IsVisible = false;
+        AnalyticsPanel.IsVisible = false;
+        RemoteConfigPanel.IsVisible = false;
+        CmsPanel.IsVisible = false;
+        DatabasePanel.IsVisible = true;
     }
 
     private void UpdateRemoteConfigUI()

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AppAmbitTestingApp.DatabasePage"
+             Title="Database">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" Padding="12" RowSpacing="8">
+
+        <!-- SQL input (solo visible para demos "execute") -->
+        <Editor Grid.Row="0"
+                x:Name="EditSql"
+                Placeholder="SELECT * FROM tasks LIMIT 10"
+                HeightRequest="70"
+                BackgroundColor="#F5F5F5"
+                FontFamily="Courier New"
+                FontSize="13" />
+
+        <!-- Dropdown de funciones -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Picker x:Name="FunctionPicker"
+                    Grid.Column="0"
+                    Title="Select a function..."
+                    FontSize="13" />
+            <Button Grid.Column="1"
+                    Text="▶  Run"
+                    Clicked="OnRun"
+                    FontSize="13"
+                    WidthRequest="90" />
+        </Grid>
+
+        <!-- Status bar -->
+        <Frame Grid.Row="2"
+               x:Name="StatusFrame"
+               IsVisible="False"
+               Padding="10,6"
+               CornerRadius="6"
+               BorderColor="Transparent"
+               HasShadow="False">
+            <Label x:Name="TxtStatus" FontSize="13" />
+        </Frame>
+
+        <!-- Loading indicator -->
+        <ActivityIndicator Grid.Row="3"
+                           x:Name="LoadingIndicator"
+                           IsRunning="False"
+                           IsVisible="False"
+                           Color="#1565C0"
+                           HorizontalOptions="Center" />
+
+        <!-- Column headers (generados en code-behind) -->
+        <ScrollView Grid.Row="4" Orientation="Horizontal" x:Name="HeaderScroll" IsVisible="False">
+            <Grid x:Name="HeaderRow" HeightRequest="32" BackgroundColor="#EEEEEE" />
+        </ScrollView>
+
+        <!-- Results -->
+        <CollectionView Grid.Row="5"
+                        x:Name="ResultsView"
+                        SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                    <Grid ColumnDefinitions="*" Padding="0">
+                        <ScrollView Orientation="Horizontal">
+                            <Label Text="{Binding .}"
+                                   FontFamily="Courier New"
+                                   FontSize="12"
+                                   TextColor="#212121"
+                                   Padding="8,6"
+                                   BackgroundColor="White" />
+                        </ScrollView>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+</ContentPage>
