@@ -1,0 +1,10 @@
+framework module AppAmbitPushNotificationsExtension {
+  umbrella header "AppAmbitPushNotificationsExtension-umbrella.h"
+
+  export *
+  module * { export * }
+}
+
+module AppAmbitPushNotificationsExtension.Swift {
+  header "AppAmbitPushNotificationsExtension-Swift.h"
+}

@@ -36,7 +36,7 @@
     <SupportedOSPlatformVersion>12.2</SupportedOSPlatformVersion>
   </PropertyGroup>
 
-  <!-- Import targets for copying dynamic frameworks to app bundle -->
+  <!-- Import targets for building/copying iOS native frameworks (source builds) -->
   <Import Project="AppAmbit.PushNotifications.targets" Condition="Exists('AppAmbit.PushNotifications.targets')" />
 
   <ItemGroup>
@@ -54,10 +54,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="readme.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
   </ItemGroup>
 
@@ -67,36 +63,30 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
     <Compile Include="Platforms\iOS\**\*.cs" />
-  </ItemGroup>  
+  </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
-    <!-- Simulator -->
-    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')" Include="Platforms\iOS_Build\build\Debug-iphonesimulator\AppAmbitPushNotifications.framework">
-        <Kind>Framework</Kind>
-        <IsDynamic>True</IsDynamic>
-        <SmartLink>True</SmartLink>
-        <ForceLoad>True</ForceLoad>
-    </NativeReference>
-    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and ($(RuntimeIdentifier.Contains('simulator')) or '$(RuntimeIdentifier)' == '')" Include="Platforms\iOS_Build\build\Debug-iphonesimulator\AppAmbit.framework">
-        <Kind>Framework</Kind>
-        <IsDynamic>True</IsDynamic>
-        <SmartLink>True</SmartLink>
-        <ForceLoad>True</ForceLoad>
-    </NativeReference>
+  <!-- Pack .targets and pre-built XCFrameworks into the NuGet package.
+       Targets go in build/ (direct) and buildTransitive/ (transitive consumers).
+       XCFrameworks go in native/ios/ — no CocoaPods/Xcode needed on the consumer machine. -->
+  <ItemGroup>
+    <None Include="AppAmbit.PushNotifications.targets"
+          Pack="true"
+          PackagePath="build/com.AppAmbit.PushNotifications.targets" />
+    <None Include="AppAmbit.PushNotifications.targets"
+          Pack="true"
+          PackagePath="buildTransitive/com.AppAmbit.PushNotifications.targets" />
+  </ItemGroup>
 
-    <!-- Device -->
-    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')" Include="Platforms\iOS_Build\build\Debug-iphoneos\AppAmbitPushNotifications.framework">
-        <Kind>Framework</Kind>
-        <IsDynamic>True</IsDynamic>
-        <SmartLink>True</SmartLink>
-        <ForceLoad>True</ForceLoad>
-    </NativeReference>
-    <NativeReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and $([MSBuild]::IsOSPlatform('osx')) and (!$(RuntimeIdentifier.Contains('simulator')) and '$(RuntimeIdentifier)' != '')" Include="Platforms\iOS_Build\build\Debug-iphoneos\AppAmbit.framework">
-        <Kind>Framework</Kind>
-        <IsDynamic>True</IsDynamic>
-        <SmartLink>True</SmartLink>
-        <ForceLoad>True</ForceLoad>
-    </NativeReference>
+  <ItemGroup Condition="Exists('libs/AppAmbit.xcframework')">
+    <None Include="libs/AppAmbit.xcframework/**/*"
+          Pack="true"
+          PackagePath="native/ios/AppAmbit.xcframework" />
+    <None Include="libs/AppAmbitPushNotifications.xcframework/**/*"
+          Pack="true"
+          PackagePath="native/ios/AppAmbitPushNotifications.xcframework" />
+    <None Include="libs/AppAmbitPushNotificationsExtension.xcframework/**/*"
+          Pack="true"
+          PackagePath="native/ios/AppAmbitPushNotificationsExtension.xcframework" />
   </ItemGroup>
 
 </Project>
