@@ -77,7 +77,9 @@
           PackagePath="buildTransitive/com.AppAmbit.PushNotifications.targets" />
   </ItemGroup>
 
-  <ItemGroup Condition="Exists('libs/AppAmbit.xcframework')">
+  <ItemGroup Condition="Exists('libs/AppAmbit.xcframework')
+                        AND Exists('libs/AppAmbitPushNotifications.xcframework')
+                        AND Exists('libs/AppAmbitPushNotificationsExtension.xcframework')">
     <None Include="libs/AppAmbit.xcframework/**/*"
           Pack="true"
           PackagePath="native/ios/AppAmbit.xcframework" />

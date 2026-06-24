@@ -8,7 +8,7 @@
     3. CocoaPods + xcodebuild fallback (source builds without pre-built artifacts)
 
     For NuGet consumers, XCFrameworks are always present — no CocoaPods/Xcode required.
-    For source builds, run build-xcframeworks.sh to populate libs/, or let the
+    For source builds, run build-ios.sh to populate libs/, or let the
     fallback build from CocoaPods automatically.
   -->
 
@@ -56,6 +56,15 @@
       <ForceLoad>True</ForceLoad>
     </NativeReference>
   </ItemGroup>
+  <!-- Extension framework only for NSE projects (IsAppExtension=true) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' != '' AND '$(IsAppExtension)' == 'true'">
+    <NativeReference Include="$(_AppAmbitExtFrameworkPath)/AppAmbitPushNotificationsExtension.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+  </ItemGroup>
 
   <!--
     ═══════════════════════════════════════════════════════════════════════
@@ -72,10 +81,12 @@
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' == '' AND '$(_AAPodsDir)' != '' AND '$(_IsSimulator)' == 'true'">
     <_AppAmbitFrameworkPath>$(_AAPodsDir)/build/Debug-iphonesimulator</_AppAmbitFrameworkPath>
     <_AppAmbitPushFrameworkPath>$(_AAPodsDir)/build/Debug-iphonesimulator</_AppAmbitPushFrameworkPath>
+    <_AppAmbitExtFrameworkPath>$(_AAPodsDir)/build/Debug-iphonesimulator</_AppAmbitExtFrameworkPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' == '' AND '$(_AAPodsDir)' != '' AND '$(_IsSimulator)' == 'false'">
     <_AppAmbitFrameworkPath>$(_AAPodsDir)/build/Debug-iphoneos</_AppAmbitFrameworkPath>
     <_AppAmbitPushFrameworkPath>$(_AAPodsDir)/build/Debug-iphoneos</_AppAmbitPushFrameworkPath>
+    <_AppAmbitExtFrameworkPath>$(_AAPodsDir)/build/Debug-iphoneos</_AppAmbitExtFrameworkPath>
   </PropertyGroup>
 
   <!-- NativeReference for fallback (pod-built frameworks) -->
@@ -87,6 +98,15 @@
       <ForceLoad>True</ForceLoad>
     </NativeReference>
     <NativeReference Include="$(_AppAmbitPushFrameworkPath)/AppAmbitPushNotifications.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+  </ItemGroup>
+  <!-- Extension framework only for NSE projects (fallback path) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' == '' AND '$(_AAPodsDir)' != '' AND '$(IsAppExtension)' == 'true'">
+    <NativeReference Include="$(_AppAmbitExtFrameworkPath)/AppAmbitPushNotificationsExtension.framework">
       <Kind>Framework</Kind>
       <IsDynamic>True</IsDynamic>
       <SmartLink>True</SmartLink>
@@ -132,6 +152,15 @@
           WorkingDirectory="$(_AAPodsDir)" />
 
     <Message Importance="High" Text="[AppAmbit] iOS frameworks ready (fallback build)." />
+  </Target>
+
+  <!-- Fail the build early if no framework source is available -->
+  <Target Name="AppAmbitValidateFrameworkSetup"
+          BeforeTargets="ResolveReferences"
+          Condition="'$(TargetFramework)' == 'net10.0-ios'
+                     AND '$(_AAXCFwRoot)' == ''
+                     AND '$(_AAPodsDir)' == ''">
+    <Error Text="[AppAmbit] No XCFrameworks found in libs/ or in the NuGet package, and no Podfile exists at Platforms/iOS_Build/. Run build-ios.sh from the repo root or restore the NuGet package." />
   </Target>
 
   <!--
