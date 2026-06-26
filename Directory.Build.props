@@ -9,7 +9,7 @@
     <RepositoryUrl>https://github.com/AppAmbit/appambit-sdk-dotnet</RepositoryUrl>
     <PackageTags>appambit; sdk; telemetry; logging; analytics; crashes; debug; distribution; ci; cd; mobile; apps; diagnostics; monitoring</PackageTags>
     
-    <Version>4.1.0</Version>
+    <Version>4.1.1</Version>
     
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
