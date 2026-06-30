@@ -1,16 +1,125 @@
 <Project>
   <!--
-    AppAmbitEnsureIosFrameworks
-    Runs pod install + xcodebuild automatically before the first iOS build.
-    Subsequent builds skip all steps when the framework directories already exist.
-    Requires: CocoaPods (pod) and Xcode (xcodebuild) on PATH.
+    AppAmbit.PushNotifications iOS native framework support.
+
+    Resolution order:
+    1. Pre-built XCFrameworks in libs/ (source builds with pre-built artifacts)
+    2. Pre-built XCFrameworks shipped inside the NuGet package (NuGet consumers)
+    3. CocoaPods + xcodebuild fallback (source builds without pre-built artifacts)
+
+    For NuGet consumers, XCFrameworks are always present — no CocoaPods/Xcode required.
+    For source builds, run build-ios.sh to populate libs/, or let the
+    fallback build from CocoaPods automatically.
   -->
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+    <_AppAmbitPushSdkPath>$(MSBuildThisFileDirectory)</_AppAmbitPushSdkPath>
+    <_IsSimulator Condition="'$(RuntimeIdentifier)' == '' OR $(RuntimeIdentifier.Contains('simulator'))">true</_IsSimulator>
+    <_IsSimulator Condition="'$(_IsSimulator)' == ''">false</_IsSimulator>
+  </PropertyGroup>
+
+  <!-- Pick the correct XCFramework slice for simulator vs device -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+    <_AAXCSlice Condition="'$(_IsSimulator)' == 'true'">ios-arm64_x86_64-simulator</_AAXCSlice>
+    <_AAXCSlice Condition="'$(_IsSimulator)' != 'true'">ios-arm64</_AAXCSlice>
+  </PropertyGroup>
+
+  <!--
+    Locate pre-built XCFrameworks.
+    Priority 1: libs/ next to .targets (source build with pre-built artifacts)
+    Priority 2: ../native/ios/ relative to build/ or buildTransitive/ (NuGet package layout)
+  -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+    <_AAXCFwRoot Condition="Exists('$(_AppAmbitPushSdkPath)libs/AppAmbit.xcframework')">$(_AppAmbitPushSdkPath)libs</_AAXCFwRoot>
+    <_AAXCFwRoot Condition="'$(_AAXCFwRoot)' == '' AND Exists('$(_AppAmbitPushSdkPath)../native/ios/AppAmbit.xcframework')">$(_AppAmbitPushSdkPath)../native/ios</_AAXCFwRoot>
+  </PropertyGroup>
+
+  <!-- Framework paths resolved from XCFramework slices -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' != ''">
+    <_AppAmbitFrameworkPath>$(_AAXCFwRoot)/AppAmbit.xcframework/$(_AAXCSlice)</_AppAmbitFrameworkPath>
+    <_AppAmbitPushFrameworkPath>$(_AAXCFwRoot)/AppAmbitPushNotifications.xcframework/$(_AAXCSlice)</_AppAmbitPushFrameworkPath>
+    <_AppAmbitExtFrameworkPath>$(_AAXCFwRoot)/AppAmbitPushNotificationsExtension.xcframework/$(_AAXCSlice)</_AppAmbitExtFrameworkPath>
+  </PropertyGroup>
+
+  <!-- NativeReference: link and embed the dynamic frameworks (XCFramework path) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' != ''">
+    <NativeReference Include="$(_AppAmbitFrameworkPath)/AppAmbit.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+    <NativeReference Include="$(_AppAmbitPushFrameworkPath)/AppAmbitPushNotifications.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+  </ItemGroup>
+  <!-- Extension framework only for NSE projects (IsAppExtension=true) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' != '' AND '$(IsAppExtension)' == 'true'">
+    <NativeReference Include="$(_AppAmbitExtFrameworkPath)/AppAmbitPushNotificationsExtension.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+  </ItemGroup>
+
+  <!--
+    ═══════════════════════════════════════════════════════════════════════
+    FALLBACK: CocoaPods + xcodebuild (source builds without pre-built XCFrameworks)
+    ═══════════════════════════════════════════════════════════════════════
+  -->
+
+  <!-- Resolve pods working directory when no XCFrameworks found -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' == '' AND $([MSBuild]::IsOSPlatform('osx'))">
+    <_AAPodsDir Condition="Exists('$(_AppAmbitPushSdkPath)Platforms/iOS_Build/Podfile')">$(_AppAmbitPushSdkPath)Platforms/iOS_Build</_AAPodsDir>
+  </PropertyGroup>
+
+  <!-- Resolve framework output path for fallback builds -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' == '' AND '$(_AAPodsDir)' != '' AND '$(_IsSimulator)' == 'true'">
+    <_AppAmbitFrameworkPath>$(_AAPodsDir)/build/Debug-iphonesimulator</_AppAmbitFrameworkPath>
+    <_AppAmbitPushFrameworkPath>$(_AAPodsDir)/build/Debug-iphonesimulator</_AppAmbitPushFrameworkPath>
+    <_AppAmbitExtFrameworkPath>$(_AAPodsDir)/build/Debug-iphonesimulator</_AppAmbitExtFrameworkPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' == '' AND '$(_AAPodsDir)' != '' AND '$(_IsSimulator)' == 'false'">
+    <_AppAmbitFrameworkPath>$(_AAPodsDir)/build/Debug-iphoneos</_AppAmbitFrameworkPath>
+    <_AppAmbitPushFrameworkPath>$(_AAPodsDir)/build/Debug-iphoneos</_AppAmbitPushFrameworkPath>
+    <_AppAmbitExtFrameworkPath>$(_AAPodsDir)/build/Debug-iphoneos</_AppAmbitExtFrameworkPath>
+  </PropertyGroup>
+
+  <!-- NativeReference for fallback (pod-built frameworks) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' == '' AND '$(_AAPodsDir)' != ''">
+    <NativeReference Include="$(_AppAmbitFrameworkPath)/AppAmbit.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+    <NativeReference Include="$(_AppAmbitPushFrameworkPath)/AppAmbitPushNotifications.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+  </ItemGroup>
+  <!-- Extension framework only for NSE projects (fallback path) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' == '' AND '$(_AAPodsDir)' != '' AND '$(IsAppExtension)' == 'true'">
+    <NativeReference Include="$(_AppAmbitExtFrameworkPath)/AppAmbitPushNotificationsExtension.framework">
+      <Kind>Framework</Kind>
+      <IsDynamic>True</IsDynamic>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+    </NativeReference>
+  </ItemGroup>
+
+  <!-- Fallback: build from CocoaPods when XCFrameworks not available -->
   <Target Name="AppAmbitEnsureIosFrameworks"
           BeforeTargets="ResolveReferences"
-          Condition="'$(TargetFramework)' == 'net10.0-ios' AND $([MSBuild]::IsOSPlatform('osx'))">
+          Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_AAXCFwRoot)' == '' AND $([MSBuild]::IsOSPlatform('osx')) AND '$(_AAPodsDir)' != ''">
 
     <PropertyGroup>
-      <_AAPodsDir>$(MSBuildThisFileDirectory)Platforms/iOS_Build</_AAPodsDir>
       <_AAPodsProj>$(_AAPodsDir)/Pods/Pods.xcodeproj</_AAPodsProj>
     </PropertyGroup>
 
@@ -23,49 +132,43 @@
       <_AAFwDir>$(_AAPodsDir)/build/Debug-iphoneos</_AAFwDir>
     </PropertyGroup>
 
-    <Message Importance="High" Text="[AppAmbit] Checking iOS native frameworks in $(_AAFwDir)..." />
+    <Message Importance="High" Text="[AppAmbit] XCFrameworks not found — building from CocoaPods (fallback)..." />
 
-    <!-- Step 1: pod install — only when Pods project is missing -->
     <Exec Condition="!Exists('$(_AAPodsProj)')"
           Command="pod install --repo-update"
           WorkingDirectory="$(_AAPodsDir)"
           ConsoleToMSBuild="true" />
 
-    <!-- Step 2: build AppAmbit.framework (AppAmbitSdk pod) -->
     <Exec Condition="!Exists('$(_AAFwDir)/AppAmbit.framework')"
           Command="xcodebuild -project &quot;$(_AAPodsProj)&quot; -scheme AppAmbitSdk -configuration Debug -destination &quot;generic/platform=$(_AAXcPlatform)&quot; CONFIGURATION_BUILD_DIR=&quot;$(_AAFwDir)&quot; ONLY_ACTIVE_ARCH=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES -quiet"
           WorkingDirectory="$(_AAPodsDir)" />
 
-    <!-- Step 3: build AppAmbitPushNotifications.framework -->
     <Exec Condition="!Exists('$(_AAFwDir)/AppAmbitPushNotifications.framework')"
           Command="xcodebuild -project &quot;$(_AAPodsProj)&quot; -scheme AppAmbitPushNotifications -configuration Debug -destination &quot;generic/platform=$(_AAXcPlatform)&quot; CONFIGURATION_BUILD_DIR=&quot;$(_AAFwDir)&quot; ONLY_ACTIVE_ARCH=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES -quiet"
           WorkingDirectory="$(_AAPodsDir)" />
 
-    <!-- Step 4: build AppAmbitPushNotificationsExtension.framework (used by the .NET NSE project) -->
     <Exec Condition="!Exists('$(_AAFwDir)/AppAmbitPushNotificationsExtension.framework')"
           Command="xcodebuild -project &quot;$(_AAPodsProj)&quot; -scheme AppAmbitPushNotificationsExtension -configuration Debug -destination &quot;generic/platform=$(_AAXcPlatform)&quot; CONFIGURATION_BUILD_DIR=&quot;$(_AAFwDir)&quot; ONLY_ACTIVE_ARCH=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES -quiet"
           WorkingDirectory="$(_AAPodsDir)" />
 
-    <Message Importance="High" Text="[AppAmbit] iOS frameworks ready." />
+    <Message Importance="High" Text="[AppAmbit] iOS frameworks ready (fallback build)." />
   </Target>
 
-  <!-- Copy iOS native dynamic frameworks to app bundle -->
+  <!-- Fail the build early if no framework source is available -->
+  <Target Name="AppAmbitValidateFrameworkSetup"
+          BeforeTargets="ResolveReferences"
+          Condition="'$(TargetFramework)' == 'net10.0-ios'
+                     AND '$(_AAXCFwRoot)' == ''
+                     AND '$(_AAPodsDir)' == ''">
+    <Error Text="[AppAmbit] No XCFrameworks found in libs/ or in the NuGet package, and no Podfile exists at Platforms/iOS_Build/. Run build-ios.sh from the repo root or restore the NuGet package." />
+  </Target>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
-    <_AppAmbitPushSdkPath>$(MSBuildThisFileDirectory)</_AppAmbitPushSdkPath>
-    <_IsSimulator Condition="'$(RuntimeIdentifier)' == '' OR $(RuntimeIdentifier.Contains('simulator'))">true</_IsSimulator>
-    <_IsSimulator Condition="'$(_IsSimulator)' == ''">false</_IsSimulator>
-  </PropertyGroup>
+  <!--
+    ═══════════════════════════════════════════════════════════════════════
+    Copy frameworks into the app bundle
+    ═══════════════════════════════════════════════════════════════════════
+  -->
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_IsSimulator)' == 'true'">
-    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/Debug-iphonesimulator</_AppAmbitFrameworkPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(_IsSimulator)' == 'false'">
-    <_AppAmbitFrameworkPath>$(_AppAmbitPushSdkPath)Platforms/iOS_Build/build/Debug-iphoneos</_AppAmbitFrameworkPath>
-  </PropertyGroup>
-
-  <!-- Compute AppBundleDir if not defined -->
   <Target Name="_ComputeAppAmbitBundleDir"
           BeforeTargets="CopyAppAmbitPushFrameworks"
           Condition="'$(TargetFramework)' == 'net10.0-ios' AND '$(OutputType)' == 'Exe'">
@@ -76,11 +179,6 @@
     </PropertyGroup>
   </Target>
 
-  <!--
-    Copy frameworks BEFORE _CodesignAppBundle so the toolchain includes them in
-    CodeResources and signs them with the resolved developer identity.
-    Runs after _CreateAppBundle to ensure the bundle directory exists.
-  -->
   <Target Name="CopyAppAmbitPushFrameworks"
           AfterTargets="_CreateAppBundle"
           BeforeTargets="_CodesignAppBundle"
@@ -92,21 +190,13 @@
     <MakeDir Directories="$(_FrameworksDir)" ContinueOnError="true" />
 
     <!-- Copy AppAmbitPushNotifications.framework -->
-    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications.framework')"
-          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications.framework&quot; &quot;$(_FrameworksDir)/&quot;"
-          ContinueOnError="true" />
-    <!-- Fallback: subdirectory layout -->
-    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND !Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications.framework') AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework')"
-          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitPushNotifications/AppAmbitPushNotifications.framework&quot; &quot;$(_FrameworksDir)/&quot;"
+    <Exec Condition="'$(_AppAmbitPushFrameworkPath)' != '' AND Exists('$(_AppAmbitPushFrameworkPath)/AppAmbitPushNotifications.framework')"
+          Command="cp -R &quot;$(_AppAmbitPushFrameworkPath)/AppAmbitPushNotifications.framework&quot; &quot;$(_FrameworksDir)/&quot;"
           ContinueOnError="true" />
 
     <!-- Copy AppAmbit.framework -->
     <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND Exists('$(_AppAmbitFrameworkPath)/AppAmbit.framework')"
           Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;"
-          ContinueOnError="true" />
-    <!-- Fallback: subdirectory layout -->
-    <Exec Condition="'$(_AppAmbitFrameworkPath)' != '' AND !Exists('$(_AppAmbitFrameworkPath)/AppAmbit.framework') AND Exists('$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework')"
-          Command="cp -R &quot;$(_AppAmbitFrameworkPath)/AppAmbitSdk/AppAmbit.framework&quot; &quot;$(_FrameworksDir)/&quot;"
           ContinueOnError="true" />
 
     <!-- Remove stale _CodeSignature so the toolchain can sign fresh -->

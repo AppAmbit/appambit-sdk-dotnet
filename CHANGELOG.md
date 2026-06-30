@@ -1,3 +1,11 @@
+## Version 4.1.1
+
+### AppAmbit Push Notifications
+
+* **[Fix]** Fixed iOS native framework library inclusion in the MAUI SDK package.
+
+---
+
 ## Version 4.1.0
 
 ### AppAmbit
