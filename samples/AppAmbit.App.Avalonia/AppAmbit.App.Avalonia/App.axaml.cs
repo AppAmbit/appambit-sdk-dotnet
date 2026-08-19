@@ -13,6 +13,14 @@ namespace AppAmbitTestingAppAvalonia;
 
 public partial class App : Avalonia.Application
 {
+#if ANDROID
+    private const string AppKey = "294f7dd6-987e-493b-b13c-dfdfd0cdcd3e";
+#elif IOS
+    private const string AppKey = "e6174d4c-298b-4221-9a2d-1e913b912e25";
+#else
+    private const string AppKey = "<YOUR_APPKEY>";
+#endif
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -23,7 +31,7 @@ public partial class App : Avalonia.Application
         Console.WriteLine("[AppAmbit] OnFrameworkInitializationCompleted called.");
 
         RemoteConfig.Enable();
-        AppAmbitSdk.Start("<YOUR_APPKEY>");
+        AppAmbitSdk.Start(AppKey);
 
         PushNotifications.Start();
 

@@ -15,6 +15,7 @@ namespace AppAmbitTestingAppAvalonia.Views;
 
 public partial class MainView : UserControl
 {
+    private readonly bool _isMobile;
     private bool _hasNotificationPermission;
     private bool _notificationsEnabled;
     private bool _isUpdatingPushButton;
@@ -22,6 +23,15 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
+        _isMobile = OperatingSystem.IsAndroid() || OperatingSystem.IsIOS();
+
+        if (_isMobile)
+        {
+            Classes.Add("mobile-sample");
+            MobileTitleBar.IsVisible = true;
+            ConfigureMobileNavigation();
+            SetMobileSection("Crashes", NavCrashes);
+        }
 
         try
         {
@@ -74,7 +84,9 @@ public partial class MainView : UserControl
         RemoteConfigPanel.IsVisible = false;
         CmsPanel.IsVisible = false;
         DatabasePanel.IsVisible = false;
+        CloudCodePanel.IsVisible = false;
         UpdateNotificationButtonState();
+        SetMobileSection("Crashes", NavCrashes);
     }
 
     private void OnNavAnalyticsClicked(object? sender, RoutedEventArgs e)
@@ -84,6 +96,8 @@ public partial class MainView : UserControl
         RemoteConfigPanel.IsVisible = false;
         CmsPanel.IsVisible = false;
         DatabasePanel.IsVisible = false;
+        CloudCodePanel.IsVisible = false;
+        SetMobileSection("Analytics", NavAnalytics);
     }
 
     private void OnNavRemoteConfigClicked(object? sender, RoutedEventArgs e)
@@ -93,8 +107,10 @@ public partial class MainView : UserControl
         RemoteConfigPanel.IsVisible = true;
         CmsPanel.IsVisible = false;
         DatabasePanel.IsVisible = false;
+        CloudCodePanel.IsVisible = false;
 
         UpdateRemoteConfigUI();
+        SetMobileSection("Config", NavRemoteConfig);
     }
 
     private void OnNavCmsClicked(object? sender, RoutedEventArgs e)
@@ -104,6 +120,8 @@ public partial class MainView : UserControl
         RemoteConfigPanel.IsVisible = false;
         CmsPanel.IsVisible = true;
         DatabasePanel.IsVisible = false;
+        CloudCodePanel.IsVisible = false;
+        SetMobileSection("CMS", NavCms);
     }
 
     private void OnNavDatabaseClicked(object? sender, RoutedEventArgs e)
@@ -113,6 +131,70 @@ public partial class MainView : UserControl
         RemoteConfigPanel.IsVisible = false;
         CmsPanel.IsVisible = false;
         DatabasePanel.IsVisible = true;
+        CloudCodePanel.IsVisible = false;
+        SetMobileSection("Data", NavDatabase);
+    }
+
+    private void OnNavCloudCodeClicked(object? sender, RoutedEventArgs e)
+    {
+        CrashesPanel.IsVisible = false;
+        AnalyticsPanel.IsVisible = false;
+        RemoteConfigPanel.IsVisible = false;
+        CmsPanel.IsVisible = false;
+        DatabasePanel.IsVisible = false;
+        CloudCodePanel.IsVisible = true;
+        SetMobileSection("Cloud Code", NavCloudCode);
+    }
+
+    private void SetMobileSection(string title, Avalonia.Controls.Button activeButton)
+    {
+        if (!_isMobile)
+            return;
+
+        MobileScreenTitle.Text = title;
+        SetActiveNavigationButton(activeButton);
+    }
+
+    private void SetActiveNavigationButton(Avalonia.Controls.Button activeButton)
+    {
+        foreach (var button in new[] { NavCrashes, NavAnalytics, NavRemoteConfig, NavCms, NavDatabase, NavCloudCode })
+            button.Classes.Remove("active");
+
+        activeButton.Classes.Add("active");
+    }
+
+    private void ConfigureMobileNavigation()
+    {
+        ConfigureNavigationButton(NavCrashes, "Crashes", "M12,2 L22,20 L2,20 Z M11,8 L13,8 L13,14 L11,14 Z M11,16 L13,16 L13,18 L11,18 Z");
+        ConfigureNavigationButton(NavAnalytics, "Analytics", "M4,19 L20,19 L20,21 L2,21 L2,3 L4,3 Z M6,15 L9,12 L11,14 L16,8 L18,10 L11,18 L9,16 L6,19 Z");
+        ConfigureNavigationButton(NavRemoteConfig, "Config", "M3,6 L10,6 L10,8 L3,8 Z M14,6 L21,6 L21,8 L14,8 Z M11,4 L13,4 L13,10 L11,10 Z M3,11 L6,11 L6,13 L3,13 Z M10,11 L21,11 L21,13 L10,13 Z M7,9 L9,9 L9,15 L7,15 Z M3,16 L14,16 L14,18 L3,18 Z M18,16 L21,16 L21,18 L18,18 Z M15,14 L17,14 L17,20 L15,20 Z");
+        ConfigureNavigationButton(NavCms, "CMS", "M6,2 L15,2 L20,7 L20,22 L6,22 Z M14,4 L14,9 L18,9 Z M9,12 L17,12 L17,14 L9,14 Z M9,16 L17,16 L17,18 L9,18 Z");
+        ConfigureNavigationButton(NavDatabase, "Data", "M12,3 C6,3 3,5 3,7 L3,17 C3,20 7,21 12,21 C17,21 21,20 21,17 L21,7 C21,5 18,3 12,3 Z M5,7 C5,6 8,5 12,5 C16,5 19,6 19,7 C19,8 16,9 12,9 C8,9 5,8 5,7 Z M19,12 C19,13 16,14 12,14 C8,14 5,13 5,12 L5,10 C7,11 9,11 12,11 C15,11 17,11 19,10 Z");
+        ConfigureNavigationButton(NavCloudCode, "Cloud", "M7,19 C4,19 2,17 2,14 C2,11 4,9 7,9 C8,5 11,3 15,3 C19,3 22,6 22,10 C22,10 22,10 22,11 C24,11 25,13 25,15 C25,17 23,19 20,19 Z");
+    }
+
+    private static void ConfigureNavigationButton(Avalonia.Controls.Button button, string label, string path)
+    {
+        var icon = new PathIcon
+        {
+            Data = StreamGeometry.Parse(path),
+            Width = 18,
+            Height = 18,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+        };
+        var text = new TextBlock
+        {
+            Text = label,
+            FontSize = 10,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+        };
+        button.Content = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Vertical,
+            Spacing = 2,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            Children = { icon, text }
+        };
     }
 
     private void UpdateRemoteConfigUI()
@@ -331,19 +413,17 @@ public partial class MainView : UserControl
     private async void OnTokenRefreshTestClicked(object? sender, RoutedEventArgs e)
     {
         Analytics.ClearToken();
-        var logsTask = Enumerable.Range(0, 5).Select(i => Task.Run(async () =>
-        {
-            await Crashes.LogError("Sending 5 errors after an invalid token");
-        }));
+        var logsTask = Enumerable.Range(0, 5).Select(_ =>
+            Crashes.LogError("Sending 5 errors after an invalid token"));
 
-        var eventsTask = Enumerable.Range(0, 5).Select(i => Task.Run(async () =>
-        {
-            await Analytics.TrackEvent("Sending 5 events after an invalid token",
-                new Dictionary<string, string>
-                {{"Test Token", "5 events sent"}});
-        }));
         await Task.WhenAll(logsTask);
         Analytics.ClearToken();
+
+        var eventsTask = Enumerable.Range(0, 5).Select(_ =>
+            Analytics.TrackEvent("Sending 5 events after an invalid token",
+                new Dictionary<string, string>
+                {{"Test Token", "5 events sent"}}));
+
         await Task.WhenAll(eventsTask);
         await AlertWindow.ShowAlert("5 events and errors sent");
     }

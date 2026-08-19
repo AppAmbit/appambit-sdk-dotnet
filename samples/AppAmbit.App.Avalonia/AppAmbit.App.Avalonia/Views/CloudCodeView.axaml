@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="800"
+             x:Class="AppAmbitTestingAppAvalonia.Views.CloudCodeView">
+  <ScrollViewer>
+     <StackPanel x:Name="RootPanel" Margin="12" Spacing="8">
+      <TextBlock Text="Cloud Code" FontSize="22" FontWeight="Bold" />
+      <TextBlock x:Name="PlatformLabel" Text="HTTP-triggered functions using the consumer token." TextWrapping="Wrap" />
+
+      <Border Background="#F3F4F6" BorderBrush="#D7DCE5" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,4,0,0">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Database" FontSize="18" FontWeight="Bold" />
+          <TextBlock Text="Create Database first" Foreground="#2864D2" />
+          <TextBlock x:Name="DatabaseStatusLabel" Text="Not available" FontWeight="Bold" />
+           <Border x:Name="SetupFunctionCard" Background="#F8F8F8" BorderBrush="#D7DCE5" BorderThickness="1" CornerRadius="10" Padding="12">
+             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+               <StackPanel Grid.Column="0" Spacing="3">
+                 <TextBlock x:Name="SetupDatabaseSlugLabel" FontSize="14" FontWeight="Bold" />
+                 <TextBlock Text="Create the tables used by the Database examples without destroying data." FontSize="12" Foreground="#5F6368" TextWrapping="Wrap" />
+                 <TextBlock Text="Existing linked Database" FontSize="11" Foreground="#7A7A7A" />
+               </StackPanel>
+               <Button x:Name="SetupDatabaseButton" Grid.Column="1" Content="▶ Run" Tag="setup-database" Click="OnRunButtonClicked" IsEnabled="False" MinHeight="44" />
+             </Grid>
+           </Border>
+         </StackPanel>
+      </Border>
+
+      <Border Background="#F3F4F6" BorderBrush="#D7DCE5" BorderThickness="1" CornerRadius="10" Padding="12">
+        <StackPanel Spacing="8">
+          <TextBlock Text="CMS" FontSize="18" FontWeight="Bold" />
+          <TextBlock Text="Create Content Type first" Foreground="#7D4BB4" />
+          <TextBlock x:Name="CmsStatusLabel" Text="Not available" FontWeight="Bold" />
+        </StackPanel>
+      </Border>
+
+       <TextBlock Text="Database" FontSize="20" FontWeight="Bold" Margin="0,8,0,0" />
+       <TextBox x:Name="TaskTitleTextBox" Text="Buy coffee" Watermark="Task title" />
+       <TextBox x:Name="TaskIdTextBox" Watermark="Task id for update/delete" />
+       <StackPanel x:Name="DatabaseDemosPanel" Spacing="8" />
+
+       <TextBlock Text="CMS" FontSize="20" FontWeight="Bold" Margin="0,8,0,0" />
+       <TextBox x:Name="PostUuidTextBox" Watermark="CMS post UUID (optional)" />
+       <TextBox x:Name="PublishTitleTextBox" Text="Cloud Code sample post" Watermark="Sample title" />
+       <TextBox x:Name="PublishBodyTextBox" Text="Published through an HTTP Cloud Function." Watermark="Sample body" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" />
+       <StackPanel x:Name="CmsDemosPanel" Spacing="8" />
+
+       <TextBlock Text="Push" FontSize="20" FontWeight="Bold" Margin="0,8,0,0" />
+       <StackPanel x:Name="PushDemosPanel" Spacing="8" />
+
+       <TextBlock Text="HTTP" FontSize="20" FontWeight="Bold" Margin="0,8,0,0" />
+       <StackPanel x:Name="HttpDemosPanel" Spacing="8" />
+
+       <Border x:Name="ResultBorder" IsVisible="False" Background="#F3F4F6" BorderBrush="#D7DCE5" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,8,0,0">
+         <StackPanel Spacing="6">
+           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+             <TextBlock x:Name="ResultTitleLabel" Grid.Column="0" Text="Latest result" FontWeight="Bold" />
+             <Button x:Name="ResultToggleButton" Grid.Column="1" Content="⌃" Click="OnToggleResultClicked" Width="44" />
+           </Grid>
+           <TextBox x:Name="ResultTextBox" Text="Run a function to see its response here." IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="150" MaxHeight="260" FontFamily="monospace" />
+         </StackPanel>
+       </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -25,6 +25,8 @@ public class MainActivity : Activity
     View? _viewRemoteConfig;
     View? _viewCms;
     View? _viewDatabase;
+    CloudCodeView? _viewCloudCode;
+    View? _selectedNavigationItem;
     Button? _btnPushNotifications;
     bool _hasNotificationPermission;
     bool _notificationsEnabled;
@@ -75,24 +77,32 @@ public class MainActivity : Activity
         _viewRemoteConfig = inflater?.Inflate(L("fragment_remote_config"), _container, false);
         _viewCms = inflater?.Inflate(L("fragment_cms"), _container, false);
         _viewDatabase = inflater?.Inflate(L("fragment_database"), _container, false);
+        _viewCloudCode = new CloudCodeView(this);
 
         WireCrashesView(_viewCrashes!);
         WireAnalyticsView(_viewAnalytics!);
         WireCmsView(_viewCms!);
         WireDatabaseView(_viewDatabase!);
         
-        var btnCrashes = FindViewById<Button>(I("btn_nav_crashes"))!;
-        var btnAnalytics = FindViewById<Button>(I("btn_nav_analytics"))!;
-        var btnRemoteConfig = FindViewById<Button>(I("btn_nav_remote_config"))!;
-        var btnCms = FindViewById<Button>(I("btn_nav_cms"))!;
-        var btnDatabase = FindViewById<Button>(I("btn_nav_database"))!;
+        var btnCrashes = FindViewById<View>(I("btn_nav_crashes"))!;
+        var btnAnalytics = FindViewById<View>(I("btn_nav_analytics"))!;
+        var btnRemoteConfig = FindViewById<View>(I("btn_nav_remote_config"))!;
+        var btnCms = FindViewById<View>(I("btn_nav_cms"))!;
+        var btnDatabase = FindViewById<View>(I("btn_nav_database"))!;
+        var btnCloudCode = FindViewById<View>(I("btn_nav_cloud_code"))!;
 
-        btnCrashes.Click += (s, e) => ShowView(_viewCrashes!);
-        btnAnalytics.Click += (s, e) => ShowView(_viewAnalytics!);
-        btnRemoteConfig.Click += (s, e) => ShowRemoteConfigView(_viewRemoteConfig!);
-        btnCms.Click += (s, e) => ShowView(_viewCms!);
-        btnDatabase.Click += (s, e) => ShowView(_viewDatabase!);
+        WireNavigationItem(btnCrashes, () => ShowView(_viewCrashes!));
+        WireNavigationItem(btnAnalytics, () => ShowView(_viewAnalytics!));
+        WireNavigationItem(btnRemoteConfig, () => ShowRemoteConfigView(_viewRemoteConfig!));
+        WireNavigationItem(btnCms, () => ShowView(_viewCms!));
+        WireNavigationItem(btnDatabase, () => ShowView(_viewDatabase!));
+        WireNavigationItem(btnCloudCode, () =>
+        {
+            ShowView(_viewCloudCode!);
+            _viewCloudCode.StartVerification();
+        });
 
+        SelectNavigationItem(btnCrashes);
         ShowView(_viewCrashes!);
     }
 
@@ -113,6 +123,24 @@ public class MainActivity : Activity
     {
         _container!.RemoveAllViews();
         _container.AddView(v);
+    }
+
+    void WireNavigationItem(View item, Action navigate)
+    {
+        item.Click += (_, _) =>
+        {
+            SelectNavigationItem(item);
+            navigate();
+        };
+    }
+
+    void SelectNavigationItem(View item)
+    {
+        if (_selectedNavigationItem != null)
+            _selectedNavigationItem.Selected = false;
+
+        item.Selected = true;
+        _selectedNavigationItem = item;
     }
 
     void WireAnalyticsView(View root)

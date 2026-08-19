@@ -52,6 +52,21 @@ public class SceneDelegate : UIResponder, IUIWindowSceneDelegate
                 }
             };
 
+            tabBarController.View.BackgroundColor = UIColor.SystemBackground;
+            tabBarController.TabBar.Translucent = false;
+            tabBarController.TabBar.TintColor = UIColor.FromRGB(92, 74, 199);
+            tabBarController.TabBar.UnselectedItemTintColor = UIColor.FromRGB(102, 98, 116);
+
+            if (OperatingSystem.IsMacCatalystVersionAtLeast(13))
+            {
+                var appearance = new UITabBarAppearance();
+                appearance.ConfigureWithDefaultBackground();
+                appearance.BackgroundColor = UIColor.FromRGB(248, 247, 252);
+                appearance.SelectionIndicatorTintColor = UIColor.FromRGB(232, 226, 255);
+                tabBarController.TabBar.StandardAppearance = appearance;
+                tabBarController.TabBar.ScrollEdgeAppearance = appearance;
+            }
+
             Window.RootViewController = tabBarController;
             Window.MakeKeyAndVisible();
         }
@@ -231,25 +246,18 @@ public class SceneDelegate : UIResponder, IUIWindowSceneDelegate
         {
             Analytics.ClearToken();
 
-            var logsTask = Enumerable.Range(0, 5).Select(
-                _ => Task.Run(() =>
-                {
-                    Crashes.LogError("Sending 5 errors after an invalid token");
-                }));
-
-            var eventsTask = Enumerable.Range(0, 5).Select(
-                _ => Task.Run(() =>
-                {
-                    Analytics.TrackEvent(
-                        "Sending 5 events after an invalid token",
-                        new Dictionary<string, string>
-                        {
-                            { "Test Token", "5 events sent" }
-                        });
-                }));
-
+            var logsTask = Enumerable.Range(0, 5)
+                .Select(_ => Crashes.LogError("Sending 5 errors after an invalid token"));
             await Task.WhenAll(logsTask);
             Analytics.ClearToken();
+
+            var eventsTask = Enumerable.Range(0, 5)
+                .Select(_ => Analytics.TrackEvent(
+                    "Sending 5 events after an invalid token",
+                    new Dictionary<string, string>
+                    {
+                        { "Test Token", "5 events sent" }
+                    }));
             await Task.WhenAll(eventsTask);
 
             ShowAlert(vc, "Info", "5 events and errors sent");

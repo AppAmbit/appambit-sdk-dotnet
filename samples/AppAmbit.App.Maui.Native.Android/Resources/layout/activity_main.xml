@@ -15,51 +15,123 @@
     <LinearLayout
         android:id="@+id/nav_bar"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="76dp"
         android:orientation="horizontal"
-        android:weightSum="5"
-        android:padding="8dp"
-        android:elevation="8dp"
-        android:background="@android:color/white">
+        android:weightSum="6"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="4dp"
+        android:elevation="4dp"
+        android:background="@drawable/bg_nav_bar">
 
-        <Button
+        <LinearLayout
             android:id="@+id/btn_nav_crashes"
-            style="@style/AppButton.Nav"
+            style="@style/AppBottomNavigationItem"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="@string/crashes" />
+            android:layout_margin="2dp"
+            android:contentDescription="@string/crashes">
 
-    <Button
+            <ImageView
+                style="@style/AppBottomNavigationIcon"
+                android:src="@drawable/bottom_nav_crashes" />
+
+            <TextView
+                style="@style/AppBottomNavigationLabel"
+                android:text="@string/crashes" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/btn_nav_analytics"
-            style="@style/AppButton.Nav"
+            style="@style/AppBottomNavigationItem"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="@string/analytics" />
+            android:layout_margin="2dp"
+            android:contentDescription="@string/analytics">
 
-        <Button
+            <ImageView
+                style="@style/AppBottomNavigationIcon"
+                android:src="@drawable/bottom_nav_analytics" />
+
+            <TextView
+                style="@style/AppBottomNavigationLabel"
+                android:text="@string/analytics" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/btn_nav_remote_config"
-            style="@style/AppButton.Nav"
+            style="@style/AppBottomNavigationItem"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="Config" />
+            android:layout_margin="2dp"
+            android:contentDescription="@string/config">
 
-        <Button
+            <ImageView
+                style="@style/AppBottomNavigationIcon"
+                android:src="@drawable/bottom_nav_config" />
+
+            <TextView
+                style="@style/AppBottomNavigationLabel"
+                android:text="@string/config" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/btn_nav_cms"
-            style="@style/AppButton.Nav"
+            style="@style/AppBottomNavigationItem"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="CMS" />
+            android:layout_margin="2dp"
+            android:contentDescription="@string/cms">
 
-        <Button
+            <ImageView
+                style="@style/AppBottomNavigationIcon"
+                android:src="@drawable/bottom_nav_cms" />
+
+            <TextView
+                style="@style/AppBottomNavigationLabel"
+                android:text="@string/cms" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/btn_nav_database"
-            style="@style/AppButton.Nav"
+            style="@style/AppBottomNavigationItem"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="DB" />
+            android:layout_margin="2dp"
+            android:contentDescription="@string/database">
+
+            <ImageView
+                style="@style/AppBottomNavigationIcon"
+                android:src="@drawable/bottom_nav_data" />
+
+            <TextView
+                style="@style/AppBottomNavigationLabel"
+                android:text="@string/database" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btn_nav_cloud_code"
+            style="@style/AppBottomNavigationItem"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_margin="2dp"
+            android:contentDescription="@string/cloud">
+
+            <ImageView
+                style="@style/AppBottomNavigationIcon"
+                android:src="@drawable/bottom_nav_cloud" />
+
+            <TextView
+                style="@style/AppBottomNavigationLabel"
+                android:text="@string/cloud" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

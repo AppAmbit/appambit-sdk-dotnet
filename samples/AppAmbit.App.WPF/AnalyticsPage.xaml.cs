@@ -17,36 +17,21 @@ namespace AppAmbit.App.WPF
             Analytics.ClearToken();
         }
 
-        private void onTokenRefreshTest(object sender, EventArgs e)
+        private async void onTokenRefreshTest(object sender, EventArgs e)
         {
             Analytics.ClearToken();
 
-            var logTasks = new List<Task>();
-            for (int i = 0; i < 5; i++)
-            {
-                logTasks.Add(Task.Run(() =>
-                {
-                    Crashes.LogError("Sending 5 errors after an invalid token");
-                }));
-            }
-
-            Task.WhenAll(logTasks);
+            var logTasks = Enumerable.Range(0, 5)
+                .Select(_ => Crashes.LogError("Sending 5 errors after an invalid token"));
+            await Task.WhenAll(logTasks);
 
             Analytics.ClearToken();
 
-            var eventTasks = new List<Task>();
-            for (int i = 0; i < 5; i++)
-            {
-                eventTasks.Add(Task.Run(() =>
-                {
-                    var data = new Dictionary<string, string>();
-                    data.Add("Test Token", "5 events sent");
-
-                    Analytics.TrackEvent("Sending 5 events after an invalid token", data);
-                }));
-            }
-
-            Task.WhenAll(eventTasks);
+            var eventTasks = Enumerable.Range(0, 5)
+                .Select(_ => Analytics.TrackEvent(
+                    "Sending 5 events after an invalid token",
+                    new Dictionary<string, string> { { "Test Token", "5 events sent" } }));
+            await Task.WhenAll(eventTasks);
 
             ShowAlert("Info", "5 events and errors sent");
         }

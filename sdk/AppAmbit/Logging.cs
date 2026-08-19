@@ -31,8 +31,7 @@ namespace AppAmbit
             int? lineNumber = null)
         {
             var exInfo = (exception != null) ? ExceptionInfo.FromException(exception, _deviceId) : null;
-            _ = BuildAndSend(message, logType, exInfo, properties, classFqn, fileName, lineNumber);
-            return Task.CompletedTask;
+            return BuildAndSend(message, logType, exInfo, properties, classFqn, fileName, lineNumber);
         }
 
         public static Task LogEvent(
@@ -44,8 +43,7 @@ namespace AppAmbit
             string? fileName = null,
             int? lineNumber = null)
         {
-            _ = BuildAndSend(message, logType, exception, properties, classFqn, fileName, lineNumber);
-            return Task.CompletedTask;
+            return BuildAndSend(message, logType, exception, properties, classFqn, fileName, lineNumber);
         }
 
         internal static Task LogEventFromExceptionInfo(
@@ -57,8 +55,7 @@ namespace AppAmbit
             string? fileName = null,
             int? lineNumber = null)
         {
-            _ = BuildAndSend(message, logType, exception, properties, classFqn, fileName, lineNumber);
-            return Task.CompletedTask;
+            return BuildAndSend(message, logType, exception, properties, classFqn, fileName, lineNumber);
         }
 
         private static Task BuildAndSend(
@@ -96,8 +93,7 @@ namespace AppAmbit
                 SessionId = string.IsNullOrEmpty(exInfo?.SessionId) ? SessionManager.SessionId : exInfo?.SessionId
             };
 
-            Task.Run(() => SendOrSaveLogEventAsync(log));
-            return Task.CompletedTask;
+            return SendOrSaveLogEventAsync(log);
         }
 
 

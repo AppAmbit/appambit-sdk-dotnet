@@ -9,7 +9,9 @@
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
   </PropertyGroup>
+
   <ItemGroup>
+    <Compile Include="..\NativeCloudCodeDemoCatalog.cs" Link="NativeCloudCodeDemoCatalog.cs" />
     <ProjectReference Include="..\..\sdk\AppAmbit.Maui\AppAmbit.Maui.csproj" />
     <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
   </ItemGroup>
