@@ -1,5 +1,5 @@
 using AppAmbit.Models.CloudCode;
-using AppAmbit.Services.Interfaces;
+using AppAmbit.Enums;
 using AppAmbitAvalonia;
 using Avalonia;
 using Avalonia.Controls;
@@ -211,7 +211,7 @@ public partial class CloudCodeView : UserControl
         UpdateSetupDatabaseButtonState();
         try
         {
-            var result = await CloudCode.Call<DashboardSummary>(Slug("dashboard-summary"), HttpMethodEnum.Get, headers: Headers());
+            var result = await CloudCode.Call<DashboardSummary>(Slug("dashboard-summary"), CloudCodeHttpMethod.Get, headers: Headers());
             var summary = result.Data;
             _databaseAvailable = summary?.DatabaseAvailable == true;
             _databaseTablesReady = summary?.DatabaseTablesReady == true;
@@ -287,28 +287,28 @@ public partial class CloudCodeView : UserControl
         }
     }
 
-    private (string Slug, HttpMethodEnum Method, IReadOnlyDictionary<string, string>? Query, object? Body) Configure(string action)
+    private (string Slug, CloudCodeHttpMethod Method, IReadOnlyDictionary<string, string>? Query, object? Body) Configure(string action)
     {
         var taskId = int.TryParse(TaskIdTextBox.Text?.Trim(), out var parsedTaskId) ? parsedTaskId : 0;
         return action switch
         {
-            "setup-database" => (Slug("setup-database"), HttpMethodEnum.Post, null, null),
-            "create-task" => (Slug("create-task"), HttpMethodEnum.Post, null, new { title = TaskTitleTextBox.Text ?? string.Empty }),
-            "list-tasks" => (Slug("list-tasks"), HttpMethodEnum.Get, new Dictionary<string, string> { ["limit"] = "20" }, null),
-            "complete-task" => (Slug("complete-task"), HttpMethodEnum.Patch, null, new { task_id = taskId }),
-            "delete-task" => (Slug("delete-task"), HttpMethodEnum.Delete, null, new { task_id = taskId }),
-            "create-order" => (Slug("create-order"), HttpMethodEnum.Post, null, new { idempotency_key = Guid.NewGuid().ToString(), amount = 100 }),
-            "dashboard-summary" => (Slug("dashboard-summary"), HttpMethodEnum.Get, null, null),
-            "publish-post" => (Slug("publish-post"), HttpMethodEnum.Post, null, new { title = PublishTitleTextBox.Text ?? string.Empty, body = PublishBodyTextBox.Text ?? string.Empty }),
-            "read-posts" => (Slug("read-posts"), HttpMethodEnum.Get, string.IsNullOrWhiteSpace(PostUuidTextBox.Text) ? null : new Dictionary<string, string> { ["uuid"] = PostUuidTextBox.Text.Trim() }, null),
-            "send-push" => (Slug("send-push"), HttpMethodEnum.Post, null, new { title = $"Cloud Code {Platform} demo", body = $"Push from the .NET {Platform} sample." }),
-            "http-inspector" => ("cloud-demo-http-inspector", HttpMethodEnum.Post, new Dictionary<string, string> { ["source"] = $"dotnet-{Platform}" }, new { message = "hello", count = 2 }),
-            "json-values" => ("cloud-demo-json-values", HttpMethodEnum.Post, null, null),
-            "null-contract" => ("cloud-demo-null-contract", HttpMethodEnum.Get, null, null),
-            "response-shapes" => ("cloud-demo-response-shapes", HttpMethodEnum.Post, null, null),
-            "error-response" => ("cloud-demo-error-response", HttpMethodEnum.Post, null, new { invalid = true }),
-            "timeout-10s" => ("cloud-demo-timeout-10s", HttpMethodEnum.Get, null, null),
-            "runtime-context" => ("cloud-demo-runtime-context", HttpMethodEnum.Get, null, null),
+            "setup-database" => (Slug("setup-database"), CloudCodeHttpMethod.Post, null, null),
+            "create-task" => (Slug("create-task"), CloudCodeHttpMethod.Post, null, new { title = TaskTitleTextBox.Text ?? string.Empty }),
+            "list-tasks" => (Slug("list-tasks"), CloudCodeHttpMethod.Get, new Dictionary<string, string> { ["limit"] = "20" }, null),
+            "complete-task" => (Slug("complete-task"), CloudCodeHttpMethod.Patch, null, new { task_id = taskId }),
+            "delete-task" => (Slug("delete-task"), CloudCodeHttpMethod.Delete, null, new { task_id = taskId }),
+            "create-order" => (Slug("create-order"), CloudCodeHttpMethod.Post, null, new { idempotency_key = Guid.NewGuid().ToString(), amount = 100 }),
+            "dashboard-summary" => (Slug("dashboard-summary"), CloudCodeHttpMethod.Get, null, null),
+            "publish-post" => (Slug("publish-post"), CloudCodeHttpMethod.Post, null, new { title = PublishTitleTextBox.Text ?? string.Empty, body = PublishBodyTextBox.Text ?? string.Empty }),
+            "read-posts" => (Slug("read-posts"), CloudCodeHttpMethod.Get, string.IsNullOrWhiteSpace(PostUuidTextBox.Text) ? null : new Dictionary<string, string> { ["uuid"] = PostUuidTextBox.Text.Trim() }, null),
+            "send-push" => (Slug("send-push"), CloudCodeHttpMethod.Post, null, new { title = $"Cloud Code {Platform} demo", body = $"Push from the .NET {Platform} sample." }),
+            "http-inspector" => ("cloud-demo-http-inspector", CloudCodeHttpMethod.Post, new Dictionary<string, string> { ["source"] = $"dotnet-{Platform}" }, new { message = "hello", count = 2 }),
+            "json-values" => ("cloud-demo-json-values", CloudCodeHttpMethod.Post, null, null),
+            "null-contract" => ("cloud-demo-null-contract", CloudCodeHttpMethod.Get, null, null),
+            "response-shapes" => ("cloud-demo-response-shapes", CloudCodeHttpMethod.Post, null, null),
+            "error-response" => ("cloud-demo-error-response", CloudCodeHttpMethod.Post, null, new { invalid = true }),
+            "timeout-10s" => ("cloud-demo-timeout-10s", CloudCodeHttpMethod.Get, null, null),
+            "runtime-context" => ("cloud-demo-runtime-context", CloudCodeHttpMethod.Get, null, null),
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, null)
         };
     }

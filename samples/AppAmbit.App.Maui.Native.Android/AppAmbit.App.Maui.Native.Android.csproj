@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\NativeCloudCodeDemoCatalog.cs" Link="NativeCloudCodeDemoCatalog.cs" />
+    <Compile Include="..\CloudCode\NativeCloudCodeDemoCatalog.cs" Link="CloudCode\NativeCloudCodeDemoCatalog.cs" />
     <ProjectReference Include="..\..\sdk\AppAmbit.Maui\AppAmbit.Maui.csproj" />
     <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />
   </ItemGroup>

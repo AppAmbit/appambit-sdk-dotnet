@@ -9,7 +9,6 @@ public enum CloudCodeErrorCode
     InvalidBody,
     InvalidHeader,
     InvalidResponseType,
-    Cancelled,
     NetworkUnavailable,
     TimedOut,
     InvalidUrl,
@@ -89,10 +88,6 @@ public sealed class CloudCodeError : Exception
     public static CloudCodeError InvalidResponseType() => new(
         CloudCodeErrorCode.InvalidResponseType,
         "Cloud Code response type is required.");
-
-    public static CloudCodeError Cancelled() => new(
-        CloudCodeErrorCode.Cancelled,
-        "Cloud Code request was cancelled.");
 
     public static CloudCodeError NetworkUnavailable(Exception? cause = null) => new(
         CloudCodeErrorCode.NetworkUnavailable,

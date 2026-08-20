@@ -28,7 +28,7 @@ public static class CloudCode
 
     public static Task<CloudCodeResponse> Call(
         string function,
-        HttpMethodEnum method = HttpMethodEnum.Post,
+        CloudCodeHttpMethod method = CloudCodeHttpMethod.Post,
         IReadOnlyDictionary<string, string>? query = null,
         object? body = null,
         IReadOnlyDictionary<string, string>? headers = null,
@@ -42,7 +42,7 @@ public static class CloudCode
 
     public static Task<CloudCodeResult<T>> Call<T>(
         string function,
-        HttpMethodEnum method = HttpMethodEnum.Post,
+        CloudCodeHttpMethod method = CloudCodeHttpMethod.Post,
         IReadOnlyDictionary<string, string>? query = null,
         object? body = null,
         IReadOnlyDictionary<string, string>? headers = null,

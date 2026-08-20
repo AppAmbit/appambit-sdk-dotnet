@@ -1,5 +1,5 @@
 using AppAmbit.Models.CloudCode;
-using AppAmbit.Services.Interfaces;
+using AppAmbit.Enums;
 using AppAmbitMaui;
 using Microsoft.Maui.Controls.Shapes;
 using Newtonsoft.Json;
@@ -176,7 +176,7 @@ public partial class CloudCodePage : ContentPage
         {
             var result = await CloudCode.Call<DashboardSummary>(
                 Slug("dashboard-summary"),
-                HttpMethodEnum.Get,
+                CloudCodeHttpMethod.Get,
                 headers: Headers());
             var summary = result.Data;
             _databaseAvailable = summary?.DatabaseAvailable == true;
@@ -227,23 +227,23 @@ public partial class CloudCodePage : ContentPage
 
     private Task RunDemoAsync(CloudCodeDemo demo) => demo.Id switch
     {
-        "setup-database" => RunAsync(demo.Id, HttpMethodEnum.Post),
-        "create-task" => RunAsync(demo.Id, HttpMethodEnum.Post, body: new { title = TaskTitleEntry.Text ?? string.Empty }),
-        "list-tasks" => RunAsync(demo.Id, HttpMethodEnum.Get, query: new Dictionary<string, string> { ["limit"] = "20" }),
-        "complete-task" => RunTaskMutationAsync(demo.Id, HttpMethodEnum.Patch),
-        "delete-task" => RunTaskMutationAsync(demo.Id, HttpMethodEnum.Delete),
-        "create-order" => RunAsync(demo.Id, HttpMethodEnum.Post, body: new { idempotency_key = Guid.NewGuid().ToString(), amount = 100 }),
-        "dashboard-summary" => RunTypedAsync<DashboardSummary>(demo.Id, HttpMethodEnum.Get),
-        "publish-post" => RunAsync(demo.Id, HttpMethodEnum.Post, body: new { title = PublishTitleEntry.Text ?? string.Empty, body = PublishBodyEditor.Text ?? string.Empty }),
-        "read-posts" => RunAsync(demo.Id, HttpMethodEnum.Get, query: ReadPostsQuery()),
-        "send-push" => RunAsync(demo.Id, HttpMethodEnum.Post, body: new { title = $"Cloud Code {Platform} demo", body = $"Push from the .NET {Platform} sample." }),
-        "http-inspector" => RunAsync(demo.Id, HttpMethodEnum.Post, new Dictionary<string, string> { ["source"] = $"dotnet-{Platform}" }, new { message = "hello", count = 2 }),
-        "json-values" => RunAsync(demo.Id, HttpMethodEnum.Post),
-        "null-contract" => RunAsync(demo.Id, HttpMethodEnum.Get),
-        "response-shapes" => RunAsync(demo.Id, HttpMethodEnum.Post),
-        "error-response" => RunAsync(demo.Id, HttpMethodEnum.Post, body: new { invalid = true }),
-        "timeout-10s" => RunAsync(demo.Id, HttpMethodEnum.Get),
-        "runtime-context" => RunAsync(demo.Id, HttpMethodEnum.Get),
+        "setup-database" => RunAsync(demo.Id, CloudCodeHttpMethod.Post),
+        "create-task" => RunAsync(demo.Id, CloudCodeHttpMethod.Post, body: new { title = TaskTitleEntry.Text ?? string.Empty }),
+        "list-tasks" => RunAsync(demo.Id, CloudCodeHttpMethod.Get, query: new Dictionary<string, string> { ["limit"] = "20" }),
+        "complete-task" => RunTaskMutationAsync(demo.Id, CloudCodeHttpMethod.Patch),
+        "delete-task" => RunTaskMutationAsync(demo.Id, CloudCodeHttpMethod.Delete),
+        "create-order" => RunAsync(demo.Id, CloudCodeHttpMethod.Post, body: new { idempotency_key = Guid.NewGuid().ToString(), amount = 100 }),
+        "dashboard-summary" => RunTypedAsync<DashboardSummary>(demo.Id, CloudCodeHttpMethod.Get),
+        "publish-post" => RunAsync(demo.Id, CloudCodeHttpMethod.Post, body: new { title = PublishTitleEntry.Text ?? string.Empty, body = PublishBodyEditor.Text ?? string.Empty }),
+        "read-posts" => RunAsync(demo.Id, CloudCodeHttpMethod.Get, query: ReadPostsQuery()),
+        "send-push" => RunAsync(demo.Id, CloudCodeHttpMethod.Post, body: new { title = $"Cloud Code {Platform} demo", body = $"Push from the .NET {Platform} sample." }),
+        "http-inspector" => RunAsync(demo.Id, CloudCodeHttpMethod.Post, new Dictionary<string, string> { ["source"] = $"dotnet-{Platform}" }, new { message = "hello", count = 2 }),
+        "json-values" => RunAsync(demo.Id, CloudCodeHttpMethod.Post),
+        "null-contract" => RunAsync(demo.Id, CloudCodeHttpMethod.Get),
+        "response-shapes" => RunAsync(demo.Id, CloudCodeHttpMethod.Post),
+        "error-response" => RunAsync(demo.Id, CloudCodeHttpMethod.Post, body: new { invalid = true }),
+        "timeout-10s" => RunAsync(demo.Id, CloudCodeHttpMethod.Get),
+        "runtime-context" => RunAsync(demo.Id, CloudCodeHttpMethod.Get),
         _ => throw new ArgumentOutOfRangeException(nameof(demo), demo.Id, null)
     };
 
@@ -253,7 +253,7 @@ public partial class CloudCodePage : ContentPage
         return string.IsNullOrWhiteSpace(uuid) ? null : new Dictionary<string, string> { ["uuid"] = uuid };
     }
 
-    private async Task RunTaskMutationAsync(string name, HttpMethodEnum method)
+    private async Task RunTaskMutationAsync(string name, CloudCodeHttpMethod method)
     {
         if (!int.TryParse(TaskIdEntry.Text?.Trim(), out var taskId))
         {
@@ -267,7 +267,7 @@ public partial class CloudCodePage : ContentPage
 
     private async Task RunAsync(
         string name,
-        HttpMethodEnum method,
+        CloudCodeHttpMethod method,
         IReadOnlyDictionary<string, string>? query = null,
         object? body = null)
     {
@@ -302,7 +302,7 @@ public partial class CloudCodePage : ContentPage
         }
     }
 
-    private async Task RunTypedAsync<T>(string name, HttpMethodEnum method)
+    private async Task RunTypedAsync<T>(string name, CloudCodeHttpMethod method)
     {
         if (_isRunning) return;
         _isRunning = true;

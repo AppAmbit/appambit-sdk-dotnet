@@ -103,7 +103,14 @@ public class APIService : IAPIService, IHttpTransport
         catch (UnauthorizedException)
         {
             // CMS uses X-App-Key, not Bearer token — do not trigger token renewal.
-            if (endpoint is RegisterEndpoint || endpoint is TokenEndpoint || endpoint is CmsEndpoint)
+            if (endpoint is TokenEndpoint)
+            {
+                Debug.WriteLine("[APIService] Token renew endpoint also failed. Session and Token must be cleared");
+                ClearToken();
+                return ApiResult<T>.Fail(ApiErrorType.Unauthorized, "Unauthorized");
+            }
+
+            if (endpoint is RegisterEndpoint || endpoint is CmsEndpoint)
             {
                 if (endpoint is CmsEndpoint)
                     return ApiResult<T>.Fail(ApiErrorType.Unauthorized, "Unauthorized");
@@ -330,6 +337,15 @@ public class APIService : IAPIService, IHttpTransport
             {
                 if (tokenRenewalResult == ApiErrorType.NetworkUnavailable)
                     throw new HttpRequestException("No internet available");
+
+                if (tokenRenewalResult == ApiErrorType.Unauthorized)
+                {
+                    return new HttpResponseSnapshot(
+                        (int)HttpStatusCode.Unauthorized,
+                        new Dictionary<string, string>(),
+                        null,
+                        null);
+                }
 
                 throw new HttpRequestException($"Token renewal failed: {tokenRenewalResult}");
             }

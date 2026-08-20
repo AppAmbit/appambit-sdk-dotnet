@@ -48,8 +48,9 @@ public sealed class CloudCodeTests : IDisposable
         Assert.Equal("request-123", result.RequestId);
         Assert.Equal("yes", result.Headers["X-Custom"]);
         Assert.Equal("{\"ok\":true,\"value\":7}", result.RawBody);
-        Assert.IsType<JObject>(result.Data);
-        Assert.Contains("ok", result.Data!.ToString());
+        var data = Assert.IsType<Dictionary<string, object?>>(result.Data);
+        Assert.Equal(true, data["ok"]);
+        Assert.Equal(7L, data["value"]);
     }
 
     [Fact]
@@ -60,7 +61,7 @@ public sealed class CloudCodeTests : IDisposable
 
         var result = await CloudCode.Call<TaskResponse>(
             "cloud-demo-create-task-ios",
-            HttpMethodEnum.Post,
+            CloudCodeHttpMethod.Post,
             body: new { title = "task" });
 
         Assert.Equal(201, result.StatusCode);
@@ -80,7 +81,7 @@ public sealed class CloudCodeTests : IDisposable
 
         var result = await CloudCode.Call<TaskResponse>(
             "cloud-demo-delete-task-ios",
-            HttpMethodEnum.Delete,
+            CloudCodeHttpMethod.Delete,
             body: new { task_id = 4 });
 
         Assert.Equal(204, result.StatusCode);
@@ -102,6 +103,47 @@ public sealed class CloudCodeTests : IDisposable
     }
 
     [Fact]
+    public async Task Call_DynamicNullBody_ReturnsNullData()
+    {
+        var transport = new FakeTransport(_ => Snapshot(200, "null"));
+        CloudCode.Initialize(new CloudCodeService(transport));
+
+        var result = await CloudCode.Call("cloud-demo-null-contract");
+
+        Assert.Equal(200, result.StatusCode);
+        Assert.Null(result.Data);
+    }
+
+    [Fact]
+    public async Task Call_DynamicResponse_UsesNativeArraysAndPrimitives()
+    {
+        var responses = new[]
+        {
+            ("\"hello\"", typeof(string)),
+            ("42", typeof(long)),
+            ("true", typeof(bool))
+        };
+
+        foreach (var (rawBody, expectedType) in responses)
+        {
+            var transport = new FakeTransport(_ => Snapshot(200, rawBody));
+            CloudCode.Initialize(new CloudCodeService(transport));
+
+            var result = await CloudCode.Call("cloud-demo-json-values");
+
+            Assert.IsType(expectedType, result.Data);
+        }
+
+        var arrayTransport = new FakeTransport(_ => Snapshot(200, "[1,{\"ok\":true}]"));
+        CloudCode.Initialize(new CloudCodeService(arrayTransport));
+
+        var arrayResult = await CloudCode.Call("cloud-demo-json-values");
+        var array = Assert.IsType<List<object?>>(arrayResult.Data);
+        Assert.Equal(1L, array[0]);
+        Assert.IsType<Dictionary<string, object?>>(array[1]);
+    }
+
+    [Fact]
     public async Task Call_HttpError_PreservesRawBodyRequestIdAndParsedBody()
     {
         var transport = new FakeTransport(_ => Snapshot(
@@ -115,7 +157,8 @@ public sealed class CloudCodeTests : IDisposable
         Assert.Equal(429, error.StatusCode);
         Assert.Equal("body-id", error.RequestId);
         Assert.Null(error.RawBody);
-        Assert.Contains("quota", error.Body!.ToString());
+        var body = Assert.IsType<Dictionary<string, object?>>(error.Body);
+        Assert.Equal("quota", body["error"]);
     }
 
     [Theory]
@@ -163,6 +206,23 @@ public sealed class CloudCodeTests : IDisposable
         Assert.Equal(0, transport.CallCount);
     }
 
+    [Theory]
+    [InlineData("scalar")]
+    [InlineData("array")]
+    public async Task Call_ValidationRejectsNonObjectBodies(string bodyKind)
+    {
+        var transport = new FakeTransport(_ => Snapshot(200, "{}"));
+        CloudCode.Initialize(new CloudCodeService(transport));
+        object body = bodyKind == "scalar" ? "value" : new[] { 1, 2 };
+
+        var error = await Assert.ThrowsAsync<CloudCodeError>(() => CloudCode.Call(
+            "valid-slug",
+            body: body));
+
+        Assert.Equal(CloudCodeErrorCode.InvalidBody, error.Code);
+        Assert.Equal(0, transport.CallCount);
+    }
+
     [Fact]
     public async Task Call_SnapshotsBodyAndBuildsEncodedQueryAndDeleteBody()
     {
@@ -172,7 +232,7 @@ public sealed class CloudCodeTests : IDisposable
 
         var call = CloudCode.Call(
             "slug.with-tilde",
-            HttpMethodEnum.Delete,
+            CloudCodeHttpMethod.Delete,
             new Dictionary<string, string>
             {
                 ["z-last"] = "last",
@@ -185,6 +245,7 @@ public sealed class CloudCodeTests : IDisposable
 
         var endpoint = Assert.IsType<CloudCodeEndpoint>(transport.LastEndpoint);
         Assert.Equal("/fn/slug.with-tilde?a-first=a%20value&z-last=last", endpoint.Url);
+        Assert.Equal(HttpMethodEnum.Delete, endpoint.Method);
         Assert.Equal("{\"title\":\"before\"}", endpoint.BodyJson);
         Assert.Equal("dotnet", endpoint.CustomHeader["X-Client"]);
     }

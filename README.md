@@ -158,13 +158,13 @@ using AppAmbit.Enums;
 
 var response = await CloudCode.Call(
     "hello",
-    HttpMethodEnum.Post,
+    CloudCodeHttpMethod.Post,
     body: new { name = "Ada" });
 
 Console.WriteLine(response.Data);
 ```
 
-Backend examples are included in [`CloudCodeExamplesAndroid.js`](./CloudCodeExamplesAndroid.js) and [`CloudCodeExamplesiOS.js`](./CloudCodeExamplesiOS.js).
+Backend examples are included in [`CloudCodeExamplesAndroid.js`](./samples/CloudCode/CloudCodeExamplesAndroid.js) and [`CloudCodeExamplesiOS.js`](./samples/CloudCode/CloudCodeExamplesiOS.js).
 
 See the complete [Cloud Code mobile guide](https://docs.appambit.com/sdk-guides/cloud-code/) for function setup, HTTP triggers, typed and dynamic responses, errors, request IDs, cancellation, timeouts, and backend examples.
 

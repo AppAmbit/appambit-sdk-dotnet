@@ -68,6 +68,35 @@ public sealed class ApiServiceTokenTests
     }
 
     [Fact]
+    public async Task CloudCodeMissingToken_WhenRenewalIsUnauthorized_Returns401Snapshot()
+    {
+        await using var server = new ProbeServer(request => request.Path == "/consumer/token"
+            ? new ProbeResponse(401, "{}")
+            : new ProbeResponse(404, "{}"));
+
+        var service = CreateService(server);
+        service.SetToken("");
+        var endpoint = new CloudCodeEndpoint(
+            "hello",
+            CloudCodeHttpMethod.Get,
+            null,
+            null,
+            null)
+        {
+            BaseUrl = server.BaseUrl
+        };
+
+        var response = await ((IHttpTransport)service).ExecuteRawRequestAsync(
+            endpoint,
+            TimeSpan.FromSeconds(2));
+
+        Assert.Equal(401, response.StatusCode);
+        Assert.Equal(1, server.Requests.Count(request => request.Path == "/consumer/token"));
+        Assert.DoesNotContain(server.Requests, request => request.Path == "/fn/hello");
+        Assert.Empty(server.Errors);
+    }
+
+    [Fact]
     public async Task UnauthorizedRequest_RefreshesAndRetriesOnce()
     {
         var unauthorizedResponses = 0;

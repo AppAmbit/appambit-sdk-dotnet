@@ -1,4 +1,4 @@
-using AppAmbit.Services.Interfaces;
+using AppAmbit.Enums;
 
 namespace AppAmbitTestingApp.Shared;
 
@@ -11,7 +11,7 @@ public sealed record NativeCloudCodeDemo(
 
 public sealed record NativeCloudCodeRequest(
     string Slug,
-    HttpMethodEnum Method,
+    CloudCodeHttpMethod Method,
     IReadOnlyDictionary<string, string>? Query,
     object? Body);
 
@@ -64,23 +64,23 @@ public static class NativeCloudCodeDemoCatalog
         var slug = Slug(id, platform);
         return id switch
         {
-            "setup-database" => new(slug, HttpMethodEnum.Post, null, null),
-            "create-task" => new(slug, HttpMethodEnum.Post, null, new { title = taskTitle }),
-            "list-tasks" => new(slug, HttpMethodEnum.Get, new Dictionary<string, string> { ["limit"] = "20" }, null),
-            "complete-task" => new(slug, HttpMethodEnum.Patch, null, new { task_id = taskId }),
-            "delete-task" => new(slug, HttpMethodEnum.Delete, null, new { task_id = taskId }),
-            "create-order" => new(slug, HttpMethodEnum.Post, null, new { idempotency_key = Guid.NewGuid().ToString(), amount = 100 }),
-            "dashboard-summary" => new(slug, HttpMethodEnum.Get, null, null),
-            "publish-post" => new(slug, HttpMethodEnum.Post, null, new { title = publishTitle, body = publishBody }),
-            "read-posts" => new(slug, HttpMethodEnum.Get, string.IsNullOrWhiteSpace(postUuid) ? null : new Dictionary<string, string> { ["uuid"] = postUuid.Trim() }, null),
-            "send-push" => new(slug, HttpMethodEnum.Post, null, new { title = $"Cloud Code {platform} demo", body = $"Push from the .NET {platform} sample." }),
-            "http-inspector" => new(slug, HttpMethodEnum.Post, new Dictionary<string, string> { ["source"] = $"dotnet-{platform}" }, new { message = "hello", count = 2 }),
-            "json-values" => new(slug, HttpMethodEnum.Post, null, null),
-            "null-contract" => new(slug, HttpMethodEnum.Get, null, null),
-            "response-shapes" => new(slug, HttpMethodEnum.Post, null, null),
-            "error-response" => new(slug, HttpMethodEnum.Post, null, new { invalid = true }),
-            "timeout-10s" => new(slug, HttpMethodEnum.Get, null, null),
-            "runtime-context" => new(slug, HttpMethodEnum.Get, null, null),
+            "setup-database" => new(slug, CloudCodeHttpMethod.Post, null, null),
+            "create-task" => new(slug, CloudCodeHttpMethod.Post, null, new { title = taskTitle }),
+            "list-tasks" => new(slug, CloudCodeHttpMethod.Get, new Dictionary<string, string> { ["limit"] = "20" }, null),
+            "complete-task" => new(slug, CloudCodeHttpMethod.Patch, null, new { task_id = taskId }),
+            "delete-task" => new(slug, CloudCodeHttpMethod.Delete, null, new { task_id = taskId }),
+            "create-order" => new(slug, CloudCodeHttpMethod.Post, null, new { idempotency_key = Guid.NewGuid().ToString(), amount = 100 }),
+            "dashboard-summary" => new(slug, CloudCodeHttpMethod.Get, null, null),
+            "publish-post" => new(slug, CloudCodeHttpMethod.Post, null, new { title = publishTitle, body = publishBody }),
+            "read-posts" => new(slug, CloudCodeHttpMethod.Get, string.IsNullOrWhiteSpace(postUuid) ? null : new Dictionary<string, string> { ["uuid"] = postUuid.Trim() }, null),
+            "send-push" => new(slug, CloudCodeHttpMethod.Post, null, new { title = $"Cloud Code {platform} demo", body = $"Push from the .NET {platform} sample." }),
+            "http-inspector" => new(slug, CloudCodeHttpMethod.Post, new Dictionary<string, string> { ["source"] = $"dotnet-{platform}" }, new { message = "hello", count = 2 }),
+            "json-values" => new(slug, CloudCodeHttpMethod.Post, null, null),
+            "null-contract" => new(slug, CloudCodeHttpMethod.Get, null, null),
+            "response-shapes" => new(slug, CloudCodeHttpMethod.Post, null, null),
+            "error-response" => new(slug, CloudCodeHttpMethod.Post, null, new { invalid = true }),
+            "timeout-10s" => new(slug, CloudCodeHttpMethod.Get, null, null),
+            "runtime-context" => new(slug, CloudCodeHttpMethod.Get, null, null),
             _ => throw new ArgumentOutOfRangeException(nameof(id), id, null)
         };
     }

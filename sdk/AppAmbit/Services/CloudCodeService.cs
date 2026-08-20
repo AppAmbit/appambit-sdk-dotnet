@@ -25,7 +25,7 @@ internal sealed class CloudCodeService
 
     internal Task<CloudCodeResponse> CallAsync(
         string function,
-        HttpMethodEnum method = HttpMethodEnum.Post,
+        CloudCodeHttpMethod method = CloudCodeHttpMethod.Post,
         IReadOnlyDictionary<string, string>? query = null,
         object? body = null,
         IReadOnlyDictionary<string, string>? headers = null,
@@ -53,7 +53,7 @@ internal sealed class CloudCodeService
 
     internal Task<CloudCodeResult<T>> CallAsync<T>(
         string function,
-        HttpMethodEnum method = HttpMethodEnum.Post,
+        CloudCodeHttpMethod method = CloudCodeHttpMethod.Post,
         IReadOnlyDictionary<string, string>? query = null,
         object? body = null,
         IReadOnlyDictionary<string, string>? headers = null,
@@ -105,14 +105,18 @@ internal sealed class CloudCodeService
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(CloudCodeTimeout.ForCurrentTarget);
 
-        HttpResponseSnapshot snapshot;
         try
         {
-            snapshot = await _transport.ExecuteRawRequestAsync(
+            var snapshot = await _transport.ExecuteRawRequestAsync(
                 endpoint,
                 CloudCodeTimeout.ForCurrentTarget,
                 timeoutCts.Token);
             timeoutCts.Token.ThrowIfCancellationRequested();
+            RequireSuccess(snapshot);
+            timeoutCts.Token.ThrowIfCancellationRequested();
+            var result = mapper(snapshot);
+            timeoutCts.Token.ThrowIfCancellationRequested();
+            return result;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -145,15 +149,11 @@ internal sealed class CloudCodeService
             throw CloudCodeError.Transport(error.Message, error);
         }
 
-        timeoutCts.Token.ThrowIfCancellationRequested();
-        RequireSuccess(snapshot);
-        timeoutCts.Token.ThrowIfCancellationRequested();
-        return mapper(snapshot);
     }
 
     private static CloudCodeError? Validate(
         string function,
-        HttpMethodEnum method,
+        CloudCodeHttpMethod method,
         IReadOnlyDictionary<string, string>? query,
         IReadOnlyDictionary<string, string>? headers)
     {
@@ -204,7 +204,7 @@ internal sealed class CloudCodeService
             try
             {
                 var parsed = DeserializeDynamic(snapshot.RawBody);
-                if (parsed is JObject or JArray)
+                if (parsed is Dictionary<string, object?> or List<object?>)
                 {
                     body = parsed;
                     rawBody = null;
@@ -230,12 +230,34 @@ internal sealed class CloudCodeService
 
         try
         {
-            return JToken.Parse(rawBody);
+            using var reader = new JsonTextReader(new StringReader(rawBody))
+            {
+                DateParseHandling = DateParseHandling.None
+            };
+            return ToNative(JToken.Load(reader));
         }
         catch (Exception error)
         {
             throw CloudCodeError.Decoding(error.Message, rawBody, error);
         }
+    }
+
+    private static object? ToNative(JToken token)
+    {
+        if (token is JValue value) return value.Value;
+
+        if (token is JObject jsonObject)
+        {
+            var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+            foreach (var property in jsonObject.Properties())
+                result[property.Name] = ToNative(property.Value);
+            return result;
+        }
+
+        if (token is JArray jsonArray)
+            return jsonArray.Select(ToNative).ToList();
+
+        throw new JsonException($"Unsupported JSON token type: {token.Type}.");
     }
 
     private static bool IsNetworkUnavailable(HttpRequestException error)
