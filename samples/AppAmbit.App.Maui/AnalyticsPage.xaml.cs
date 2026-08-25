@@ -25,20 +25,16 @@ public partial class AnalyticsPage : ContentPage
     {
         Analytics.ClearToken();
         var logsTask = Range(0, 5).Select(
-            _ => Task.Run(() =>
-            {
-                Crashes.LogError("Sending 5 errors after an invalid token");
-            }));
+            _ => Crashes.LogError("Sending 5 errors after an invalid token"));
 
-        var eventsTask = Range(0, 5).Select(
-            _ => Task.Run(() =>
-            {
-                Analytics.TrackEvent("Sending 5 events after an invalid token",
-                new Dictionary<string, string>
-                {{"Test Token", "5 events sent"}});
-            }));
         await Task.WhenAll(logsTask);
         Analytics.ClearToken();
+
+        var eventsTask = Range(0, 5).Select(
+            _ => Analytics.TrackEvent("Sending 5 events after an invalid token",
+                new Dictionary<string, string>
+                {{"Test Token", "5 events sent"}}));
+
         await Task.WhenAll(eventsTask);
         await DisplayAlert("Info", "5 events and errors sent", "Ok");
     }

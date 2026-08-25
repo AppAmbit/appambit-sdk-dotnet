@@ -3,9 +3,25 @@
     <item
         android:id="@+id/nav_crashes"
         android:title="@string/crashes"
-        android:icon="@android:drawable/ic_menu_info_details" />
+        android:icon="@drawable/bottom_nav_crashes" />
     <item
         android:id="@+id/nav_analytics"
         android:title="@string/analytics"
-        android:icon="@android:drawable/ic_menu_view" />
+        android:icon="@drawable/bottom_nav_analytics" />
+    <item
+        android:id="@+id/nav_config"
+        android:title="@string/config"
+        android:icon="@drawable/bottom_nav_config" />
+    <item
+        android:id="@+id/nav_cms"
+        android:title="@string/cms"
+        android:icon="@drawable/bottom_nav_cms" />
+    <item
+        android:id="@+id/nav_database"
+        android:title="@string/database"
+        android:icon="@drawable/bottom_nav_data" />
+    <item
+        android:id="@+id/nav_cloud_code"
+        android:title="@string/cloud"
+        android:icon="@drawable/bottom_nav_cloud" />
 </menu>

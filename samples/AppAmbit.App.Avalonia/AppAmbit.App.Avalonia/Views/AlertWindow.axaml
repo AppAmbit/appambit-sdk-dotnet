@@ -5,6 +5,8 @@
   <StackPanel Margin="12" Spacing="10">
     <TextBlock Name="txtMessage" TextWrapping="Wrap"/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button Name="btnRun" Width="80" Content="Run" IsVisible="False" Margin="0,0,8,0"/>
+      <Button Name="btnCancel" Width="80" Content="Cancel" IsVisible="False" Margin="0,0,8,0"/>
       <Button Name="btnOk" Width="80" Content="OK"/>
     </StackPanel>
   </StackPanel>

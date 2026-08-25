@@ -30,6 +30,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\CloudCode\NativeCloudCodeDemoCatalog.cs" Link="CloudCode\NativeCloudCodeDemoCatalog.cs" />
     <!-- Native iOS apps should reference AppAmbit Core, not AppAmbit.Maui -->
     <ProjectReference Include="..\..\sdk\AppAmbit\AppAmbit.csproj" />
     <ProjectReference Include="..\..\push\AppAmbit.PushNotifications\AppAmbit.PushNotifications.csproj" />

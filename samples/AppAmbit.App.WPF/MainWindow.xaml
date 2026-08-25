@@ -5,17 +5,57 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AppAmbit.App.WPF"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="AppAmbit SDK" Height="600" Width="960"
+        MinHeight="480" MinWidth="720"
+        Background="#F7F8FC">
+
+    <Window.Resources>
+        <Style x:Key="NavButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="#666274" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="18,10" />
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="NavButtonBorder" Background="{TemplateBinding Background}" CornerRadius="16" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="NavButtonBorder" Property="Background" Value="#E8E2FF" />
+                                <Setter Property="Foreground" Value="#40318F" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="NavButtonBorder" Property="Background" Value="#F0EEFA" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
-            <RowDefinition Height="60" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" />
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Background="#EEE" HorizontalAlignment="Center" VerticalAlignment="Center" >
-            <Button Content="Crashes" Width="120" Height="35" Margin="10" Click="ButtonPage1_Click" Background="Blue" Foreground="White"/>
-            <Button Content="Analytics" Width="120" Height="35" Margin="10" Click="ButtonPage2_Click" Background="Blue" Foreground="White"/>
-        </StackPanel>
+        <Border Grid.Row="0" Margin="20" Background="White" CornerRadius="20">
+            <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" />
+        </Border>
+        <Border Grid.Row="1" Margin="20,0,20,18" Padding="6" Background="#F8F7FC" CornerRadius="24">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="18" ShadowDepth="2" Opacity="0.12" />
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <ToggleButton x:Name="CrashesNavButton" Content="Crashes" Style="{StaticResource NavButtonStyle}" Click="ButtonPage1_Click" />
+                <ToggleButton x:Name="AnalyticsNavButton" Content="Analytics" Style="{StaticResource NavButtonStyle}" Click="ButtonPage2_Click" />
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
