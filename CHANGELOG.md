@@ -1,3 +1,13 @@
+## Version 4.2.0
+
+### AppAmbit
+
+* **[Feature]** Added Cloud Code HTTP invocation for the MAUI, Avalonia, and core .NET SDKs through the `CloudCode.Call` API.
+* **[Feature]** Added typed and dynamic JSON responses, request IDs, cancellation, reserved-header validation, and a 60-second Cloud Code timeout.
+* **[Feature]** Added Cloud Code sample tabs and backend demonstration functions for Database, CMS, Push, event triggers, manual triggers, errors, and timeout behavior.
+
+---
+
 ## Version 4.1.1
 
 ### AppAmbit Push Notifications
