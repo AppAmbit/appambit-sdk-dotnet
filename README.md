@@ -64,7 +64,7 @@ Add the package to your MAUI project:
 ```bash
 dotnet add package com.AppAmbit.Sdk
 # or specify version
-dotnet add package com.AppAmbit.Sdk --version 4.1.1
+dotnet add package com.AppAmbit.Sdk --version 4.2.0
 ```
 
 Or, using Visual Studio:
