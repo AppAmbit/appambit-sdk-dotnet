@@ -6,4 +6,11 @@
     <color name="app_card">#FAFAFE</color>
     <color name="app_stroke">#33000000</color>
     <color name="app_ripple">#26FFFFFF</color>
+    <color name="nav_surface">#F8F7FC</color>
+    <color name="nav_active">#E9E5FF</color>
+    <color name="nav_active_text">#40318F</color>
+    <color name="nav_muted_text">#666274</color>
+    <color name="nav_border">#14000000</color>
+    <color name="nav_pressed">#14000000</color>
+    <color name="nav_ripple">#263F318F</color>
 </resources>

@@ -22,6 +22,15 @@ public class MainActivity : MauiAppCompatActivity
 
         base.OnCreate(savedInstanceState);
         PushNotifications.Start(this);
+
+        var bottomNavigation = new MauiBottomNavigationView(this);
+        var layoutParams = new Android.Widget.FrameLayout.LayoutParams(
+            Android.Views.ViewGroup.LayoutParams.MatchParent,
+            MauiBottomNavigationView.HeightInDp(this))
+        {
+            Gravity = Android.Views.GravityFlags.Bottom
+        };
+        Window?.AddContentView(bottomNavigation, layoutParams);
     }
 
     protected override void OnNewIntent(Intent? intent)

@@ -4,6 +4,7 @@ using AppAmbit.Services.ExceptionsCustom;
 using AppAmbit.Services.Interfaces;
 using AppAmbit.Enums;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
@@ -13,23 +14,81 @@ using AppAmbit.Services.Endpoints;
 
 namespace AppAmbit.Services;
 
-public class APIService : IAPIService
+public class APIService : IAPIService, IHttpTransport
 {
+    private static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(20);
     private string? _token;
-    private Task<ApiErrorType>? currentTokenRenewalTask;
+    private Task<ApiErrorType>? tokenRenewalTask;
+    private readonly object tokenRenewalLock = new();
+    private readonly Func<Task<TokenEndpoint>> tokenEndpointFactory;
 
-    public async Task<ApiResult<T>?> ExecuteRequest<T>(IEndpoint endpoint, CancellationToken cancellationToken = default) where T : notnull
+    public APIService() : this(null)
     {
-        if (!await HasInternetConnectionAsync())
-        {
-            Debug.WriteLine("[APIService] Offline - Cannot send request.");
-            return ApiResult<T>.Fail(ApiErrorType.NetworkUnavailable, "No internet available");
-        }
+    }
+
+    internal APIService(Func<Task<TokenEndpoint>>? tokenEndpointFactory)
+    {
+        this.tokenEndpointFactory = tokenEndpointFactory ?? TokenService.CreateTokenendpoint;
+    }
+
+    public Task<ApiResult<T>?> ExecuteRequest<T>(IEndpoint endpoint, CancellationToken cancellationToken = default) where T : notnull
+    {
+        return ExecuteRequestCore<T>(
+            endpoint,
+            cancellationToken,
+            DateTime.UtcNow.Add(DefaultRequestTimeout),
+            allowUnauthorizedRetry: true);
+    }
+
+    private async Task<ApiResult<T>?> ExecuteRequestCore<T>(
+        IEndpoint endpoint,
+        CancellationToken cancellationToken,
+        DateTime deadline,
+        bool allowUnauthorizedRetry) where T : notnull
+    {
+        using var operationCts = CreateDeadlineTokenSource(cancellationToken, deadline);
+        var operationToken = operationCts.Token;
+        string? requestToken = null;
 
         try
         {
-            var httpResponse = await RequestHttp(endpoint, cancellationToken);
-            var json = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            operationToken.ThrowIfCancellationRequested();
+            if (!await HasInternetConnectionAsync().WaitAsync(operationToken))
+            {
+                Debug.WriteLine("[APIService] Offline - Cannot send request.");
+                return ApiResult<T>.Fail(ApiErrorType.NetworkUnavailable, "No internet available");
+            }
+
+            if (RequiresConsumerToken(endpoint) && string.IsNullOrWhiteSpace(GetToken()))
+            {
+                Debug.WriteLine("[APIService] Token missing - triggering renewal before request");
+                ApiErrorType tokenRenewalResult;
+                try
+                {
+                    tokenRenewalResult = await RenewTokenSingleFlight(operationToken, deadline);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (OperationCanceledException)
+                {
+                    return ApiResult<T>.Fail(ApiErrorType.Unknown, "Request timed out");
+                }
+                catch (Exception ex)
+                {
+                    return HandleTokenRenewalException<T>(ex);
+                }
+
+                if (!IsRenewSuccess(tokenRenewalResult))
+                    return HandleFailedRenewalResult<T>(tokenRenewalResult);
+            }
+
+            requestToken = GetToken();
+            var httpResponse = await RequestHttp(endpoint, operationToken, Remaining(deadline));
+            operationToken.ThrowIfCancellationRequested();
+            var json = await httpResponse.Content.ReadAsStringAsync(operationToken);
+            operationToken.ThrowIfCancellationRequested();
 
             if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -44,7 +103,14 @@ public class APIService : IAPIService
         catch (UnauthorizedException)
         {
             // CMS uses X-App-Key, not Bearer token — do not trigger token renewal.
-            if (endpoint is RegisterEndpoint || endpoint is TokenEndpoint || endpoint is CmsEndpoint)
+            if (endpoint is TokenEndpoint)
+            {
+                Debug.WriteLine("[APIService] Token renew endpoint also failed. Session and Token must be cleared");
+                ClearToken();
+                return ApiResult<T>.Fail(ApiErrorType.Unauthorized, "Unauthorized");
+            }
+
+            if (endpoint is RegisterEndpoint || endpoint is CmsEndpoint)
             {
                 if (endpoint is CmsEndpoint)
                     return ApiResult<T>.Fail(ApiErrorType.Unauthorized, "Unauthorized");
@@ -54,35 +120,51 @@ public class APIService : IAPIService
                 return default;
             }
 
-            if (!IsRenewingToken())
-            {
-                try
-                {
-                    Debug.WriteLine("[APIService] Token invalid - triggering renewal");
-                    currentTokenRenewalTask = GetNewToken();
-                    var tokenRenewalResult = await currentTokenRenewalTask;
+            if (!allowUnauthorizedRetry)
+                return ApiResult<T>.Fail(ApiErrorType.Unauthorized, "Unauthorized");
 
-                    if (!IsRenewSuccess(tokenRenewalResult))
-                    {
-                        return HandleFailedRenewalResult<T>(tokenRenewalResult);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return HandleTokenRenewalException<T>(ex);
-                }
-                finally
-                {
-                    currentTokenRenewalTask = null;
-                }
+            if (!string.Equals(requestToken, GetToken(), StringComparison.Ordinal))
+            {
+                Debug.WriteLine("[APIService] Token was renewed by another request; retrying once");
+                return await ExecuteRequestCore<T>(endpoint, cancellationToken, deadline, allowUnauthorizedRetry: false);
             }
 
-            Debug.WriteLine("[APIService] Retrying request after token renewal");
-            return await ExecuteRequest<T>(endpoint, cancellationToken);
+            Debug.WriteLine("[APIService] Token invalid - triggering one renewal");
+            ApiErrorType tokenRenewalResult;
+            try
+            {
+                tokenRenewalResult = await RenewTokenSingleFlight(operationToken, deadline);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<T>.Fail(ApiErrorType.Unknown, "Request timed out");
+            }
+            catch (Exception ex)
+            {
+                return HandleTokenRenewalException<T>(ex);
+            }
+
+            if (!IsRenewSuccess(tokenRenewalResult))
+                return HandleFailedRenewalResult<T>(tokenRenewalResult);
+
+            Debug.WriteLine("[APIService] Retrying request after one token renewal");
+            return await ExecuteRequestCore<T>(endpoint, cancellationToken, deadline, allowUnauthorizedRetry: false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (OperationCanceledException)
+        {
+            return ApiResult<T>.Fail(ApiErrorType.Unknown, "Request timed out");
+        }
+        catch (TimeoutException)
+        {
+            return ApiResult<T>.Fail(ApiErrorType.Unknown, "Request timed out");
         }
         catch (Exception ex)
         {
@@ -91,9 +173,31 @@ public class APIService : IAPIService
         }
     }
 
-    private bool IsRenewingToken()
+    private Task<ApiErrorType> RenewTokenSingleFlight(CancellationToken cancellationToken, DateTime deadline)
     {
-        return currentTokenRenewalTask != null;
+        Task<ApiErrorType> renewalTask;
+        lock (tokenRenewalLock)
+        {
+            tokenRenewalTask ??= RenewTokenAndClearAsync(deadline);
+            renewalTask = tokenRenewalTask;
+        }
+
+        return renewalTask.WaitAsync(cancellationToken);
+    }
+
+    private async Task<ApiErrorType> RenewTokenAndClearAsync(DateTime deadline)
+    {
+        try
+        {
+            return await GetNewTokenCore(CancellationToken.None, deadline);
+        }
+        finally
+        {
+            lock (tokenRenewalLock)
+            {
+                tokenRenewalTask = null;
+            }
+        }
     }
 
     private bool IsRenewSuccess(ApiErrorType result)
@@ -120,12 +224,21 @@ public class APIService : IAPIService
         return ApiResult<T>.Fail(result, "Token renewal failed");
     }
 
-    public async Task<ApiErrorType> GetNewToken()
+    public Task<ApiErrorType> GetNewToken() =>
+        GetNewTokenCore(CancellationToken.None, DateTime.UtcNow.Add(DefaultRequestTimeout));
+
+    private async Task<ApiErrorType> GetNewTokenCore(CancellationToken cancellationToken, DateTime deadline)
     {
+        using var operationCts = CreateDeadlineTokenSource(cancellationToken, deadline);
+        var operationToken = operationCts.Token;
         try
         {
-            var tokenEndpoint = await TokenService.CreateTokenendpoint();
-            var tokenResponse = await ExecuteRequest<TokenResponse>(tokenEndpoint);
+            var tokenEndpoint = await tokenEndpointFactory().WaitAsync(operationToken);
+            var tokenResponse = await ExecuteRequestCore<TokenResponse>(
+                tokenEndpoint,
+                operationToken,
+                deadline,
+                allowUnauthorizedRetry: false);
 
             if (tokenResponse == null)
             {
@@ -147,6 +260,10 @@ public class APIService : IAPIService
             _token = tokenResponse.Data.Token;
             return ApiErrorType.None;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Debug.WriteLine($"[APIService] Exception during token renew attempt: {ex}");
@@ -162,7 +279,10 @@ public class APIService : IAPIService
         _token = null;
     }
 
-    private async Task<HttpResponseMessage> RequestHttp(IEndpoint endpoint, CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> RequestHttp(
+        IEndpoint endpoint,
+        CancellationToken cancellationToken,
+        TimeSpan timeout)
     {
         HttpClient httpClient;
 
@@ -177,10 +297,10 @@ public class APIService : IAPIService
             ? new SocketsHttpHandler()
             : new HttpClientHandler();
 
-        var loggingHandler = new LoggingHandler(handler);
+        var loggingHandler = new LoggingHandler(handler, rethrowExceptions: true);
         httpClient = new HttpClient(loggingHandler)
         {
-            Timeout = TimeSpan.FromMinutes(2),
+            Timeout = timeout,
         };
 
         httpClient.DefaultRequestHeaders
@@ -192,9 +312,174 @@ public class APIService : IAPIService
             NoCache = true
         };
 
-        var responseMessage = await HttpResponseMessage(endpoint, httpClient, cancellationToken);
+        var responseMessage = await HttpResponseMessage(endpoint, httpClient, timeout, cancellationToken);
         return responseMessage;
     }
+
+    async Task<HttpResponseSnapshot> IHttpTransport.ExecuteRawRequestAsync(
+        IEndpoint endpoint,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTime.UtcNow.Add(timeout);
+        using var operationCts = CreateDeadlineTokenSource(cancellationToken, deadline);
+        var operationToken = operationCts.Token;
+        operationToken.ThrowIfCancellationRequested();
+
+        if (!await HasInternetConnectionAsync().WaitAsync(operationToken))
+            throw new HttpRequestException("No internet available");
+
+        if (RequiresConsumerToken(endpoint) && string.IsNullOrWhiteSpace(GetToken()))
+        {
+            var tokenRenewalResult = await RenewTokenSingleFlight(operationToken, deadline);
+            operationToken.ThrowIfCancellationRequested();
+            if (tokenRenewalResult != ApiErrorType.None)
+            {
+                if (tokenRenewalResult == ApiErrorType.NetworkUnavailable)
+                    throw new HttpRequestException("No internet available");
+
+                if (tokenRenewalResult == ApiErrorType.Unauthorized)
+                {
+                    return new HttpResponseSnapshot(
+                        (int)HttpStatusCode.Unauthorized,
+                        new Dictionary<string, string>(),
+                        null,
+                        null);
+                }
+
+                throw new HttpRequestException($"Token renewal failed: {tokenRenewalResult}");
+            }
+        }
+
+        var retriedAfterUnauthorized = false;
+        while (true)
+        {
+            var requestToken = GetToken();
+            var remaining = Remaining(deadline);
+            using var attemptCts = CreateDeadlineTokenSource(operationToken, deadline);
+            using var client = CreateHttpClient(
+                endpoint is CmsEndpoint ? new SocketsHttpHandler() : new HttpClientHandler(),
+                remaining,
+                logSensitive: false);
+
+            AddAuthorizationHeaderIfNeeded(client, endpoint);
+
+            using var request = BuildRawRequest(endpoint);
+            using var response = await client.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                attemptCts.Token);
+
+            var rawBody = response.Content == null
+                ? null
+                : Encoding.UTF8.GetString(await response.Content.ReadAsByteArrayAsync(attemptCts.Token));
+            var headers = ReadHeaders(response);
+            var snapshot = new HttpResponseSnapshot(
+                (int)response.StatusCode,
+                headers,
+                string.IsNullOrEmpty(rawBody) ? null : rawBody,
+                GetRequestId(headers, rawBody));
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized
+                && RequiresConsumerToken(endpoint)
+                && !retriedAfterUnauthorized)
+            {
+                retriedAfterUnauthorized = true;
+                if (!string.Equals(requestToken, GetToken(), StringComparison.Ordinal)
+                    || await RenewTokenForCloudCode(operationToken, deadline))
+                    continue;
+            }
+
+            return snapshot;
+        }
+    }
+
+    private async Task<bool> RenewTokenForCloudCode(CancellationToken cancellationToken, DateTime deadline)
+    {
+        var result = await RenewTokenSingleFlight(cancellationToken, deadline);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (result == ApiErrorType.NetworkUnavailable)
+            throw new HttpRequestException("No internet available");
+
+        return result == ApiErrorType.None;
+    }
+
+    private HttpClient CreateHttpClient(HttpMessageHandler handler, TimeSpan timeout, bool logSensitive)
+    {
+        var loggingHandler = new LoggingHandler(handler, logSensitive, rethrowExceptions: !logSensitive);
+        var httpClient = new HttpClient(loggingHandler)
+        {
+            Timeout = timeout,
+        };
+
+        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
+        return httpClient;
+    }
+
+    private HttpRequestMessage BuildRawRequest(IEndpoint endpoint)
+    {
+        var uri = new Uri(
+            endpoint.BaseUrl + endpoint.Url,
+            new UriCreationOptions { DangerousDisablePathAndQueryCanonicalization = true });
+
+        var method = endpoint.Method switch
+        {
+            HttpMethodEnum.Get => HttpMethod.Get,
+            HttpMethodEnum.Post => HttpMethod.Post,
+            HttpMethodEnum.Put => HttpMethod.Put,
+            HttpMethodEnum.Delete => HttpMethod.Delete,
+            HttpMethodEnum.Patch => new HttpMethod("PATCH"),
+            _ => throw new ArgumentOutOfRangeException(nameof(endpoint.Method))
+        };
+
+        var request = new HttpRequestMessage(method, uri);
+        if (endpoint is CloudCodeEndpoint cloudCodeEndpoint && cloudCodeEndpoint.BodyJson != null
+            && endpoint.Method != HttpMethodEnum.Get)
+        {
+            request.Content = new StringContent(cloudCodeEndpoint.BodyJson, Encoding.UTF8, "application/json");
+        }
+
+        if (endpoint.CustomHeader != null)
+        {
+            foreach (var header in endpoint.CustomHeader)
+                request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
+        return request;
+    }
+
+    private static IReadOnlyDictionary<string, string> ReadHeaders(HttpResponseMessage response)
+    {
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var header in response.Headers)
+            headers[header.Key] = string.Join(",", header.Value);
+        foreach (var header in response.Content.Headers)
+            headers[header.Key] = string.Join(",", header.Value);
+        return headers;
+    }
+
+    private static string? GetRequestId(IReadOnlyDictionary<string, string> headers, string? rawBody)
+    {
+        var header = headers.FirstOrDefault(pair => string.Equals(pair.Key, "X-Request-Id", StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(header.Value)) return header.Value;
+
+        if (string.IsNullOrWhiteSpace(rawBody)) return null;
+        try
+        {
+            return JObject.Parse(rawBody).GetValue("request_id", StringComparison.OrdinalIgnoreCase)?.ToString();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static bool RequiresConsumerToken(IEndpoint endpoint) =>
+        !endpoint.SkipAuthorization
+        && endpoint is not RegisterEndpoint
+        && endpoint is not TokenEndpoint
+        && endpoint is not CmsEndpoint;
 
     private void CheckStatusCodeFrom(HttpStatusCode code, string body)
     {
@@ -264,9 +549,13 @@ public class APIService : IAPIService
             throw new JsonException(exceptionMessage);
         }
     }
-    private async Task<HttpResponseMessage> HttpResponseMessage(IEndpoint endpoint, HttpClient client, CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> HttpResponseMessage(
+        IEndpoint endpoint,
+        HttpClient client,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
     {
-        client.Timeout = TimeSpan.FromSeconds(10);
+        client.Timeout = timeout;
         AddAuthorizationHeaderIfNeeded(client, endpoint);
 
         var fullUrl = endpoint.BaseUrl + endpoint.Url;
@@ -428,6 +717,25 @@ private string SerializeStringPayload(object payload)
     }
 
     private Task<bool> HasInternetConnectionAsync() => NetConnectivity.HasInternetAsync();
+
+    private static TimeSpan Remaining(DateTime deadline)
+    {
+        var remaining = deadline - DateTime.UtcNow;
+        if (remaining <= TimeSpan.Zero)
+            throw new TimeoutException("Request timed out.");
+
+        return remaining;
+    }
+
+    private static CancellationTokenSource CreateDeadlineTokenSource(
+        CancellationToken cancellationToken,
+        DateTime deadline)
+    {
+        var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var remaining = deadline - DateTime.UtcNow;
+        source.CancelAfter(remaining <= TimeSpan.Zero ? TimeSpan.Zero : remaining);
+        return source;
+    }
 
 
 }

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AppAmbitTestingApp.CloudCodePage"
+             Title="Cloud Code">
+    <ScrollView>
+        <VerticalStackLayout x:Name="RootLayout" Padding="16" Spacing="10">
+            <Label Text="Cloud Code" FontSize="24" FontAttributes="Bold" />
+            <Label x:Name="PlatformLabel" Text="HTTP-triggered functions using the consumer token." />
+
+            <Border Stroke="#D7DCE5" StrokeShape="RoundRectangle 10" Padding="12">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Database" FontSize="18" FontAttributes="Bold" />
+                    <Label Text="Create Database first" TextColor="#2864D2" />
+                    <Label x:Name="DatabaseStatusLabel" Text="Not available" FontAttributes="Bold" />
+                    <Border x:Name="SetupDatabaseCard" Stroke="#D7DCE5" StrokeShape="RoundRectangle 10" Padding="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label x:Name="SetupDatabaseSlugLabel" FontSize="14" FontAttributes="Bold" />
+                                <Label Text="Create the tables used by the Database examples without destroying data." FontSize="12" TextColor="#5F6368" />
+                                <Label Text="Existing linked Database" FontSize="11" TextColor="#7A7A7A" />
+                            </VerticalStackLayout>
+                            <Button x:Name="SetupDatabaseButton" Grid.Column="1" Text="▶ Run" Clicked="OnSetupDatabaseClicked" IsEnabled="False" MinimumHeightRequest="44" />
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Stroke="#D7DCE5" StrokeShape="RoundRectangle 10" Padding="12">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="CMS" FontSize="18" FontAttributes="Bold" />
+                    <Label Text="Create Content Type first" TextColor="#7D4BB4" />
+                    <Label x:Name="CmsStatusLabel" Text="Not available" FontAttributes="Bold" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="Database" FontSize="20" FontAttributes="Bold" Margin="0,8,0,0" />
+            <Entry x:Name="TaskTitleEntry" Text="Buy coffee" Placeholder="Task title" />
+            <Entry x:Name="TaskIdEntry" Placeholder="Task id for update/delete" Keyboard="Numeric" />
+            <VerticalStackLayout x:Name="DatabaseDemosLayout" Spacing="8" />
+
+            <Label Text="CMS" FontSize="20" FontAttributes="Bold" Margin="0,8,0,0" />
+            <Entry x:Name="PostUuidEntry" Placeholder="CMS post UUID (optional)" />
+            <Entry x:Name="PublishTitleEntry" Text="Cloud Code sample post" Placeholder="Sample title" />
+            <Editor x:Name="PublishBodyEditor" Text="Published through an HTTP Cloud Function." Placeholder="Sample body" AutoSize="TextChanges" />
+            <VerticalStackLayout x:Name="CmsDemosLayout" Spacing="8" />
+
+            <Label Text="Push" FontSize="20" FontAttributes="Bold" Margin="0,8,0,0" />
+            <VerticalStackLayout x:Name="PushDemosLayout" Spacing="8" />
+
+            <Label Text="HTTP" FontSize="20" FontAttributes="Bold" Margin="0,8,0,0" />
+            <VerticalStackLayout x:Name="HttpDemosLayout" Spacing="8" />
+
+            <Border x:Name="ResultBorder" IsVisible="False" Stroke="#D7DCE5" StrokeShape="RoundRectangle 10" Padding="12" Margin="0,8,0,0">
+                <VerticalStackLayout Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Label x:Name="ResultTitleLabel" Grid.Column="0" Text="Latest result" FontAttributes="Bold" />
+                        <Button x:Name="ResultToggleButton" Grid.Column="1" Text="⌃" Clicked="OnToggleResultClicked" WidthRequest="44" />
+                    </Grid>
+                    <Editor x:Name="ResultEditor" Text="Run a function to see its response here." IsReadOnly="True" AutoSize="Disabled" HeightRequest="220" FontFamily="monospace" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

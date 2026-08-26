@@ -13,6 +13,11 @@
     <Color x:Key="SecondaryDarkText">#9880e5</Color>
     <Color x:Key="Tertiary">#2B0B98</Color>
 
+    <Color x:Key="NavSurface">#F8F7FC</Color>
+    <Color x:Key="NavActive">#E9E5FF</Color>
+    <Color x:Key="NavActiveText">#40318F</Color>
+    <Color x:Key="NavMutedText">#666274</Color>
+
     <Color x:Key="White">White</Color>
     <Color x:Key="Black">Black</Color>
     <Color x:Key="Magenta">#D600AA</Color>

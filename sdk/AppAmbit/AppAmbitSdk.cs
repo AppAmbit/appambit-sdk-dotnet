@@ -177,6 +177,7 @@ public static class AppAmbitSdk
             BreadcrumbManager.Initialize(apiService!, storageService!);
             Cms.Initialize(apiService);
             AppAmbitDb.Initialize(new DbService(apiService));
+            CloudCode.Initialize(new CloudCodeService((IHttpTransport)apiService));
 
             _servicesReady = true;
             Debug.WriteLine("[AppAmbitSdk] Services initialized successfully.");

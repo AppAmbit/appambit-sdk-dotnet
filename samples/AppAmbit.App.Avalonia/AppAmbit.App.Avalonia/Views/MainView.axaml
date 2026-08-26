@@ -13,8 +13,22 @@
     <vm:MainViewModel />
   </Design.DataContext>
 
-  <Grid RowDefinitions="*,Auto">
-    <Grid Grid.Row="0" Name="ContentGrid">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Grid.Row="0"
+            Name="MobileTitleBar"
+            IsVisible="False"
+            Background="#FFFFFF"
+            BorderBrush="#E5E7EB"
+            BorderThickness="0,0,0,1"
+            Padding="20,14">
+      <TextBlock Name="MobileScreenTitle"
+                 Text="Crashes"
+                 Foreground="#111111"
+                 FontSize="24"
+                 FontWeight="Bold" />
+    </Border>
+
+    <Grid Grid.Row="1" Name="ContentGrid">
       <ScrollViewer Name="CrashesPanel" IsVisible="True">
         <StackPanel Margin="12">
           <TextBlock Text="Crashes" FontSize="18" FontWeight="Bold" Margin="0,0,0,12" />
@@ -103,8 +117,11 @@
       <!-- Database view -->
       <views:DatabaseView Name="DatabasePanel" IsVisible="False" />
 
+      <!-- Cloud Code view -->
+      <views:CloudCodeView Name="CloudCodePanel" IsVisible="False" />
+
     </Grid>
-    <Border Grid.Row="1" Background="Transparent" Padding="8,12">
+    <Border Grid.Row="2" Background="Transparent" Padding="8,12">
       <Border Name="BottomNav" Background="{StaticResource NavBackgroundBrush}" CornerRadius="28" Padding="6,6">
         <ScrollViewer HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Disabled">
@@ -127,6 +144,10 @@
 
             <Button Classes="bottom-nav-item" Name="NavDatabase" Click="OnNavDatabaseClicked">
               <TextBlock Text="DB" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+
+            <Button Classes="bottom-nav-item" Name="NavCloudCode" Click="OnNavCloudCodeClicked">
+              <TextBlock Text="Cloud" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Button>
           </StackPanel>
         </ScrollViewer>

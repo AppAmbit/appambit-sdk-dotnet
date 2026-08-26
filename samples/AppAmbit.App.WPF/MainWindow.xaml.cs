@@ -13,15 +13,20 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         MainFrame.Navigate(new CrashesPage());
+        CrashesNavButton.IsChecked = true;
     }
 
     private void ButtonPage1_Click(object sender, RoutedEventArgs e)
     {
         MainFrame.Navigate(new CrashesPage());
+        CrashesNavButton.IsChecked = true;
+        AnalyticsNavButton.IsChecked = false;
     }
 
     private void ButtonPage2_Click(object sender, RoutedEventArgs e)
     {
         MainFrame.Navigate(new AnalyticsPage());
+        CrashesNavButton.IsChecked = false;
+        AnalyticsNavButton.IsChecked = true;
     }
 }

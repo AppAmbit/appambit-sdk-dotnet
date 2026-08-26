@@ -9,23 +9,33 @@
 
     <TabBar>
         <ShellContent Title="Crashes"
+                      Icon="nav_crashes.svg"
                       ContentTemplate="{DataTemplate local:MainPage}"
                       Route="MainPage" />
 
-        <ShellContent Title="Analytics"
-                      ContentTemplate="{DataTemplate local:AnalyticsPage}"
-                      Route="Analytics Page" />
+         <ShellContent Title="Analytics"
+                       Icon="nav_analytics.svg"
+                       ContentTemplate="{DataTemplate local:AnalyticsPage}"
+                       Route="AnalyticsPage" />
 
         <ShellContent Title="Config"
+              Icon="nav_config.svg"
               ContentTemplate="{DataTemplate local:RemoteConfigPage}"
               Route="RemoteConfigPage" />
 
         <ShellContent Title="CMS"
+              Icon="nav_cms.svg"
               ContentTemplate="{DataTemplate local:CmsPage}"
               Route="CmsPage" />
 
-        <ShellContent Title="Database"
+        <ShellContent Title="Data"
+              Icon="nav_database.svg"
               ContentTemplate="{DataTemplate local:DatabasePage}"
               Route="DatabasePage" />
+
+        <ShellContent Title="Cloud Code"
+              Icon="nav_cloud.svg"
+              ContentTemplate="{DataTemplate local:CloudCodePage}"
+              Route="CloudCodePage" />
     </TabBar>
 </Shell>

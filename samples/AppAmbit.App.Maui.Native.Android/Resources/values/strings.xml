@@ -3,6 +3,10 @@
     <string name="load">Load</string>
     <string name="analytics">Analytics</string>
     <string name="crashes">Crashes</string>
+    <string name="config">Config</string>
+    <string name="cms">CMS</string>
+    <string name="database">DB</string>
+    <string name="cloud">Cloud</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="send_default_logerror">Send Default LogError</string>
     <string name="send_default_log_crash">Send Default LogCrash</string>

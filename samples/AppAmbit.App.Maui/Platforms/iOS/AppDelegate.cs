@@ -7,11 +7,16 @@ namespace AppAmbitTestingApp;
 [Register("AppDelegate")]
 public class AppDelegate : MauiUIApplicationDelegate
 {
+    private MauiBottomNavigationView? _bottomNavigation;
+
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
 
     public override bool FinishedLaunching(UIApplication app, NSDictionary options)
     {
         var result = base.FinishedLaunching(app, options);
+
+        if (Window is UIWindow window)
+            _bottomNavigation = MauiBottomNavigationView.AttachTo(window);
 
         // Start push and wire token updates to AppAmbit (same pattern as Android)
         PushNotifications.Start(null);

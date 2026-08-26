@@ -16,6 +16,7 @@ Lightweight SDK for analytics, events, logging, crashes, and offline support. Si
 * [Install](#install)
 * [Quickstart](#quickstart)
 * [Usage](#usage)
+* [Cloud Code](#cloud-code)
 * [Release Distribution](#release-distribution)
 * [Privacy and Data](#privacy-and-data)
 * [Troubleshooting](#troubleshooting)
@@ -37,6 +38,7 @@ Lightweight SDK for analytics, events, logging, crashes, and offline support. Si
 * Create mutliple app profiles for staging and production
 * Lightweight, modern .NET MAUI API for iOS and Android
 * Database support with SQL, transactions, and fluent queries
+* Cloud Code – invoke authenticated HTTP functions with typed or dynamic JSON responses
 
 ---
 
@@ -62,7 +64,7 @@ Add the package to your MAUI project:
 ```bash
 dotnet add package com.AppAmbit.Sdk
 # or specify version
-dotnet add package com.AppAmbit.Sdk --version 4.1.1
+dotnet add package com.AppAmbit.Sdk --version 4.2.0
 ```
 
 Or, using Visual Studio:
@@ -141,6 +143,30 @@ public static class MauiProgram
         .Get();
   ```
 * **Database**: run SQL, batched/transactional statements, and fluent queries
+
+---
+
+## Cloud Code
+
+Cloud Code lets your app invoke authenticated HTTP functions hosted by AppAmbit. Initialize the SDK as usual; Cloud Code uses the same consumer and Bearer token as the rest of the SDK.
+
+After configuring an active Cloud Function with an enabled HTTP trigger and slug in the Dashboard, call it from .NET:
+
+```csharp
+using AppAmbit;
+using AppAmbit.Enums;
+
+var response = await CloudCode.Call(
+    "hello",
+    CloudCodeHttpMethod.Post,
+    body: new { name = "Ada" });
+
+Console.WriteLine(response.Data);
+```
+
+Backend examples are included in [`CloudCodeExamplesAndroid.js`](./samples/CloudCode/CloudCodeExamplesAndroid.js) and [`CloudCodeExamplesiOS.js`](./samples/CloudCode/CloudCodeExamplesiOS.js).
+
+See the complete [Cloud Code mobile guide](https://docs.appambit.com/sdk-guides/cloud-code/) for function setup, HTTP triggers, typed and dynamic responses, errors, request IDs, cancellation, timeouts, and backend examples.
 
 ---
 

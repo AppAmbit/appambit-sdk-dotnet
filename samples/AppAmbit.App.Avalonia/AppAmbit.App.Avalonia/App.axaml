@@ -12,6 +12,13 @@
         <SolidColorBrush x:Key="NavBackgroundBrush" Color="#F6F7FA" />
         <SolidColorBrush x:Key="NavItemForeground" Color="#1F2937" />
         <SolidColorBrush x:Key="NavItemHover" Color="#E6EEFF" />
+        <SolidColorBrush x:Key="MobilePrimaryBrush" Color="#512BD4" />
+        <SolidColorBrush x:Key="MobileSurfaceBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="MobileCardBrush" Color="#F0F0F0" />
+        <SolidColorBrush x:Key="MobileNavSurfaceBrush" Color="#F8F7FC" />
+        <SolidColorBrush x:Key="MobileNavActiveBrush" Color="#E9E5FF" />
+        <SolidColorBrush x:Key="MobileNavActiveTextBrush" Color="#40318F" />
+        <SolidColorBrush x:Key="MobileNavMutedTextBrush" Color="#666274" />
     </Application.Resources>
 
     <Application.Styles>
@@ -39,6 +46,62 @@
         <Style Selector="Button.bottom-nav-item:pointerover">
             <Setter Property="Background" Value="{StaticResource NavItemHover}" />
             <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <!-- Mobile-only styling. Browser keeps the existing desktop/web appearance. -->
+        <Style Selector="UserControl.mobile-sample">
+            <Setter Property="Background" Value="{StaticResource MobileSurfaceBrush}" />
+        </Style>
+
+        <Style Selector="UserControl.mobile-sample Button">
+            <Setter Property="Background" Value="{StaticResource MobilePrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="MinHeight" Value="48" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
+        <Style Selector="UserControl.mobile-sample TextBox">
+            <Setter Property="Background" Value="{StaticResource MobileCardBrush}" />
+            <Setter Property="Foreground" Value="#111111" />
+            <Setter Property="BorderBrush" Value="#C8C8C8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+
+        <Style Selector="UserControl.mobile-sample Border#MobileTitleBar TextBlock">
+            <Setter Property="Foreground" Value="#111111" />
+        </Style>
+
+        <Style Selector="UserControl.mobile-sample Border#BottomNav">
+            <Setter Property="Background" Value="{StaticResource MobileNavSurfaceBrush}" />
+        </Style>
+
+        <Style Selector="UserControl.mobile-sample Button.bottom-nav-item">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource MobileNavMutedTextBrush}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="MinWidth" Value="58" />
+            <Setter Property="MinHeight" Value="64" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="CornerRadius" Value="14" />
+        </Style>
+
+        <Style Selector="UserControl.mobile-sample Button.bottom-nav-item.active">
+            <Setter Property="Background" Value="{StaticResource MobileNavActiveBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource MobileNavActiveTextBrush}" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+
+        <Style Selector="UserControl.mobile-sample PathIcon">
+            <Setter Property="Foreground" Value="{StaticResource MobileNavMutedTextBrush}" />
+        </Style>
+
+        <Style Selector="UserControl.mobile-sample Button.bottom-nav-item.active PathIcon">
+            <Setter Property="Foreground" Value="{StaticResource MobileNavActiveTextBrush}" />
         </Style>
 
     </Application.Styles>
