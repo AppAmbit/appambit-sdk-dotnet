@@ -153,13 +153,13 @@ Pick the one package that matches your UI stack:
 
 ```bash
 # .NET MAUI
-dotnet add package com.AppAmbit.Maui --version 4.2.0
+dotnet add package com.AppAmbit.Maui --version 4.2.1
 
 # WPF / WinUI
-dotnet add package com.AppAmbit.Sdk --version 4.2.0
+dotnet add package com.AppAmbit.Sdk --version 4.2.1
 
 # Avalonia
-dotnet add package com.AppAmbit.Avalonia --version 4.2.0
+dotnet add package com.AppAmbit.Avalonia --version 4.2.1
 ```
 
 Or, using Visual Studio: right-click your project → **Manage NuGet Packages…**, search for **AppAmbit**, and install the one for your stack.
@@ -178,7 +178,7 @@ The facades you call afterwards (`Analytics`, `Crashes`, `RemoteConfig`, `Cms`, 
 Push is an add-on package that works alongside any of the three:
 
 ```bash
-dotnet add package com.AppAmbit.PushNotifications --version 4.2.0
+dotnet add package com.AppAmbit.PushNotifications --version 4.2.1
 ```
 
 Start it after the core SDK:
