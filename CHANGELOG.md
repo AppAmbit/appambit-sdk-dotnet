@@ -1,3 +1,11 @@
+## Version 4.2.1
+
+### AppAmbit
+
+* **[Docs]** Updated the README with quick start instructions for the MAUI, WPF/WinUI, and Avalonia packages, a supported platform matrix, usage guides for events, logs, breadcrumbs, remote config, CMS, Database, and Cloud Code, plus release distribution pipelines, sample apps, starter apps, MCP setup, and the REST API.
+
+---
+
 ## Version 4.2.0
 
 ### AppAmbit
